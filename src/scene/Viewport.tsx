@@ -19,6 +19,7 @@ import { atlasUrl, type LoadedAtlas } from '../atlas/load.ts'
 import { loadAtlasMesh } from '../atlas/mesh.ts'
 import { colorComponents } from '../atlas/ontology.ts'
 import type { CoordinateProfile } from '../atlas/profile.ts'
+import { SceneObjects } from './SceneObjects.tsx'
 import { useAppStore, type Target } from '../state/store.ts'
 import { atlasToWorldMatrix, stereotaxicToWorld } from './world.ts'
 
@@ -298,6 +299,8 @@ function Scene({
         })}
 
         <AxisTriad />
+
+        <SceneObjects />
 
         {targets.map((target) => (
           <TargetMarker

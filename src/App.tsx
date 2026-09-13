@@ -11,7 +11,15 @@ import { useEffect, useState } from 'react'
 import { loadAtlas } from './atlas/load.ts'
 import { assertProfileMatchesSpace } from './atlas/profile.ts'
 import { Viewport } from './scene/Viewport.tsx'
-import { useAppStore, useAtlas, useProfile, useSelectedTarget } from './state/store.ts'
+import {
+  useAppStore,
+  useAtlas,
+  useProfile,
+  useSelectedObject,
+  useSelectedTarget,
+} from './state/store.ts'
+import { ObjectProperties } from './ui/ObjectProperties.tsx'
+import { ObjectsPanel } from './ui/ObjectsPanel.tsx'
 import { PlanPanel } from './ui/PlanPanel.tsx'
 import { AtlasPanel, ProfilePanel, ScenePanel } from './ui/SidePanels.tsx'
 import { SlicePanel } from './ui/SlicePanel.tsx'
@@ -20,7 +28,7 @@ type Tab = 'PLAN' | 'OBJECTS' | 'ATLAS' | 'MEASURE' | 'OPTICS' | 'EXPORT'
 
 const TABS: readonly { id: Tab; enabled: boolean; title: string }[] = [
   { id: 'PLAN', enabled: true, title: 'Target and trajectory planning' },
-  { id: 'OBJECTS', enabled: false, title: 'Milestone 2 — primitives and STL/OBJ import' },
+  { id: 'OBJECTS', enabled: true, title: 'Hardware primitives and custom geometry' },
   { id: 'ATLAS', enabled: true, title: 'Atlas browsing and region meshes' },
   { id: 'MEASURE', enabled: false, title: 'Milestone 3 — two-point measurement' },
   { id: 'OPTICS', enabled: false, title: 'Milestone 3 — objective access planning' },
@@ -32,6 +40,7 @@ export function App() {
   const atlas = useAtlas()
   const profile = useProfile()
   const target = useSelectedTarget()
+  const selectedObject = useSelectedObject()
   const atlasStatus = useAppStore((s) => s.atlasStatus)
   const setAtlasStatus = useAppStore((s) => s.setAtlasStatus)
 
@@ -89,7 +98,13 @@ export function App() {
 
       <div className="main">
         <aside className="panel panel--left">
-          {atlas && tab === 'ATLAS' ? <AtlasPanel atlas={atlas} /> : <ScenePanel />}
+          {atlas && tab === 'ATLAS' ? (
+            <AtlasPanel atlas={atlas} />
+          ) : tab === 'OBJECTS' ? (
+            <ObjectsPanel />
+          ) : (
+            <ScenePanel />
+          )}
         </aside>
 
         <div style={{ display: 'grid', gridTemplateRows: '1fr auto', minWidth: 0 }}>
@@ -130,9 +145,18 @@ export function App() {
         </div>
 
         <aside className="panel panel--right">
-          {atlas && <ProfilePanel atlas={atlas} profile={profile} />}
-          {atlas && tab === 'PLAN' && (
-            <PlanPanel atlas={atlas} profile={profile} target={target} />
+          {/* The properties panel follows the selection rather than the tab:
+              selecting an object in the 3D view should show its properties
+              wherever the user happens to be. */}
+          {atlas && selectedObject ? (
+            <ObjectProperties object={selectedObject} atlas={atlas} profile={profile} />
+          ) : (
+            <>
+              {atlas && <ProfilePanel atlas={atlas} profile={profile} />}
+              {atlas && tab === 'PLAN' && (
+                <PlanPanel atlas={atlas} profile={profile} target={target} />
+              )}
+            </>
           )}
         </aside>
       </div>

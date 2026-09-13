@@ -22,7 +22,7 @@ this angle, without colliding with anything?*
 |---|---|---|
 | **M0** | Asset pipeline, coordinate core, landmark validation | ✅ done |
 | **M1** | Atlas viewer, AP/ML/DV entry, region lookup, slice views | ✅ done |
-| M2 | Primitives, STL/OBJ/GLB import, pivot/anchor, gizmos | planned |
+| **M2** | Primitives, STL/OBJ/GLB import, pivot/anchor, gizmos | ✅ done |
 | M3 | Mesh collision, clearance, two-point measurement | planned |
 | M4 | Project save/load, planning-sheet export | planned |
 | M5 | Mobile bottom-sheet layout, polish | planned |
@@ -98,6 +98,28 @@ sign flip; these can, and did:
 - Allen structure ids are sparse and reach **614,454,277**, so a colour table
   indexed by id would need 2.4 GB. Caught only on real data; the unit-test
   fixture's ids were all small.
+
+### Pivot and anchor are a scene-graph shape, not a maths library
+
+Every object declares two points in its own local space: the **pivot** it
+rotates about, and the **anchor** that must land on the chosen AP/ML/DV target.
+They are frequently different — a cannula rotates about its collar but is
+specified by its tip; a prism is specified by its imaging face, not the centre
+of the glass. Keeping them separate reduces placement to one line:
+
+```
+t = target − pivot − R·(anchor − pivot)
+```
+
+With no rotation this collapses to `target − anchor`; when pivot and anchor
+coincide it becomes rotation about the target itself. Both are asserted in the
+tests, along with the defining property: whatever the pivot and whatever the
+rotation, the anchor lands exactly on the target.
+
+The 3D gizmo and the numeric fields are two views of that same state. Dragging
+hands back a quaternion, which `quaternionToOrientation` converts into the AP
+tilt / ML tilt / roll a manipulator actually speaks — round-tripped in tests, so
+dragging and typing can never disagree.
 
 ### Mesh format
 

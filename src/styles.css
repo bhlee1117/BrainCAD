@@ -585,3 +585,136 @@ input[type='range'] {
     overflow-x: auto;
   }
 }
+
+/* ---------- M2: object library, import, properties ---------- */
+
+.library {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.lib {
+  display: grid;
+  grid-template-columns: 10px 1fr;
+  grid-template-rows: auto auto;
+  gap: 1px 8px;
+  align-items: center;
+  padding: 7px 9px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.lib:hover {
+  border-color: var(--accent-dim);
+}
+
+.lib__swatch {
+  grid-row: 1 / 3;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.lib__label {
+  font-weight: 600;
+}
+
+.lib__hint {
+  grid-column: 2;
+  color: var(--text-faint);
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+.icon-btn {
+  border: 0;
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+  padding: 0 3px;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.icon-btn:hover {
+  color: var(--text);
+}
+
+.import {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px;
+}
+
+.import__name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.import__meta {
+  color: var(--text-faint);
+  font-size: 11px;
+  margin-bottom: 8px;
+}
+
+.guess {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 7px 8px;
+  border-radius: 5px;
+  font-size: 11px;
+  line-height: 1.4;
+  margin-bottom: 9px;
+}
+
+.guess--likely {
+  background: #14261a;
+  border: 1px solid #26492f;
+  color: var(--ok);
+}
+
+.guess--uncertain {
+  background: #2a2413;
+  border: 1px solid #4a3f1c;
+  color: var(--warn);
+}
+
+.guess span {
+  color: var(--text-dim);
+}
+
+.warn-box {
+  margin-top: 8px;
+  padding: 7px 9px;
+  background: #2c1a16;
+  border: 1px solid #5a2e24;
+  border-radius: 5px;
+  color: var(--danger);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.hint {
+  margin: 8px 0 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-faint);
+}
+
+.panel input[type='color'] {
+  flex: 1;
+  height: 26px;
+  padding: 1px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  cursor: pointer;
+}
