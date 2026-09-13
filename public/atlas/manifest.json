@@ -1,0 +1,174 @@
+{
+  "generatedAt": "2026-09-13T04:00:23.854Z",
+  "annotation": {
+    "file": "annotation_50.nrrd",
+    "bytes": 880845,
+    "sha256": "84e7cecea1b03af16e923c3639602b8324929f833425ba03582bf56f962ea0d4",
+    "resolutionUm": 50,
+    "orientation": "asr",
+    "source": "https://download.alleninstitute.org/informatics-archive/current-release/mouse_ccf/annotation/ccf_2017/annotation_50.nrrd"
+  },
+  "ontology": {
+    "file": "structures.json",
+    "count": 1327,
+    "source": "https://api.brain-map.org/api/v2/structure_graph_download/1.json"
+  },
+  "meshes": [
+    {
+      "id": 997,
+      "name": "root",
+      "triangles": 60000,
+      "bytes": 1311928,
+      "file": "meshes/997.msh"
+    },
+    {
+      "id": 8,
+      "name": "grey",
+      "triangles": 39997,
+      "bytes": 1532788,
+      "file": "meshes/8.msh"
+    },
+    {
+      "id": 315,
+      "name": "Isocortex",
+      "triangles": 40000,
+      "bytes": 859144,
+      "file": "meshes/315.msh"
+    },
+    {
+      "id": 698,
+      "name": "OLF",
+      "triangles": 15000,
+      "bytes": 412000,
+      "file": "meshes/698.msh"
+    },
+    {
+      "id": 1089,
+      "name": "HPF",
+      "triangles": 25000,
+      "bytes": 477316,
+      "file": "meshes/1089.msh"
+    },
+    {
+      "id": 382,
+      "name": "CA1",
+      "triangles": 12620,
+      "bytes": 227248,
+      "file": "meshes/382.msh"
+    },
+    {
+      "id": 463,
+      "name": "CA3",
+      "triangles": 9804,
+      "bytes": 176560,
+      "file": "meshes/463.msh"
+    },
+    {
+      "id": 726,
+      "name": "DG",
+      "triangles": 10752,
+      "bytes": 193624,
+      "file": "meshes/726.msh"
+    },
+    {
+      "id": 477,
+      "name": "STR",
+      "triangles": 20000,
+      "bytes": 445984,
+      "file": "meshes/477.msh"
+    },
+    {
+      "id": 672,
+      "name": "CP",
+      "triangles": 15000,
+      "bytes": 280768,
+      "file": "meshes/672.msh"
+    },
+    {
+      "id": 56,
+      "name": "ACB",
+      "triangles": 5280,
+      "bytes": 95080,
+      "file": "meshes/56.msh"
+    },
+    {
+      "id": 803,
+      "name": "PAL",
+      "triangles": 12000,
+      "bytes": 246232,
+      "file": "meshes/803.msh"
+    },
+    {
+      "id": 549,
+      "name": "TH",
+      "triangles": 13170,
+      "bytes": 237196,
+      "file": "meshes/549.msh"
+    },
+    {
+      "id": 1097,
+      "name": "HY",
+      "triangles": 12329,
+      "bytes": 222592,
+      "file": "meshes/1097.msh"
+    },
+    {
+      "id": 313,
+      "name": "MB",
+      "triangles": 20000,
+      "bytes": 366256,
+      "file": "meshes/313.msh"
+    },
+    {
+      "id": 749,
+      "name": "VTA",
+      "triangles": 1324,
+      "bytes": 23920,
+      "file": "meshes/749.msh"
+    },
+    {
+      "id": 374,
+      "name": "SNc",
+      "triangles": 1180,
+      "bytes": 21424,
+      "file": "meshes/374.msh"
+    },
+    {
+      "id": 771,
+      "name": "P",
+      "triangles": 14298,
+      "bytes": 258532,
+      "file": "meshes/771.msh"
+    },
+    {
+      "id": 354,
+      "name": "MY",
+      "triangles": 15000,
+      "bytes": 308524,
+      "file": "meshes/354.msh"
+    },
+    {
+      "id": 512,
+      "name": "CB",
+      "triangles": 24999,
+      "bytes": 520624,
+      "file": "meshes/512.msh"
+    },
+    {
+      "id": 73,
+      "name": "VS",
+      "triangles": 12000,
+      "bytes": 260416,
+      "file": "meshes/73.msh"
+    },
+    {
+      "id": 1009,
+      "name": "fiber tracts",
+      "triangles": 24995,
+      "bytes": 1249396,
+      "file": "meshes/1009.msh"
+    }
+  ],
+  "lazyMeshBaseUrl": "https://download.alleninstitute.org/informatics-archive/current-release/mouse_ccf/annotation/ccf_2017/structure_meshes",
+  "citation": "Allen Mouse Brain Common Coordinate Framework v3 (CCFv3); Wang et al. (2020), Cell 181(4):936-953."
+}

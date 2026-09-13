@@ -1,0 +1,125 @@
+# BrainCAD
+
+**3D stereotaxic planning for injections, implants, and optical access.**
+
+> Put the atlas and the experimental rig into the same 3D space.
+
+A browser-based planning workspace for mouse neuroscience experiments. BrainCAD
+places the mouse brain atlas, stereotaxic targets, and (from M2 onward)
+pipettes, cannulas, prisms, objectives and custom hardware into one manipulable
+3D scene, so you can answer: *can I reach this location with this object, at
+this angle, without colliding with anything?*
+
+> **BrainCAD is a research planning tool.** Verify coordinates, skull levelling,
+> object dimensions and surgical access experimentally before use. CCFv3 is an
+> averaged reference brain; live-animal coordinates differ.
+
+---
+
+## Status
+
+| Milestone | Scope | State |
+|---|---|---|
+| **M0** | Asset pipeline, coordinate core, landmark validation | ✅ done |
+| **M1** | Atlas viewer, AP/ML/DV entry, region lookup, slice views | ✅ done |
+| M2 | Primitives, STL/OBJ/GLB import, pivot/anchor, gizmos | planned |
+| M3 | Mesh collision, clearance, two-point measurement | planned |
+| M4 | Project save/load, planning-sheet export | planned |
+| M5 | Mobile bottom-sheet layout, polish | planned |
+
+## Quick start
+
+```bash
+npm install
+npm run atlas:fetch   # one-time: downloads and processes atlas assets (~10 MB out)
+npm run dev
+```
+
+Then open the URL Vite prints. `npm test` runs the validation suite;
+`npm run build` produces a static bundle deployable to GitHub Pages.
+
+## Architecture
+
+BrainCAD is a **fully static site — no backend.** All atlas assets are fetched
+from `public/atlas/`, so nothing leaves the browser and deployment is a file
+copy.
+
+```
+scripts/fetch-atlas.mjs   Build-time: download → decimate → public/atlas/
+src/atlas/                Coordinate system, volume, ontology, loaders
+src/scene/                three.js world transform and 3D viewport
+src/ui/                   Panels and slice views
+src/state/                Application store (mirrors the project data model)
+```
+
+### The annotation volume does the heavy lifting
+
+`annotation_50.nrrd` is **880 KB** and carries a structure id for every voxel of
+the mouse brain at 50 µm. That single file answers region lookup at a target,
+all three orthogonal slice views, the list of structures a trajectory crosses,
+and brain-surface entry detection — with no additional geometry.
+
+### Coordinate profiles are cited data, never constants
+
+Nothing in BrainCAD hard-codes a bregma position or an atlas-to-stereotaxic
+scaling factor. Published values disagree, and every lab has its own
+calibration. Each `CoordinateProfile` carries a citation, a confidence level
+(`published` / `community-convention` / `user-calibrated`) and explicit caveats,
+all surfaced in the UI and stored in the project file.
+
+Two profiles ship today:
+
+- **Allen CCFv3 (50 µm)** — the default, matching the bundled annotation volume.
+  Its bregma placement is a *community convention*, not an Allen definition, and
+  is labelled as such.
+- **Perens 2023 stereotaxic MRI (25 µm)** — landmark positions from
+  [Perens et al. 2023](https://doi.org/10.1007/s12021-023-09623-9), measured from
+  12 micro-CT-imaged skulls. Better provenance, but it describes a *different*
+  template volume, which is not yet bundled.
+
+A profile is only valid for the volume it describes. Pairing the Perens bregma
+with the Allen volume would produce coordinates that look entirely plausible and
+are wrong by millimetres, so `assertProfileMatchesSpace` refuses the
+combination outright rather than trusting convention.
+
+### Validation
+
+`src/atlas/real-atlas.test.ts` runs against the actual downloaded atlas and
+asserts that published stereotaxic coordinates land in the structures they are
+published for — dorsal CA1 in the hippocampal formation, dorsal striatum in the
+caudoputamen, VTA in the midbrain, barrel cortex layers appearing in
+superficial-to-deep order. Self-consistency tests cannot catch an axis swap or a
+sign flip; these can, and did:
+
+- The NRRD layout is **first-axis-fastest**, not C order. Read as C order the
+  data does not error — it silently scrambles anatomy. Caught because olfactory
+  bulb voxels appeared spread across the whole volume instead of at the anterior
+  pole.
+- Allen structure ids are sparse and reach **614,454,277**, so a colour table
+  indexed by id would need 2.4 GB. Caught only on real data; the unit-test
+  fixture's ids were all small.
+
+### Mesh format
+
+Atlas meshes ship as `.msh`, a trivial header + positions + indices container
+(see `scripts/fetch-atlas.mjs`). Normals are deliberately omitted — they are
+exactly as large as the position data and three.js recomputes them in
+milliseconds, so shipping them would double every download. User-supplied
+geometry uses standard STL/OBJ/GLB loaders instead.
+
+## Data sources
+
+- Allen Mouse Brain Common Coordinate Framework v3 — Wang et al. (2020),
+  *Cell* 181(4):936-953.
+- Perens et al. (2023), *Neuroinformatics* 21(2):269-286 —
+  skull-derived stereotaxic coordinate system.
+
+## Related tools
+
+[Pinpoint](https://pinpoint.virtualbrainlab.org/) (browser trajectory planning),
+[Urchin](https://github.com/VirtualBrainLab/Urchin) (Python-driven Unity
+renderer), [brainrender](https://github.com/brainglobe/brainrender) (Python
+atlas visualisation), and
+[bregma·lambda](https://github.com/matiasandina/bregmalambda). BrainCAD's
+distinct aim is the *CAD* half: pivot-aware hardware placement, optical access,
+and collision-checked implant geometry.

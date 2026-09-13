@@ -1,0 +1,150 @@
+/**
+ * BrainCAD application shell.
+ *
+ * Tabs follow the blueprint's mode structure (§6). PLAN and ATLAS are live at
+ * M1; the rest are present but disabled so the intended shape of the tool is
+ * visible without pretending the features exist.
+ */
+
+import { useEffect, useState } from 'react'
+
+import { loadAtlas } from './atlas/load.ts'
+import { assertProfileMatchesSpace } from './atlas/profile.ts'
+import { Viewport } from './scene/Viewport.tsx'
+import { useAppStore, useAtlas, useProfile, useSelectedTarget } from './state/store.ts'
+import { PlanPanel } from './ui/PlanPanel.tsx'
+import { AtlasPanel, ProfilePanel, ScenePanel } from './ui/SidePanels.tsx'
+import { SlicePanel } from './ui/SlicePanel.tsx'
+
+type Tab = 'PLAN' | 'OBJECTS' | 'ATLAS' | 'MEASURE' | 'OPTICS' | 'EXPORT'
+
+const TABS: readonly { id: Tab; enabled: boolean; title: string }[] = [
+  { id: 'PLAN', enabled: true, title: 'Target and trajectory planning' },
+  { id: 'OBJECTS', enabled: false, title: 'Milestone 2 — primitives and STL/OBJ import' },
+  { id: 'ATLAS', enabled: true, title: 'Atlas browsing and region meshes' },
+  { id: 'MEASURE', enabled: false, title: 'Milestone 3 — two-point measurement' },
+  { id: 'OPTICS', enabled: false, title: 'Milestone 3 — objective access planning' },
+  { id: 'EXPORT', enabled: false, title: 'Milestone 4 — planning sheet export' },
+]
+
+export function App() {
+  const [tab, setTab] = useState<Tab>('PLAN')
+  const atlas = useAtlas()
+  const profile = useProfile()
+  const target = useSelectedTarget()
+  const atlasStatus = useAppStore((s) => s.atlasStatus)
+  const setAtlasStatus = useAppStore((s) => s.setAtlasStatus)
+
+  useEffect(() => {
+    // The load itself is shared and uncancellable; this flag only suppresses
+    // state updates from an effect run that has already been torn down.
+    let live = true
+
+    setAtlasStatus({ kind: 'loading', message: 'Starting' })
+    loadAtlas((progress) => {
+      if (live) setAtlasStatus({ kind: 'loading', message: progress.message })
+    })
+      .then((loaded) => {
+        if (!live) return
+        // Guard against pairing a profile with a volume it does not describe.
+        assertProfileMatchesSpace(profile, loaded.space)
+        setAtlasStatus({ kind: 'ready', atlas: loaded })
+      })
+      .catch((error: unknown) => {
+        if (!live) return
+        setAtlasStatus({
+          kind: 'error',
+          message: error instanceof Error ? error.message : String(error),
+        })
+      })
+
+    return () => {
+      live = false
+    }
+    // Intentionally runs once: the atlas assets do not change during a session.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  return (
+    <div className="app">
+      <header className="topbar">
+        <div className="brand">
+          BrainCAD<span>3D stereotaxic planning</span>
+        </div>
+        <nav className="tabs">
+          {TABS.map((entry) => (
+            <button
+              key={entry.id}
+              className="tab"
+              aria-selected={tab === entry.id}
+              disabled={!entry.enabled}
+              title={entry.title}
+              onClick={() => setTab(entry.id)}
+            >
+              {entry.id}
+            </button>
+          ))}
+        </nav>
+      </header>
+
+      <div className="main">
+        <aside className="panel panel--left">
+          {atlas && tab === 'ATLAS' ? <AtlasPanel atlas={atlas} /> : <ScenePanel />}
+        </aside>
+
+        <div style={{ display: 'grid', gridTemplateRows: '1fr auto', minWidth: 0 }}>
+          <div style={{ position: 'relative', minHeight: 0 }}>
+            {atlas ? (
+              <Viewport atlas={atlas} profile={profile} />
+            ) : (
+              <div className="viewport" />
+            )}
+
+            {atlasStatus.kind === 'loading' && (
+              <div className="overlay">
+                <div>
+                  <h3>Loading atlas</h3>
+                  <p>{atlasStatus.message}…</p>
+                </div>
+              </div>
+            )}
+
+            {atlasStatus.kind === 'error' && (
+              <div className="overlay">
+                <div>
+                  <h3>Atlas assets not available</h3>
+                  <p>
+                    {atlasStatus.message}
+                    <br />
+                    <br />
+                    Build them with <code>npm run atlas:fetch</code>, then reload.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {atlas && target && (
+            <SlicePanel atlas={atlas} profile={profile} coord={target.coord} />
+          )}
+        </div>
+
+        <aside className="panel panel--right">
+          {atlas && <ProfilePanel atlas={atlas} profile={profile} />}
+          {atlas && tab === 'PLAN' && (
+            <PlanPanel atlas={atlas} profile={profile} target={target} />
+          )}
+        </aside>
+      </div>
+
+      <footer className="notice">
+        <strong>Research planning tool.</strong>
+        <span>
+          Verify coordinates, skull levelling, object dimensions and surgical access
+          experimentally before use. CCFv3 is an averaged reference brain; live-animal
+          coordinates differ.
+        </span>
+      </footer>
+    </div>
+  )
+}

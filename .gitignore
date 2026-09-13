@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.DS_Store
+*.local
+.vite/
+
+# Raw atlas downloads (large, regenerable via `npm run atlas:fetch`)
+data/raw/
