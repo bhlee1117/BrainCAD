@@ -117,6 +117,38 @@ describe('describeDriver', () => {
   })
 })
 
+describe('gene alias selection', () => {
+  async function aliasFor(aliasTags: string) {
+    globalThis.fetch = (async () => ({
+      ok: true,
+      json: async () => ({
+        success: true,
+        msg: [{ acronym: 'X', name: 'a gene', alias_tags: aliasTags }],
+      }),
+    })) as unknown as typeof fetch
+    const { loadGene } = await import('./transgenicLines.ts')
+    return (await loadGene(`probe-${Math.random()}`))?.alias ?? null
+  }
+
+  it('picks the familiar protein name over an all-caps designation', async () => {
+    // Kcnc2's real alias list. KShIIIA is a valid alias but nobody calls it
+    // that; Kv3.2 is the name that makes the row informative.
+    expect(await aliasFor('AW047325 B230117I07 KShIIIA Kv3.2')).toBe('Kv3.2')
+  })
+
+  it('picks Vglut1 out of Slc17a7 aliases', async () => {
+    expect(await aliasFor('2900052E22Rik AI851913 Vglut1')).toBe('Vglut1')
+  })
+
+  it('drops accession-style identifiers', async () => {
+    expect(await aliasFor('AI851913 AW047325')).toBeNull()
+  })
+
+  it('returns null when there is no alias at all', async () => {
+    expect(await aliasFor('')).toBeNull()
+  })
+})
+
 describe('repository labelling', () => {
   it('names the distributing repository rather than assuming JAX', async () => {
     // Many lines come from MMRRC; labelling a stock number "JAX" when the link

@@ -14,9 +14,17 @@ import { makeVolumeSpace } from '../atlas/space.ts'
 import { searchStructures } from '../atlas/ontology.ts'
 import {
   describeDriver,
+  loadGene,
   loadTransgenicLines,
+  type GeneIdentity,
   type LineIndex,
 } from '../overlays/transgenicLines.ts'
+import {
+  CELL_CLASS_CAVEAT,
+  CONFIDENCE_LABEL,
+  cellClassForLine,
+  geneFromLineName,
+} from '../overlays/cellClasses.ts'
 import {
   experimentCitation,
   experimentUrl,
@@ -61,6 +69,7 @@ export function OverlaysPanel({
   const [error, setError] = useState<string | null>(null)
   const [lines, setLines] = useState<LineIndex>(() => new Map())
   const [expanded, setExpanded] = useState<number | null>(null)
+  const [genes, setGenes] = useState<Record<string, GeneIdentity | null>>({})
 
   // Loaded once and cached; the list still works without it, just without the
   // plain-language descriptions.
@@ -78,6 +87,24 @@ export function OverlaysPanel({
     () => (query.trim() ? searchStructures(atlas.index, query, 8) : []),
     [atlas.index, query],
   )
+
+  // Gene identity is fetched only for the row being inspected; the list itself
+  // does not need it, and there is no reason to pull forty gene records to
+  // render forty lines.
+  useEffect(() => {
+    if (expanded === null) return
+    const experiment = experiments?.find((e) => e.id === expanded)
+    const gene = experiment ? geneFromLineName(experiment.transgenicLine) : null
+    if (!gene || gene in genes) return
+
+    let live = true
+    void loadGene(gene).then((identity) => {
+      if (live) setGenes((previous) => ({ ...previous, [gene]: identity }))
+    })
+    return () => {
+      live = false
+    }
+  }, [expanded, experiments, genes])
 
   const selectedStructure = structureId ? atlas.index.byId.get(structureId) : null
 
@@ -272,6 +299,7 @@ export function OverlaysPanel({
           <div className="explist">
             {experiments.map((experiment) => {
               const driver = describeDriver(experiment.transgenicLine, lines)
+              const cellClass = cellClassForLine(experiment.transgenicLine)
               const isOpen = expanded === experiment.id
 
               return (
@@ -288,9 +316,17 @@ export function OverlaysPanel({
                       <span className="exp__driver">
                         {experiment.structureAbbrev} · {driver.label}
                       </span>
-                      {driver.population && (
-                        <span className="exp__population">{driver.population}</span>
-                      )}
+                      {/* The cell class answers the question being asked, so it
+                          leads when one is established. Allen's anatomical
+                          description is real but different information, and it
+                          sits below. */}
+                      {cellClass ? (
+                        <span className="exp__population">{cellClass.population}</span>
+                      ) : driver.population ? (
+                        <span className="exp__population exp__population--anat">
+                          {driver.population}
+                        </span>
+                      ) : null}
                       <span className="exp__meta">
                         {experiment.injectionVolumeMm3 !== null
                           ? `${experiment.injectionVolumeMm3.toFixed(2)} mm³`
@@ -311,8 +347,39 @@ export function OverlaysPanel({
 
                   {isOpen && (
                     <div className="exp__detail">
+                      {cellClass && (
+                        <div className="cellclass">
+                          <div className="cellclass__head">
+                            <span className="cellclass__pop">{cellClass.population}</span>
+                            <span className="cellclass__conf">
+                              {CONFIDENCE_LABEL[cellClass.confidence]}
+                            </span>
+                          </div>
+                          <div className="cellclass__marker">{cellClass.marker}</div>
+                          {cellClass.caveat && (
+                            <div className="cellclass__caveat">{cellClass.caveat}</div>
+                          )}
+                          <div className="cellclass__source">{CELL_CLASS_CAVEAT}</div>
+                        </div>
+                      )}
+
+                      {(() => {
+                        const gene = geneFromLineName(experiment.transgenicLine)
+                        const identity = gene ? genes[gene] : null
+                        if (!identity) return null
+                        return (
+                          <p className="exp__gene">
+                            <b>{identity.symbol}</b>
+                            {identity.alias ? ` (${identity.alias})` : ''} — {identity.name}
+                          </p>
+                        )
+                      })()}
+
                       {driver.line?.description ? (
-                        <p className="exp__desc">{driver.line.description}</p>
+                        <p className="exp__desc">
+                          <span className="exp__desclabel">Allen — expression pattern:</span>{' '}
+                          {driver.line.description}
+                        </p>
                       ) : experiment.transgenicLine ? (
                         <p className="exp__desc exp__desc--missing">
                           No expression description published for this line.

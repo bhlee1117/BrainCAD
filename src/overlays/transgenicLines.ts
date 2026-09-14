@@ -100,6 +100,72 @@ async function fetchLines(): Promise<LineIndex> {
   return index
 }
 
+/** Gene identity, for lines with no curated cell class. */
+export interface GeneIdentity {
+  readonly symbol: string
+  readonly name: string
+  /** Familiar alias — Kv3.2 for Kcnc2, Vglut1 for Slc17a7. */
+  readonly alias: string | null
+}
+
+const geneCache = new Map<string, Promise<GeneIdentity | null>>()
+
+/**
+ * Look up a mouse gene by symbol.
+ *
+ * Fetched lazily per expanded row rather than in bulk: the gene table is large,
+ * and only the handful of drivers a user actually inspects are needed. Results
+ * are cached, and a failure resolves to null so the row degrades instead of
+ * erroring.
+ */
+export function loadGene(symbol: string): Promise<GeneIdentity | null> {
+  const existing = geneCache.get(symbol)
+  if (existing) return existing
+
+  const request = fetchGene(symbol).catch(() => null)
+  geneCache.set(symbol, request)
+  return request
+}
+
+async function fetchGene(symbol: string): Promise<GeneIdentity | null> {
+  const criteria =
+    `model::Gene,rma::criteria,[acronym$eq'${symbol}'][organism_id$eq2]`
+  const response = await fetch(
+    `${API_BASE}/api/v2/data/query.json?criteria=${encodeURIComponent(criteria)}`,
+  )
+  if (!response.ok) return null
+
+  const payload = (await response.json()) as { success?: boolean; msg?: unknown }
+  if (!payload.success || !Array.isArray(payload.msg) || payload.msg.length === 0) {
+    return null
+  }
+
+  const row = payload.msg[0] as { acronym?: string; name?: string; alias_tags?: string }
+
+  // Aliases arrive space-separated and mix clone ids with the familiar protein
+  // name: Kcnc2 lists "AW047325 B230117I07 KShIIIA Kv3.2". The wanted one is
+  // Kv3.2, so accessions and clone ids are dropped and the remainder is ranked
+  // — a name that reads as Xx-style (Kv3.2, Vglut1, Parv) beats an all-caps
+  // designation like KShIIIA, which is technically an alias but not what
+  // anyone calls it.
+  const candidates = (row.alias_tags ?? '')
+    .split(/\s+/)
+    .map((tag) => tag.trim())
+    .filter((tag) => tag.length > 1 && tag.length <= 10)
+    .filter((tag) => !/^(AI|AW|BC|BB|MGC|RIKEN)\d/i.test(tag))
+    .filter((tag) => !/^[A-Z]\d{6,}/.test(tag))
+    .filter((tag) => !/^[A-Z0-9]{9,}$/.test(tag))
+
+  const alias =
+    candidates.find((tag) => /^[A-Z][a-z]/.test(tag)) ?? candidates[0] ?? null
+
+  return {
+    symbol: row.acronym ?? symbol,
+    name: row.name ?? symbol,
+    alias,
+  }
+}
+
 /**
  * A short phrase naming the labelled population, for a dense list row.
  *
