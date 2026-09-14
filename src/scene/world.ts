@@ -53,6 +53,23 @@ export function atlasToWorldMatrix(profile: CoordinateProfile): Matrix4 {
   )
 }
 
+/**
+ * World X of the volume's midline.
+ *
+ * Not assumed to be zero. It is exactly zero for the Allen profile, whose
+ * bregma voxel sits on the midline, but the Perens profile places bregma at
+ * voxel 227 of a 455-wide axis whose true centre is 227.5 — a 13 µm offset.
+ * That is far below the voxel size and the published landmark SD, and mirroring
+ * about the wrong axis by even that much is still avoidable, so it is not
+ * hard-coded away.
+ */
+export function midlineWorldX(profile: CoordinateProfile): number {
+  const { space } = profile
+  const mlAxis = arrayAxisFor(space, 'ML')
+  const midlineMm = (space.shape[mlAxis] * space.resolutionUm) / 2000
+  return midlineMm - bregmaCcfMm(profile).z
+}
+
 /** Convert a stereotaxic coordinate to a world-space position. */
 export function stereotaxicToWorld(coord: Stereotaxic): Vector3 {
   return new Vector3(coord.ml, coord.dv, coord.ap)

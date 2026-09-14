@@ -13,6 +13,7 @@ import { renderPlanningSheet, sheetFilename } from '../project/sheet.ts'
 import { renderObjectiveView } from '../optics/objectiveView.ts'
 import { renderOverviewViews } from '../optics/overviewViews.ts'
 import { getSceneHandle } from '../scene/handle.ts'
+import { MIRROR_CAVEAT } from '../overlays/model.ts'
 import { useAppStore } from '../state/store.ts'
 
 /** Trigger a browser download of text content. */
@@ -134,10 +135,13 @@ export function ExportPanel({
               injectionSummary: null,
               injectionStructures: o.somaAcronym ? [o.somaAcronym] : [],
               evidence: o.provenance.evidence,
+              mirrored: o.mirrored,
               citation: o.provenance.citation,
               url: o.provenance.url,
               resolutionUm: o.provenance.resolutionUm,
-              caveats: o.provenance.caveats,
+              caveats: o.mirrored
+                ? [MIRROR_CAVEAT, ...o.provenance.caveats]
+                : o.provenance.caveats,
             }
           : {
               name: o.name,
@@ -153,10 +157,13 @@ export function ExportPanel({
                 : null,
               injectionStructures: o.injection.structures,
               evidence: o.provenance.evidence,
+              mirrored: o.mirrored,
               citation: o.provenance.citation,
               url: o.provenance.url,
               resolutionUm: o.provenance.resolutionUm,
-              caveats: o.provenance.caveats,
+              caveats: o.mirrored
+                ? [MIRROR_CAVEAT, ...o.provenance.caveats]
+                : o.provenance.caveats,
             },
       ),
       targetRegions,

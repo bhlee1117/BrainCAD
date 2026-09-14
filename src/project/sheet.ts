@@ -57,6 +57,8 @@ export interface SheetInput {
     readonly injectionSummary: string | null
     readonly injectionStructures: readonly string[]
     readonly evidence: string
+    /** Drawn reflected across the midline rather than where it was measured. */
+    readonly mirrored: boolean
     readonly citation: string
     readonly url: string | null
     readonly resolutionUm: number
@@ -262,6 +264,7 @@ function overlaySection(input: SheetInput): string {
       (overlay) => `<div class="overlay">
         <strong>${escapeHtml(overlay.name)}</strong>
         <span class="evidence">${escapeHtml(overlay.evidence)}</span>
+        ${overlay.mirrored ? '<span class="evidence evidence--mirrored">mirrored</span>' : ''}
         <div class="overlay__meta">${
           overlay.threshold !== null
             ? `${overlay.pointCount.toLocaleString()} points above density ${overlay.threshold.toFixed(2)} · ${overlay.resolutionUm} µm grid`
@@ -343,6 +346,7 @@ export function renderPlanningSheet(input: SheetInput): string {
   .objview figcaption { font-size: 11px; color: #5d6b7a; margin-top: 6px; line-height: 1.4; }
   .caveat { font-size: 11px; color: #5d6b7a; margin-top: 10px; }
   .overlay { border-left: 3px solid #c0392b; background: #fdf3f1; padding: 10px 13px; border-radius: 0 6px 6px 0; margin-bottom: 10px; }
+  .overlay .evidence--mirrored { background: #f6e3c4; color: #6b4b12; }
   .overlay .evidence { display: inline-block; margin-left: 8px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; background: #e8eef3; color: #33424f; padding: 1px 7px; border-radius: 100px; }
   .overlay__meta { font-size: 11px; color: #5d6b7a; margin-top: 3px; }
   .overlay__cite { font-size: 11px; margin-top: 5px; }

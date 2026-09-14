@@ -36,6 +36,7 @@ import {
 } from '../overlays/connectivity.ts'
 import {
   CONNECTIVITY_CAVEATS,
+  MIRROR_CAVEAT,
   NEURON_AXON_COLOR,
   NEURON_DENDRITE_COLOR,
   overlayColorFor,
@@ -269,6 +270,7 @@ export function OverlaysPanel({
         somaAcronym: neuron.somaAcronym,
         showAxon: true,
         showDendrite: true,
+        mirrored: false,
         totalNodes: neuron.axonSegments + neuron.dendriteSegments,
         provenance: {
           evidence: 'measured',
@@ -402,6 +404,7 @@ export function OverlaysPanel({
         injection,
         excludeInjection: true,
         showInjection: true,
+        mirrored: false,
         provenance: {
           evidence: 'measured',
           citation: experimentCitation(experiment),
@@ -778,7 +781,11 @@ export function OverlaysPanel({
                   <span>Centre</span>
                   <b>
                     AP {overlay.injection.centre.ap.toFixed(2)} · ML{' '}
-                    {overlay.injection.centre.ml.toFixed(2)} · DV{' '}
+                    {(overlay.mirrored
+                      ? -overlay.injection.centre.ml
+                      : overlay.injection.centre.ml
+                    ).toFixed(2)}
+                    {overlay.mirrored && <span className="unit"> mirrored</span>} · DV{' '}
                     {overlay.injection.centre.dv.toFixed(2)}
                   </b>
                 </div>
@@ -877,6 +884,19 @@ export function OverlaysPanel({
 
               </>
             )}
+
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={overlay.mirrored}
+                onChange={(event) =>
+                  updateOverlay(overlay.id, { mirrored: event.target.checked })
+                }
+              />
+              Mirror to other hemisphere
+            </label>
+
+            {overlay.mirrored && <p className="hint">{MIRROR_CAVEAT}</p>}
 
             <div className="provenance">
               <span className="badge badge--measured">measured</span>

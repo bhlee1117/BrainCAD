@@ -280,6 +280,7 @@ describe('overlay provenance on the sheet', () => {
     threshold: 0.05,
     pointCount: 45365,
     evidence: 'measured',
+    mirrored: false,
     citation: 'Allen Mouse Brain Connectivity Atlas, experiment 180296424. Oh et al. (2014).',
     url: 'https://connectivity.brain-map.org/projection/experiment/180296424',
     resolutionUm: 100,
@@ -287,6 +288,21 @@ describe('overlay provenance on the sheet', () => {
     injectionStructures: ['VISp', 'VISl', 'VISpl'],
     caveats: ['Measured from a single injection in a single animal.'],
   }
+
+  it('marks a mirrored overlay as mirrored', () => {
+    // A reflection is not a measurement of the hemisphere it is drawn on, and
+    // a printed sheet is where that distinction is easiest to lose.
+    const html = renderPlanningSheet(
+      sheetInput({ overlays: [{ ...overlay, mirrored: true }] }),
+    )
+    // The class name also appears in the stylesheet, so match the badge itself.
+    expect(html).toContain('<span class="evidence evidence--mirrored">mirrored</span>')
+  })
+
+  it('does not mark an unmirrored overlay', () => {
+    const html = renderPlanningSheet(sheetInput({ overlays: [overlay] }))
+    expect(html).not.toContain('<span class="evidence evidence--mirrored">')
+  })
 
   it('omits the section when no overlay is loaded', () => {
     expect(renderPlanningSheet(sheetInput())).not.toContain('Data overlays')

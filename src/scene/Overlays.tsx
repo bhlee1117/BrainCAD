@@ -8,7 +8,7 @@
  */
 
 import { Billboard, Line, Text } from '@react-three/drei'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, type ReactNode } from 'react'
 import { AdditiveBlending, BufferAttribute, BufferGeometry, Vector3 } from 'three'
 
 import {
@@ -17,9 +17,41 @@ import {
   type NeuronOverlay,
   type ProjectionOverlay,
 } from '../overlays/model.ts'
-import { useAppStore } from '../state/store.ts'
+import { useAppStore, useProfile } from '../state/store.ts'
 import { Helper } from './Helper.tsx'
-import { stereotaxicToWorld } from './world.ts'
+import { midlineWorldX, stereotaxicToWorld } from './world.ts'
+
+/**
+ * A group that reflects its contents onto the other hemisphere.
+ *
+ * A scaled group rather than a second set of buffers: an overlay can carry
+ * hundreds of thousands of points, and reflecting is a property of how it is
+ * drawn, not a different measurement. Toggling costs nothing and no memory is
+ * duplicated.
+ *
+ * `position.x = 2m` with `scale.x = -1` maps x to 2m - x, the reflection about
+ * the midline at world x = m. Safe for points and lines, which have no winding
+ * or lighting to invert — but not for text, which would come out backwards, so
+ * the injection label is positioned by hand instead of being wrapped.
+ */
+function Mirror({
+  mirrored,
+  midline,
+  children,
+}: {
+  mirrored: boolean
+  midline: number
+  children: ReactNode
+}) {
+  return (
+    <group
+      position={[mirrored ? 2 * midline : 0, 0, 0]}
+      scale={[mirrored ? -1 : 1, 1, 1]}
+    >
+      {children}
+    </group>
+  )
+}
 
 /**
  * A marker at the injection centre.
@@ -34,13 +66,24 @@ import { stereotaxicToWorld } from './world.ts'
  * excluded from the objective view where only things that can actually block
  * light belong.
  */
-function InjectionMarker({ overlay }: { overlay: ProjectionOverlay }) {
+function InjectionMarker({
+  overlay,
+  midline,
+}: {
+  overlay: ProjectionOverlay
+  midline: number
+}) {
   const centre = overlay.injection.centre
+  const mirrored = overlay.mirrored
 
-  const position = useMemo(
-    () => (centre ? stereotaxicToWorld(centre) : null),
-    [centre],
-  )
+  // Reflected by hand rather than by wrapping in <Mirror>: the label is text,
+  // and a negative scale would render it back to front.
+  const position = useMemo(() => {
+    if (!centre) return null
+    const world = stereotaxicToWorld(centre)
+    if (mirrored) world.x = 2 * midline - world.x
+    return world
+  }, [centre, mirrored, midline])
 
   // A ring in the horizontal plane, so the marker reads as a site rather than
   // another projection point.
@@ -57,7 +100,8 @@ function InjectionMarker({ overlay }: { overlay: ProjectionOverlay }) {
   if (!position || !overlay.visible || !overlay.showInjection) return null
 
   const label =
-    overlay.injection.structures[0] ?? overlay.name.replace(/ →.*$/, '')
+    (overlay.injection.structures[0] ?? overlay.name.replace(/ →.*$/, '')) +
+    (overlay.mirrored ? ' (mirrored)' : '')
 
   return (
     <group position={position}>
@@ -228,18 +272,23 @@ function NeuronArbors({ overlay }: { overlay: NeuronOverlay }) {
 
 export function Overlays() {
   const overlays = useAppStore((s) => s.overlays)
+  const midline = midlineWorldX(useProfile())
 
   return (
     <group>
       {overlays.map((overlay) =>
         overlay.kind === 'neuron-arbor' ? (
-          <NeuronArbors key={overlay.id} overlay={overlay} />
+          <Mirror key={overlay.id} mirrored={overlay.mirrored} midline={midline}>
+            <NeuronArbors overlay={overlay} />
+          </Mirror>
         ) : (
           <group key={overlay.id}>
-            <OverlayPoints overlay={overlay} />
-            <InjectionPoints overlay={overlay} />
+            <Mirror mirrored={overlay.mirrored} midline={midline}>
+              <OverlayPoints overlay={overlay} />
+              <InjectionPoints overlay={overlay} />
+            </Mirror>
             <Helper>
-              <InjectionMarker overlay={overlay} />
+              <InjectionMarker overlay={overlay} midline={midline} />
             </Helper>
           </group>
         ),

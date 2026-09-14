@@ -14,6 +14,7 @@ import { ALLEN_CCFV3_50UM, PERENS_STEREOTAXIC_MRI } from '../atlas/profile.ts'
 import {
   atlasToWorldMatrix,
   bregmaCcfMm,
+  midlineWorldX,
   stereotaxicToWorld,
   worldToStereotaxic,
 } from './world.ts'
@@ -165,5 +166,48 @@ describe('ML handedness', () => {
       i2: 9037 / p.space.resolutionUm,
     })
     expect(coord.ml).toBeGreaterThan(3)
+  })
+})
+
+/**
+ * Mirroring an overlay onto the other hemisphere.
+ *
+ * The reflection is about the volume's own midline rather than about world
+ * zero, because those are not quite the same thing in every profile.
+ */
+describe('midline', () => {
+  it('is world zero for the Allen profile', () => {
+    // Its bregma voxel sits exactly on the midline of a 228-wide ML axis.
+    expect(midlineWorldX(ALLEN_CCFV3_50UM)).toBeCloseTo(0, 6)
+  })
+
+  it('is slightly off zero for Perens, and is not assumed away', () => {
+    // Bregma at voxel 227 of 455, whose centre is 227.5 — half a 25 µm voxel.
+    expect(midlineWorldX(PERENS_STEREOTAXIC_MRI)).toBeCloseTo(0.0125, 4)
+  })
+
+  it('reflects a point onto the matching voxel in the other hemisphere', () => {
+    // A voxel 40 to the right of the midline must mirror onto the one 40 to the
+    // left, which is the whole claim the mirror option makes.
+    const p = ALLEN_CCFV3_50UM
+    const mid = midlineWorldX(p)
+    const right = stereotaxicToWorld(
+      voxelToStereotaxic(p, { i0: 100, i1: 40, i2: p.bregma.i2 + 40 }),
+    )
+    const left = stereotaxicToWorld(
+      voxelToStereotaxic(p, { i0: 100, i1: 40, i2: p.bregma.i2 - 40 }),
+    )
+
+    const reflected = 2 * mid - right.x
+    expect(reflected).toBeCloseTo(left.x, 6)
+  })
+
+  it('leaves a point on the midline where it is', () => {
+    const p = ALLEN_CCFV3_50UM
+    const mid = midlineWorldX(p)
+    const on = stereotaxicToWorld(
+      voxelToStereotaxic(p, { i0: 100, i1: 40, i2: p.bregma.i2 }),
+    )
+    expect(2 * mid - on.x).toBeCloseTo(on.x, 6)
   })
 })

@@ -75,6 +75,8 @@ export interface ProjectionOverlay {
   excludeInjection: boolean
   /** Whether the injection site is drawn. */
   showInjection: boolean
+  /** Drawn reflected onto the other hemisphere. See {@link MIRROR_CAVEAT}. */
+  mirrored: boolean
   readonly provenance: OverlayProvenance
   /** Derived render data; not serialised. */
   readonly cloud: ProjectionPointCloud
@@ -105,6 +107,8 @@ export interface NeuronOverlay {
   /** Whether the dendritic arbor is drawn alongside the axon. */
   showDendrite: boolean
   showAxon: boolean
+  /** Drawn reflected onto the other hemisphere. See {@link MIRROR_CAVEAT}. */
+  mirrored: boolean
   readonly totalNodes: number
   readonly provenance: OverlayProvenance
   /** World-space segment endpoints, ready for a LineSegments geometry. */
@@ -129,7 +133,25 @@ export type OverlayPatch = Partial<{
   showInjection: boolean
   showDendrite: boolean
   showAxon: boolean
+  mirrored: boolean
 }>
+
+/**
+ * What a mirrored overlay is, and is not.
+ *
+ * Allen injects one hemisphere and a MouseLight cell lives in one, so the data
+ * frequently sits on the opposite side from the preparation being planned.
+ * Reflecting it is the obvious thing to want and is genuinely useful — but the
+ * reflected copy is not a measurement of that hemisphere. It is the same
+ * measurement assuming the brain is symmetric, which it is at the resolution of
+ * an averaged atlas and is not in detail: lateralised projections exist, and
+ * CCFv3 itself is a symmetrised template, so the atlas cannot contradict the
+ * assumption even where the animal would.
+ */
+export const MIRROR_CAVEAT =
+  'Mirrored: this is the same measurement reflected across the midline, not ' +
+  'data from this hemisphere. It assumes bilateral symmetry, which holds ' +
+  'approximately and not for lateralised projections.'
 
 /**
  * Axon and dendrite read as different things at a glance.
