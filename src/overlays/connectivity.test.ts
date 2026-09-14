@@ -111,11 +111,25 @@ describe('permanent failures', () => {
 })
 
 describe('empty results', () => {
-  it('returns an empty list rather than throwing', async () => {
-    // A structure with no tracing experiments is a real answer, and must not
-    // be conflated with the service being unavailable.
+  it('handles the shape the API really returns for a structure with no data', async () => {
+    // Verified against the live service for MOBipl (id 228):
+    //   {"success": true, "id": 0, "start_row": 0, "num_rows": 0, "msg": {}}
+    // An empty OBJECT, not an empty array. Requiring an array reported this as
+    // a query failure — the opposite of what it means.
+    mockFetch([{ success: true, id: 0, start_row: 0, num_rows: 0, msg: {} }])
+    await expect(searchExperiments(228, { retryDelaysMs: FAST })).resolves.toEqual([])
+  })
+
+  it('also accepts an empty array', async () => {
     mockFetch([{ success: true, msg: [] }])
     await expect(searchExperiments(93, { retryDelaysMs: FAST })).resolves.toEqual([])
+  })
+
+  it('does not retry an empty result', async () => {
+    // Retrying "no data" would make every dead-end search take seconds.
+    const spy = mockFetch([{ success: true, num_rows: 0, msg: {} }])
+    await searchExperiments(228, { retryDelaysMs: FAST })
+    expect(spy).toHaveBeenCalledTimes(1)
   })
 })
 

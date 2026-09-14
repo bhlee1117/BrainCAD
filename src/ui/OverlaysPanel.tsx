@@ -63,6 +63,13 @@ export function OverlaysPanel({
 
   const selectedStructure = structureId ? atlas.index.byId.get(structureId) : null
 
+  // Injections target whole regions far more often than individual layers, so
+  // the parent is usually the useful next thing to try.
+  const parentAcronym =
+    selectedStructure?.parentId != null
+      ? (atlas.index.byId.get(selectedStructure.parentId)?.acronym ?? null)
+      : null
+
   async function findExperiments(id: number) {
     setStructureId(id)
     setExperiments(null)
@@ -233,9 +240,15 @@ export function OverlaysPanel({
           </div>
 
           {experiments.length === 0 && (
-            <p className="hint">
-              No primary-injection experiments for this structure. Try a parent region.
-            </p>
+            <div className="status status--warn">
+              <div className="status__head">No tracing experiments here</div>
+              <div className="status__line">
+                The Allen atlas has no anterograde injections whose primary site is{' '}
+                {selectedStructure?.acronym ?? 'this structure'}. Fine-grained layers and
+                small nuclei are rarely injected directly — try a parent region such as{' '}
+                {parentAcronym ?? 'the structure above it'}.
+              </div>
+            </div>
           )}
 
           <div className="results" style={{ maxHeight: 260 }}>

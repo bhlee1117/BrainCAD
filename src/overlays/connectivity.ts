@@ -135,16 +135,23 @@ async function searchExperimentsOnce(
 
   const payload = (await response.json()) as {
     success?: boolean
+    num_rows?: number
     msg?: unknown
   }
 
-  if (!payload.success || !Array.isArray(payload.msg)) {
+  if (!payload.success) {
     const detail = typeof payload.msg === 'string' ? payload.msg : 'no detail given'
     if (isTransient(detail)) {
       throw new TransientApiError(`Allen connectivity service is busy: ${detail}`)
     }
     throw new Error(`Allen API rejected the query: ${detail}`)
   }
+
+  // A structure with no tracing experiments answers success:true with
+  // `msg: {}` — an empty OBJECT, not an empty array. Requiring an array here
+  // reported "no data for this region" as a query failure, which is the
+  // opposite of what it means and sends the user looking for a bug.
+  if (!Array.isArray(payload.msg)) return []
 
   return (payload.msg as RawExperiment[])
     .filter((row) => typeof row?.id === 'number')
