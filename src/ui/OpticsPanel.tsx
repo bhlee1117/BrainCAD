@@ -1,9 +1,15 @@
 /**
- * OPTICS panel: objective approach-angle sweep.
+ * OPTICS panel: approach-angle sweep.
  *
  * Renders the feasibility map the blueprint asks for (§12) — a grid of AP/ML
- * tilts coloured by whether the objective can reach the focal point from that
- * direction, with the limiting object named.
+ * tilts coloured by whether the swept object can reach its anchor point from
+ * that direction, with the limiting object named.
+ *
+ * Any object can be swept, not only the objective. On a real rig the objective
+ * is usually the fixed thing — clamped over the preparation — and what needs an
+ * angle is the pipette or cannula that has to reach the target past it. Sweeping
+ * only the objective answered the less common question, and there was no way to
+ * ask the other one.
  */
 
 import { useMemo, useState } from 'react'
@@ -88,14 +94,24 @@ export function OpticsPanel() {
   const settings = useAppStore((s) => s.collisionSettings)
 
   const [result, setResult] = useState<SweepResult | null>(null)
-  const [step, setStep] = useState(5)
+  const [range, setRange] = useState(DEFAULT_SWEEP_RANGE)
   const [busy, setBusy] = useState(false)
+  const [sweptId, setSweptId] = useState<string | null>(null)
 
-  const objectives = objects.filter((o) => o.kind === 'objective')
+  const setRangeField = (patch: Partial<typeof range>) =>
+    setRange((previous) => ({ ...previous, ...patch }))
+
+  // Whatever the user picked, else whatever is selected in the scene, else the
+  // first object that is not an objective — on a rig the objective is usually
+  // the fixed reference and the probe is what needs an angle.
+  const movable = objects.filter((o) => o.kind !== 'objective')
   const selected =
-    selection?.kind === 'object'
-      ? (objects.find((o) => o.id === selection.id && o.kind === 'objective') ?? objectives[0])
-      : objectives[0]
+    objects.find((o) => o.id === sweptId) ??
+    (selection?.kind === 'object'
+      ? objects.find((o) => o.id === selection.id)
+      : undefined) ??
+    movable[0] ??
+    objects[0]
 
   const obliquity = selected ? angleFromVerticalDeg(selected.orientation) : 0
 
@@ -122,6 +138,20 @@ export function OpticsPanel() {
     return meshes
   }, [objects, selected])
 
+  // Shown before running: a fine step over a wide range is thousands of BVH
+  // queries, and the cost is far easier to accept when it is stated up front.
+  const gridSize = useMemo(() => {
+    const span = (from: number, to: number) =>
+      Math.max(0, Math.floor((to - from) / Math.max(1e-6, range.stepDeg)) + 1)
+    return span(range.apFromDeg, range.apToDeg) * span(range.mlFromDeg, range.mlToDeg)
+  }, [range])
+
+  const valid =
+    range.apToDeg > range.apFromDeg &&
+    range.mlToDeg > range.mlFromDeg &&
+    range.stepDeg > 0 &&
+    gridSize > 0
+
   function runSweep() {
     if (!selected) return
     const built = resolveGeometry(selected)
@@ -133,22 +163,19 @@ export function OpticsPanel() {
     // Yield a frame so the button can show its busy state before the grid runs.
     setTimeout(() => {
       setResult(
-        sweepAngles(selected, built, bvh, obstacles, settings, {
-          ...DEFAULT_SWEEP_RANGE,
-          stepDeg: step,
-        }),
+        sweepAngles(selected, built, bvh, obstacles, settings, range),
       )
       setBusy(false)
     }, 16)
   }
 
-  if (objectives.length === 0) {
+  if (objects.length === 0) {
     return (
       <div className="section">
         <h2>Optical access</h2>
         <p style={{ color: 'var(--text-faint)', margin: 0 }}>
-          Add an objective in OBJECTS to sweep approach angles. The sweep rotates it about its
-          focal point, so it answers which directions can reach a fixed imaging plane.
+          Add hardware in OBJECTS to sweep approach angles. The sweep rotates the chosen object
+          about its anchor point, so it answers which directions can still reach the same target.
         </p>
       </div>
     )
@@ -157,17 +184,26 @@ export function OpticsPanel() {
   return (
     <>
       <div className="section">
-        <h2>Objective</h2>
+        <h2>Swept object</h2>
         <select
           value={selected?.id ?? ''}
-          onChange={(event) => select({ kind: 'object', id: event.target.value })}
+          onChange={(event) => {
+            setSweptId(event.target.value)
+            setResult(null)
+            select({ kind: 'object', id: event.target.value })
+          }}
         >
-          {objectives.map((o) => (
+          {objects.map((o) => (
             <option key={o.id} value={o.id}>
               {o.name}
+              {o.kind === 'objective' ? ' (objective)' : ''}
             </option>
           ))}
         </select>
+        <p className="hint" style={{ marginTop: 5 }}>
+          Everything else visible becomes an obstacle. An objective clamped over the preparation
+          is usually the fixed thing — sweep the probe that has to reach past it.
+        </p>
 
         {selected && (
           <>
@@ -194,22 +230,77 @@ export function OpticsPanel() {
       <div className="section">
         <h2>Approach sweep</h2>
         <div className="field">
-          <label htmlFor="sweep-step">Step</label>
+          <label htmlFor="sweep-ap-from">AP</label>
           <NumberField
-            id="sweep-step"
-            min={1}
-            max={15}
-            step={1}
-            integer
-            value={step}
-            onChange={setStep}
+            id="sweep-ap-from"
+            min={-90}
+            max={90}
+            step={5}
+            value={range.apFromDeg}
+            onChange={(apFromDeg) => setRangeField({ apFromDeg })}
+          />
+          <span className="unit">to</span>
+          <NumberField
+            min={-90}
+            max={90}
+            step={5}
+            ariaLabel="AP tilt maximum"
+            value={range.apToDeg}
+            onChange={(apToDeg) => setRangeField({ apToDeg })}
           />
           <span className="unit">°</span>
         </div>
 
-        <button className="btn btn--primary" onClick={runSweep} disabled={busy}>
-          {busy ? 'Sweeping…' : 'Sweep ±30°'}
+        <div className="field">
+          <label htmlFor="sweep-ml-from">ML</label>
+          <NumberField
+            id="sweep-ml-from"
+            min={-90}
+            max={90}
+            step={5}
+            value={range.mlFromDeg}
+            onChange={(mlFromDeg) => setRangeField({ mlFromDeg })}
+          />
+          <span className="unit">to</span>
+          <NumberField
+            min={-90}
+            max={90}
+            step={5}
+            ariaLabel="ML tilt maximum"
+            value={range.mlToDeg}
+            onChange={(mlToDeg) => setRangeField({ mlToDeg })}
+          />
+          <span className="unit">°</span>
+        </div>
+
+        <div className="field">
+          <label htmlFor="sweep-step">Step</label>
+          <NumberField
+            id="sweep-step"
+            min={1}
+            max={30}
+            step={1}
+            integer
+            value={range.stepDeg}
+            onChange={(stepDeg) => setRangeField({ stepDeg })}
+          />
+          <span className="unit">°</span>
+        </div>
+
+        <div className="row">
+          <span>Grid</span>
+          <b>{gridSize.toLocaleString()} poses</b>
+        </div>
+
+        <button className="btn btn--primary" onClick={runSweep} disabled={busy || !valid}>
+          {busy ? 'Sweeping…' : `Sweep ${selected?.name ?? ''}`}
         </button>
+
+        {!valid && (
+          <p className="hint">
+            Each range needs its second value above the first, and the step must fit inside it.
+          </p>
+        )}
 
         {obstacles.length === 0 && (
           <p className="hint">

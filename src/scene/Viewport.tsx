@@ -25,6 +25,7 @@ import { Overlays } from './Overlays.tsx'
 import { useCollision, type AnatomyMesh } from '../collision/useCollision.ts'
 import { useAppStore, type Target } from '../state/store.ts'
 import { Helper } from './Helper.tsx'
+import { ANATOMY_FLAG } from './Helper.tsx'
 import { setSceneHandle } from './handle.ts'
 import { atlasToWorldMatrix, stereotaxicToWorld } from './world.ts'
 
@@ -103,7 +104,11 @@ function BrainSurface({
   if (!geometry || !showBrain) return null
 
   return (
-    <group matrixAutoUpdate={false} matrix={matrix}>
+    <group
+      matrixAutoUpdate={false}
+      matrix={matrix}
+      userData={{ [ANATOMY_FLAG]: true }}
+    >
       <mesh geometry={geometry} renderOrder={-2}>
         <meshStandardMaterial
           color="#8fa9c4"

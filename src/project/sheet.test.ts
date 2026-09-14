@@ -90,7 +90,7 @@ function sheetInput(overrides: Partial<SheetInput> = {}): SheetInput {
       },
     ],
     collision: checkScene([], DEFAULT_COLLISION_SETTINGS),
-    screenshot: null,
+    overviewViews: [],
     objectiveViews: [],
     overlays: [],
     targetRegions: { 'target-1': 'CA1' },
@@ -193,16 +193,34 @@ describe('planning sheet', () => {
     expect(html).toContain('&lt;img src=x')
   })
 
-  it('embeds a screenshot when one was captured', () => {
+  it('embeds every overview capture that was rendered', () => {
     const html = renderPlanningSheet(
-      sheetInput({ screenshot: 'data:image/png;base64,iVBORw0KGgo=' }),
+      sheetInput({
+        overviewViews: [
+          { name: 'Oblique 45°', dataUrl: 'data:image/png;base64,AAAA' },
+          { name: 'Top (dorsal)', dataUrl: 'data:image/png;base64,BBBB' },
+        ],
+      }),
     )
-    expect(html).toContain('data:image/png;base64,iVBORw0KGgo=')
-    expect(html).toContain('class="capture"')
+    expect(html).toContain('data:image/png;base64,AAAA')
+    expect(html).toContain('data:image/png;base64,BBBB')
+    expect(html).toContain('Oblique 45°')
+    expect(html).toContain('Top (dorsal)')
   })
 
-  it('omits the scene section entirely when there is no screenshot', () => {
-    expect(renderPlanningSheet(sheetInput())).not.toContain('class="capture"')
+  it('puts the scene above the coordinate frame', () => {
+    // The drawing is what a reader looks at before any table; a Scene section
+    // at the foot of the document is one nobody scrolls to.
+    const html = renderPlanningSheet(
+      sheetInput({
+        overviewViews: [{ name: 'Oblique 45°', dataUrl: 'data:image/png;base64,AAAA' }],
+      }),
+    )
+    expect(html.indexOf('<h2>Scene</h2>')).toBeLessThan(html.indexOf('Coordinate frame'))
+  })
+
+  it('omits the scene section entirely when nothing was captured', () => {
+    expect(renderPlanningSheet(sheetInput())).not.toContain('<h2>Scene</h2>')
   })
 
   it('omits the objective-view section when there are no objectives', () => {

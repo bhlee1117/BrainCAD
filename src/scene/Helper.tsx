@@ -17,3 +17,13 @@ export const HELPER_FLAG = 'braincadHelper'
 export function Helper({ children }: { children: ReactNode }) {
   return <group userData={{ [HELPER_FLAG]: true }}>{children}</group>
 }
+
+/**
+ * Set on the anatomy group so a capture can frame on the brain.
+ *
+ * An overview framed on everything is dominated by hardware: a real objective
+ * barrel is tens of millimetres long against a 13 mm brain, so including it
+ * whole renders the anatomy a few pixels across. Framing on the anatomy and
+ * letting distant hardware run out of frame is how a surgical plan is drawn.
+ */
+export const ANATOMY_FLAG = 'braincadAnatomy'

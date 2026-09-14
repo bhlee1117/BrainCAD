@@ -11,6 +11,7 @@ import { restoreProject, serialiseProject } from '../project/project.ts'
 import { parseProject, projectFilename } from '../project/schema.ts'
 import { renderPlanningSheet, sheetFilename } from '../project/sheet.ts'
 import { renderObjectiveView } from '../optics/objectiveView.ts'
+import { renderOverviewViews } from '../optics/overviewViews.ts'
 import { getSceneHandle } from '../scene/handle.ts'
 import { useAppStore } from '../state/store.ts'
 
@@ -25,24 +26,6 @@ function download(filename: string, text: string, mime: string) {
   link.remove()
   // Revoke on the next tick so the download has taken the reference.
   setTimeout(() => URL.revokeObjectURL(url), 0)
-}
-
-/**
- * Capture the WebGL canvas.
- *
- * The renderer clears its drawing buffer after each frame unless asked not to,
- * so a capture has to happen right after a render. Requesting a frame and
- * reading back in the same tick is the reliable way to get a non-blank image
- * without leaving `preserveDrawingBuffer` on for the whole session.
- */
-function captureCanvas(): string | null {
-  const canvas = document.querySelector('.viewport canvas') as HTMLCanvasElement | null
-  if (!canvas) return null
-  try {
-    return canvas.toDataURL('image/png')
-  } catch {
-    return null
-  }
 }
 
 export function ExportPanel({
@@ -104,6 +87,16 @@ export function ExportPanel({
       extentMm: number
     }[] = []
 
+    let overviewViews: { name: string; dataUrl: string }[] = []
+    if (includeScreenshot) {
+      const handle = getSceneHandle()
+      if (!handle) {
+        console.warn('No live renderer available; overview captures were skipped.')
+      } else {
+        overviewViews = renderOverviewViews(handle.gl, handle.scene)
+      }
+    }
+
     const objectiveCount = store.objects.filter(
       (o) => o.kind === 'objective' && o.visible,
     ).length
@@ -126,7 +119,7 @@ export function ExportPanel({
       objects: store.objects,
       measurements: store.measurements,
       collision: store.collisionReport,
-      screenshot: includeScreenshot ? captureCanvas() : null,
+      overviewViews,
       objectiveViews,
       // A neuron and a projection volume are both overlays, but they carry
       // different evidence and the sheet must not flatten them into one row
@@ -281,7 +274,7 @@ export function ExportPanel({
             checked={includeScreenshot}
             onChange={(event) => setIncludeScreenshot(event.target.checked)}
           />
-          Include 3D view capture
+          Include overview views (oblique, front, top, left)
         </label>
         <label className="check">
           <input

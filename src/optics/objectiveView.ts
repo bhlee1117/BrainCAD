@@ -28,7 +28,7 @@ import { localToWorld, solvePlacement, worldAxis } from '../objects/placement.ts
 import type { ObjectiveParams } from '../objects/primitives.ts'
 
 /** Square edge of the rendered image, in pixels. */
-const RENDER_SIZE = 512
+const RENDER_SIZE = 900
 
 /**
  * Side of the region rendered, in millimetres.
@@ -39,7 +39,7 @@ const RENDER_SIZE = 512
  * is in the way*. The field boundary is drawn inside this wider context
  * instead, so both readings are available at once.
  */
-export const VIEW_EXTENT_MM = 3
+export const VIEW_EXTENT_MM = 5
 
 /**
  * Where the objective's camera sits and what it looks at.
@@ -218,7 +218,7 @@ export function renderObjectiveView(
 /**
  * Compose the rendered pixels into the final figure.
  *
- * The whole 3 mm region is shown as a square frame, with the objective's actual
+ * The whole 5 mm region is shown as a square frame, with the objective's actual
  * field drawn as a circle inside it. Cropping to the field instead would throw
  * away the surrounding context that makes the picture useful — you would see
  * the target and not the headbar about to occlude it.

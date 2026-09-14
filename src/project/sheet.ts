@@ -28,7 +28,13 @@ export interface SheetInput {
   readonly measurements: readonly Measurement[]
   readonly collision: SceneCollisionReport | null
   /** Data URL of a 3D view capture, when one was taken. */
-  readonly screenshot: string | null
+  /**
+   * Overview captures of the whole plan, one per standard viewpoint.
+   *
+   * Replaces a single screenshot of wherever the camera happened to be, which
+   * also could not be read back from the live canvas at all.
+   */
+  readonly overviewViews: readonly { readonly name: string; readonly dataUrl: string }[]
   /** Simulated views down each objective's own axis. */
   readonly objectiveViews: readonly {
     readonly name: string
@@ -186,6 +192,35 @@ function measurementRows(input: SheetInput): string {
  * physically blocks the light path — and is not an optical simulation. It says
  * nothing about scattering, aberration or depth of field.
  */
+/**
+ * The plan, drawn from the standard viewpoints.
+ *
+ * Placed first because it is what a reader looks at before any table: it says
+ * at a glance what the plan *is*, and the numbers below then say exactly what
+ * it is. Three orthogonal views alongside the oblique because angles cannot be
+ * judged from an oblique alone.
+ */
+function overviewSection(input: SheetInput): string {
+  if (input.overviewViews.length === 0) return ''
+
+  const figures = input.overviewViews
+    .map(
+      (view) => `<figure class="overview">
+        <img src="${view.dataUrl}" alt="${escapeHtml(view.name)} view of the plan">
+        <figcaption>${escapeHtml(view.name)}</figcaption>
+      </figure>`,
+    )
+    .join('')
+
+  return `<h2>Scene</h2>
+    <div class="overviews">${figures}</div>
+    <p class="caveat">
+      Orthographic. Rendered from the saved plan rather than captured from the screen, so these
+      do not depend on where the camera was left. Target markers and labels are annotations, not
+      geometry.
+    </p>`
+}
+
 function objectiveViewSection(input: SheetInput): string {
   if (input.objectiveViews.length === 0) return ''
 
@@ -295,10 +330,16 @@ export function renderPlanningSheet(input: SheetInput): string {
     padding: 12px 15px; border-radius: 6px; margin: 0 0 22px;
   }
   .caveats { margin: 6px 0 0; padding-left: 18px; color: #5d6b7a; font-size: 12px; }
-  img.capture { width: 100%; border: 1px solid #dfe5ea; border-radius: 6px; margin-top: 8px; }
+  .overviews { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 8px; }
+  .overview { margin: 0; }
+  .overview img { width: 100%; aspect-ratio: 1; border: 1px solid #dfe5ea; border-radius: 6px; background: #0b0e13; display: block; }
+  .overview figcaption { font-size: 11px; color: #5d6b7a; margin-top: 5px; letter-spacing: 0.02em; }
+  @media print { .overviews { grid-template-columns: repeat(2, 1fr); } .overview img { break-inside: avoid; } }
   .objviews { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 8px; }
-  .objview { margin: 0; width: 220px; }
-  .objview img { width: 220px; height: 220px; border-radius: 6px; background: #05070a; display: block; }
+  /* Big enough to actually read the light path against the anatomy; two fit
+     across a printed page, and a single objective gets the full width. */
+  .objview { margin: 0; width: 360px; max-width: 100%; }
+  .objview img { width: 360px; max-width: 100%; height: auto; aspect-ratio: 1; border-radius: 6px; background: #05070a; display: block; }
   .objview figcaption { font-size: 11px; color: #5d6b7a; margin-top: 6px; line-height: 1.4; }
   .caveat { font-size: 11px; color: #5d6b7a; margin-top: 10px; }
   .overlay { border-left: 3px solid #c0392b; background: #fdf3f1; padding: 10px 13px; border-radius: 0 6px 6px 0; margin-bottom: 10px; }
@@ -322,6 +363,8 @@ export function renderPlanningSheet(input: SheetInput): string {
 </div>
 
 ${project.metadata.notes ? `<h2>Notes</h2><p>${escapeHtml(project.metadata.notes)}</p>` : ''}
+
+${overviewSection(input)}
 
 <h2>Coordinate frame</h2>
 <dl class="meta">
@@ -364,8 +407,6 @@ ${collisionSection(input)}
 ${overlaySection(input)}
 
 ${objectiveViewSection(input)}
-
-${input.screenshot ? `<h2>Scene</h2><img class="capture" src="${input.screenshot}" alt="3D scene capture">` : ''}
 
 <footer>
   ${escapeHtml(project.metadata.software)} · format ${project.version} ·
