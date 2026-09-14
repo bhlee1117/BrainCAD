@@ -7,11 +7,77 @@
  * is registered by construction rather than by a parallel calculation.
  */
 
+import { Billboard, Line, Text } from '@react-three/drei'
 import { useEffect, useMemo } from 'react'
-import { AdditiveBlending, BufferAttribute, BufferGeometry } from 'three'
+import { AdditiveBlending, BufferAttribute, BufferGeometry, Vector3 } from 'three'
 
 import type { ProjectionOverlay } from '../overlays/model.ts'
 import { useAppStore } from '../state/store.ts'
+import { Helper } from './Helper.tsx'
+import { stereotaxicToWorld } from './world.ts'
+
+/**
+ * A marker at the injection centre.
+ *
+ * The white voxel cloud shows the site's extent, but extent is hard to judge
+ * inside a translucent brain full of other points — this says plainly "the
+ * tracer went in here". Drawn as a ringed sphere so it reads as an annotation
+ * rather than as more data, and billboarded so the label faces the reader from
+ * any angle.
+ *
+ * Classified as a helper: it is an annotation, not physical geometry, so it is
+ * excluded from the objective view where only things that can actually block
+ * light belong.
+ */
+function InjectionMarker({ overlay }: { overlay: ProjectionOverlay }) {
+  const centre = overlay.injection.centre
+
+  const position = useMemo(
+    () => (centre ? stereotaxicToWorld(centre) : null),
+    [centre],
+  )
+
+  // A ring in the horizontal plane, so the marker reads as a site rather than
+  // another projection point.
+  const ring = useMemo(() => {
+    const points: Vector3[] = []
+    const radius = 0.42
+    for (let i = 0; i <= 48; i++) {
+      const angle = (i / 48) * Math.PI * 2
+      points.push(new Vector3(Math.cos(angle) * radius, 0, Math.sin(angle) * radius))
+    }
+    return points
+  }, [])
+
+  if (!position || !overlay.visible || !overlay.showInjection) return null
+
+  const label =
+    overlay.injection.structures[0] ?? overlay.name.replace(/ →.*$/, '')
+
+  return (
+    <group position={position}>
+      <mesh renderOrder={4}>
+        <sphereGeometry args={[0.18, 20, 20]} />
+        <meshBasicMaterial color="#ffffff" depthTest={false} />
+      </mesh>
+
+      <Line points={ring} color="#ffffff" lineWidth={1.4} transparent opacity={0.8} />
+
+      <Billboard position={[0, 0.62, 0]}>
+        <Text
+          fontSize={0.38}
+          color="#ffffff"
+          anchorX="center"
+          anchorY="bottom"
+          outlineWidth={0.035}
+          outlineColor="#0b0e13"
+        >
+          {`injection · ${label}`}
+        </Text>
+      </Billboard>
+    </group>
+  )
+}
 
 /**
  * The injection site, drawn in white rather than on the overlay's density ramp.
@@ -91,6 +157,9 @@ export function Overlays() {
         <group key={overlay.id}>
           <OverlayPoints overlay={overlay} />
           <InjectionPoints overlay={overlay} />
+          <Helper>
+            <InjectionMarker overlay={overlay} />
+          </Helper>
         </group>
       ))}
     </group>
