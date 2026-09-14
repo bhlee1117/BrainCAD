@@ -52,6 +52,23 @@ describe('template-space guard', () => {
     ).toThrow(/Refusing to mix template spaces/)
   })
 
+  it('rejects a volume of the right shape but mirrored handedness', () => {
+    // The loaded volume's orientation comes from the atlas manifest on disk;
+    // the profile's is compiled in. A manifest that still says `asr` against an
+    // `asl` profile has the identical shape and resolution, so a check on those
+    // alone waves it through — and then every region lookup silently answers
+    // for the opposite hemisphere.
+    const mirrored = makeVolumeSpace(
+      ALLEN_CCFV3_50UM.space.shape as [number, number, number],
+      ALLEN_CCFV3_50UM.space.resolutionUm,
+      'asr',
+    )
+    expect(profileMatchesSpace(ALLEN_CCFV3_50UM, mirrored)).toBe(false)
+    expect(() => assertProfileMatchesSpace(ALLEN_CCFV3_50UM, mirrored)).toThrow(
+      /orientation is asl, volume is asr/,
+    )
+  })
+
   it('offers only the profiles valid for a given volume', () => {
     const allen = profilesForSpace(ALLEN_CCFV3_50UM.space)
     expect(allen).toHaveLength(1)

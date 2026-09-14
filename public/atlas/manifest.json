@@ -5,7 +5,7 @@
     "bytes": 880845,
     "sha256": "84e7cecea1b03af16e923c3639602b8324929f833425ba03582bf56f962ea0d4",
     "resolutionUm": 50,
-    "orientation": "asr",
+    "orientation": "asl",
     "source": "https://download.alleninstitute.org/informatics-archive/current-release/mouse_ccf/annotation/ccf_2017/annotation_50.nrrd"
   },
   "ontology": {

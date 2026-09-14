@@ -285,7 +285,7 @@ async function main() {
       bytes: annotation.length,
       sha256: createHash('sha256').update(annotation).digest('hex'),
       resolutionUm: 50,
-      orientation: 'asr',
+      orientation: 'asl',
       source: ANNOTATION_URL,
     },
     ontology: {

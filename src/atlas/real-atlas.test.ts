@@ -33,7 +33,7 @@ const assetsBuilt = existsSync(ANNOTATION_PATH) && existsSync(STRUCTURES_PATH)
 
 describe.skipIf(!assetsBuilt)('real Allen CCFv3 assets', () => {
   const nrrd = parseNrrd(readFileSync(ANNOTATION_PATH))
-  const space = makeVolumeSpace(nrrd.shape, 50, 'asr')
+  const space = makeVolumeSpace(nrrd.shape, 50, 'asl')
   const labels =
     nrrd.data instanceof Uint32Array
       ? nrrd.data

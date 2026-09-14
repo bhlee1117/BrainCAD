@@ -37,14 +37,14 @@ const ready = existsSync(FIXTURE) && existsSync(ANNOTATION) && existsSync(STRUCT
 
 describe.skipIf(!ready)('real Allen projection volume', () => {
   const nrrd = parseNrrd(readFileSync(FIXTURE))
-  const space = makeVolumeSpace(nrrd.shape, nrrd.spacing[0], 'asr')
+  const space = makeVolumeSpace(nrrd.shape, nrrd.spacing[0], 'asl')
   const density =
     nrrd.data instanceof Float32Array
       ? nrrd.data
       : Float32Array.from(nrrd.data as ArrayLike<number>)
 
   const annotationNrrd = parseNrrd(readFileSync(ANNOTATION))
-  const annotationSpace = makeVolumeSpace(annotationNrrd.shape, 50, 'asr')
+  const annotationSpace = makeVolumeSpace(annotationNrrd.shape, 50, 'asl')
   const annotation = new AnnotationVolume(
     annotationSpace,
     annotationNrrd.data instanceof Uint32Array

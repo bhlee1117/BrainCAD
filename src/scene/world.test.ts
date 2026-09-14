@@ -9,7 +9,8 @@
 import { Vector3 } from 'three'
 import { describe, expect, it } from 'vitest'
 
-import { ALLEN_CCFV3_50UM } from '../atlas/profile.ts'
+import { voxelToStereotaxic } from '../atlas/coords.ts'
+import { ALLEN_CCFV3_50UM, PERENS_STEREOTAXIC_MRI } from '../atlas/profile.ts'
 import {
   atlasToWorldMatrix,
   bregmaCcfMm,
@@ -103,5 +104,66 @@ describe('stereotaxic <-> world', () => {
     expect(viaMatrix.x).toBeCloseTo(direct.x, 10)
     expect(viaMatrix.y).toBeCloseTo(direct.y, 10)
     expect(viaMatrix.z).toBeCloseTo(direct.z, 10)
+  })
+})
+
+/**
+ * The two routes from a voxel to the screen must agree.
+ *
+ * Anatomy — meshes, projection clouds — reaches world space through
+ * `atlasToWorldMatrix`. Numbers the user reads and dials into a stereotax —
+ * coordinates, region labels, the injection marker — go through
+ * `voxelToStereotaxic`. Nothing forced the two to match, and for a while they
+ * did not: the profiles were declared `asr`, so `voxelToStereotaxic` negated
+ * ML while the matrix did not, and the injection marker rendered in the
+ * hemisphere opposite its own point cloud. Every other test passed throughout,
+ * because each checked one route in isolation.
+ */
+describe('the two paths to world space agree', () => {
+  const cases: readonly [string, number, number, number][] = [
+    ['bregma', profile.bregma.i0, profile.bregma.i1, profile.bregma.i2],
+    ['right of midline', 108, 20, 154],
+    ['left of midline', 108, 20, 74],
+    ['anterior and deep', 40, 90, 130],
+    ['posterior and shallow', 220, 12, 90],
+  ]
+
+  it.each(cases)('%s', (_name, i0, i1, i2) => {
+    const viaMatrix = toWorld(
+      (i0 * profile.space.resolutionUm) / 1000,
+      (i1 * profile.space.resolutionUm) / 1000,
+      (i2 * profile.space.resolutionUm) / 1000,
+    )
+    const viaCoords = stereotaxicToWorld(voxelToStereotaxic(profile, { i0, i1, i2 }))
+
+    expect(viaCoords.x).toBeCloseTo(viaMatrix.x, 6)
+    expect(viaCoords.y).toBeCloseTo(viaMatrix.y, 6)
+    expect(viaCoords.z).toBeCloseTo(viaMatrix.z, 6)
+  })
+})
+
+describe('ML handedness', () => {
+  // Settled against Allen connectivity injection hemispheres, 36/36; see
+  // ML_HANDEDNESS_NOTE. An injection Allen labels right-hemisphere sits above
+  // the midline on array axis 2, so axis 2 increases rightward.
+  it.each([ALLEN_CCFV3_50UM, PERENS_STEREOTAXIC_MRI])(
+    'has %# increasing on axis 2 toward the right',
+    (p) => {
+      const midline = p.bregma.i2
+      const higher = voxelToStereotaxic(p, { i0: p.bregma.i0, i1: p.bregma.i1, i2: midline + 40 })
+      expect(higher.ml).toBeGreaterThan(0)
+    },
+  )
+
+  it('places a right-hemisphere connectivity injection at positive ML', () => {
+    // Experiment 180296424 (VISp), which Allen labels hemisphere_id 2 = right.
+    // Its injection voxels centre on CCF axis 2 at about 9040 um.
+    const p = ALLEN_CCFV3_50UM
+    const coord = voxelToStereotaxic(p, {
+      i0: 9582 / p.space.resolutionUm,
+      i1: 1924 / p.space.resolutionUm,
+      i2: 9037 / p.space.resolutionUm,
+    })
+    expect(coord.ml).toBeGreaterThan(3)
   })
 })

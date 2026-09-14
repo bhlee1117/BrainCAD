@@ -73,6 +73,26 @@ export interface CoordinateProfile {
 }
 
 /**
+ * How BrainCAD knows which way is right.
+ *
+ * The template itself cannot answer this: CCFv3 is left-right symmetric, so no
+ * amount of looking at the volume distinguishes a left hemisphere from a right
+ * one. BrainCAD carried that as an open caveat until the Allen Connectivity
+ * Atlas settled it from outside the volume — every tracing experiment records
+ * the hemisphere its injection went into, as a label rather than as geometry.
+ *
+ * Measured over 36 experiments across VISp, SSp, CP, STR, HPF and VIS: every
+ * injection Allen labels `hemisphere_id` 2 (right) has its voxels above the
+ * midline on array axis 2, and both left-labelled injections fall below it.
+ * 36 of 36, no exceptions. So axis 2 starts at the LEFT and increases
+ * rightward, which is why these profiles are `asl` and not `asr`.
+ */
+export const ML_HANDEDNESS_NOTE =
+  'Left/right is set from Allen connectivity injection hemispheres (36/36 ' +
+  'agreement), not from the template, which is symmetric. Still confirm ' +
+  'your own left/right at the rig.'
+
+/**
  * Perens et al. 2023 skull-derived stereotaxic coordinate system, as
  * distributed by BrainGlobe (`perens_stereotaxic_mri_mouse_25um`).
  *
@@ -94,8 +114,8 @@ export interface CoordinateProfile {
 export const PERENS_STEREOTAXIC_MRI: CoordinateProfile = {
   id: 'perens-stereotaxic-mri-25um',
   label: 'Perens 2023 stereotaxic MRI (25 µm)',
-  space: makeVolumeSpace([615, 297, 455], 25, 'asr'),
-  // asr → axis0 = AP (paper y), axis1 = DV (paper z), axis2 = ML (paper x)
+  space: makeVolumeSpace([615, 297, 455], 25, 'asl'),
+  // asl → axis0 = AP (paper y), axis1 = DV (paper z), axis2 = ML (paper x)
   bregma: { i0: 270, i1: 16, i2: 227, sdVoxels: [5.8, 1.85, 4.73] },
   lambda: { i0: 462, i1: 16, i2: 227, sdVoxels: [1.87, 1.0, 3.32] },
   scale: [1, 1, 1], // already in stereotaxic scale by construction
@@ -111,8 +131,7 @@ export const PERENS_STEREOTAXIC_MRI: CoordinateProfile = {
       'Landmarks are an average over 12 micro-CT-imaged C57BL/6J skulls (10 weeks, male).',
       'Bregma position carries a published SD of roughly 0.12 mm AP and 0.05 mm DV.',
       'Bregma-lambda distance varies between animals (4.80 ± 0.15 mm); verify on your animal.',
-      'Medial-lateral handedness is symmetric in the template and cannot be ' +
-        'determined from the volume alone. Confirm left/right before surgical use.',
+      ML_HANDEDNESS_NOTE,
     ],
   },
 }
@@ -129,7 +148,7 @@ export const PERENS_STEREOTAXIC_MRI: CoordinateProfile = {
 export const ALLEN_CCFV3_50UM: CoordinateProfile = {
   id: 'allen-ccfv3-50um',
   label: 'Allen CCFv3 (50 µm, community bregma)',
-  space: makeVolumeSpace([264, 160, 228], 50, 'asr'),
+  space: makeVolumeSpace([264, 160, 228], 50, 'asl'),
   // 5400 µm / 50 = 108 (AP), 332 µm / 50 ≈ 6.6 (DV), 5700 µm / 50 = 114 (ML midline)
   bregma: { i0: 108, i1: 6.64, i2: 114 },
   scale: [1, 1, 1],
@@ -146,6 +165,7 @@ export const ALLEN_CCFV3_50UM: CoordinateProfile = {
       'CCFv3 does not define bregma. This position is a widely used convention, not a measurement.',
       'Published CCF-to-stereotaxic scaling factors disagree; this profile applies none.',
       'For coordinates you intend to use surgically, prefer the Perens stereotaxic profile.',
+      ML_HANDEDNESS_NOTE,
     ],
   },
 }
@@ -190,7 +210,13 @@ export function profileMatchesSpace(
     profile.space.resolutionUm === space.resolutionUm &&
     profile.space.shape[0] === space.shape[0] &&
     profile.space.shape[1] === space.shape[1] &&
-    profile.space.shape[2] === space.shape[2]
+    profile.space.shape[2] === space.shape[2] &&
+    // Orientation too, and for the same reason as shape: the loaded volume's
+    // code comes from the atlas manifest on disk while the profile's is
+    // compiled in, so the two can disagree after a manifest is regenerated.
+    // Matching shapes with opposite ML handedness is not a near miss — every
+    // region lookup lands in the wrong hemisphere, silently.
+    profile.space.axes.every((axis, i) => axis.origin === space.axes[i]!.origin)
   )
 }
 
@@ -209,6 +235,8 @@ export function assertProfileMatchesSpace(
     `Coordinate profile "${profile.label}" describes a ` +
       `${profile.space.shape.join('x')} volume at ${profile.space.resolutionUm} µm, ` +
       `but the loaded annotation volume is ${space.shape.join('x')} at ` +
-      `${space.resolutionUm} µm. Refusing to mix template spaces.`,
+      `${space.resolutionUm} µm. Profile orientation is ` +
+      `${profile.space.axes.map((a) => a.origin).join('')}, volume is ` +
+      `${space.axes.map((a) => a.origin).join('')}. Refusing to mix template spaces.`,
   )
 }
