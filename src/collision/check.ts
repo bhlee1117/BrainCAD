@@ -99,6 +99,14 @@ export interface CollisionMesh {
   readonly matrixWorld: Matrix4
   /** Anatomy is reported differently from hardware in the UI. */
   readonly kind: 'anatomy' | 'hardware'
+  /**
+   * Skip pairs between this hardware and anatomy.
+   *
+   * Insertion instruments cross the brain surface by design — that is what
+   * inserting one means — so checking them against it would flag every
+   * correctly-placed pipette as a collision and bury the results that matter.
+   */
+  readonly ignoreAnatomy?: boolean
 }
 
 /**
@@ -270,6 +278,9 @@ export function checkScene(
       const a = meshes[i]!
       const b = meshes[j]!
       if (a.kind === 'anatomy' && b.kind === 'anatomy') continue
+      // One side opting out of anatomy checks removes the pair entirely.
+      if (a.kind === 'anatomy' && b.ignoreAnatomy) continue
+      if (b.kind === 'anatomy' && a.ignoreAnatomy) continue
 
       const result = checkPair(a, b, settings)
       pairs.push({

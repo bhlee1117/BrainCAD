@@ -100,7 +100,15 @@ export function useCollision(
         anatomy: anatomy.map((a) => a.id),
         objects: objects
           .filter((o) => o.collision && o.visible)
-          .map((o) => [o.id, o.kind, o.target, o.orientation, o.pivotMode, o.spec?.params]),
+          .map((o) => [
+            o.id,
+            o.kind,
+            o.target,
+            o.orientation,
+            o.pivotMode,
+            o.anatomyCollision,
+            o.spec?.params,
+          ]),
       }),
     [enabled, settings, anatomy, objects],
   )
@@ -147,6 +155,7 @@ export function useCollision(
           bvh,
           matrixWorld: matrix,
           kind: 'hardware',
+          ignoreAnatomy: !object.anatomyCollision,
         })
       }
 

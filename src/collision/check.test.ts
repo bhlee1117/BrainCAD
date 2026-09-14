@@ -164,6 +164,28 @@ describe('buildBvh', () => {
   })
 })
 
+describe('known limitation: containment is not intersection', () => {
+  it('does not report a collision for an object floating inside a closed mesh', () => {
+    // BVH intersection tests SURFACES. A small object entirely inside a larger
+    // closed mesh, touching nothing, has no surface crossing and so reads as
+    // clear. This is pinned rather than fixed because BrainCAD's anatomy checks
+    // are about crossings — an implant enters the brain through its surface —
+    // but it would matter for a fully-enclosed exclusion volume, so it must not
+    // change silently.
+    const outer = meshAt('shell', makeBox(20), [0, 0, 0], 'anatomy')
+    const inner = meshAt('speck', makeBox(1), [0, 0, 0])
+
+    const result = checkPair(outer, inner)
+    expect(result.state).not.toBe('collision')
+  })
+
+  it('does report a collision as soon as the object crosses the surface', () => {
+    const outer = meshAt('shell', makeBox(20), [0, 0, 0], 'anatomy')
+    const crossing = meshAt('probe', makeBox(4), [10, 0, 0])
+    expect(checkPair(outer, crossing).state).toBe('collision')
+  })
+})
+
 describe('query cost', () => {
   it('stays interactive against a brain-sized mesh', () => {
     // Guards the two things that made this 14x faster: attaching boundsTree to
@@ -229,6 +251,32 @@ describe('checkScene', () => {
     const ids = [report.limiting!.aId, report.limiting!.bId]
     expect(ids).toContain('probe')
     expect(ids).toContain('near')
+  })
+
+  it('skips anatomy for an instrument that is meant to enter the brain', () => {
+    // A pipette crosses the brain surface by definition. Flagging that as a
+    // collision would mark every correctly-placed injection red and bury the
+    // clearances that actually matter.
+    const brain = meshAt('brain', makeBox(20), [0, 0, 0], 'anatomy')
+    const pipette = meshAt('pipette', makeBox(4), [10, 0, 0])
+    const inserted: CollisionMesh = { ...pipette, ignoreAnatomy: true }
+
+    // The same geometry collides when it is not opted out.
+    expect(checkScene([brain, pipette]).worst).toBe('collision')
+    expect(checkScene([brain, inserted]).checkedPairs).toBe(0)
+    expect(checkScene([brain, inserted]).worst).toBe('safe')
+  })
+
+  it('still checks an opted-out instrument against other hardware', () => {
+    // Opting out of anatomy must not opt out of everything: two implants
+    // fouling each other is exactly what the tool exists to catch.
+    const brain = meshAt('brain', makeBox(20), [0, 0, 0], 'anatomy')
+    const a: CollisionMesh = { ...meshAt('cannula', makeBox(4), [10, 0, 0]), ignoreAnatomy: true }
+    const b: CollisionMesh = { ...meshAt('prism', makeBox(4), [11, 0, 0]), ignoreAnatomy: true }
+
+    const report = checkScene([brain, a, b])
+    expect(report.checkedPairs).toBe(1)
+    expect(report.worst).toBe('collision')
   })
 
   it('marks pairs that involve anatomy', () => {

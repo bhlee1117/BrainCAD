@@ -19,7 +19,9 @@ import {
   useSelectedTarget,
 } from './state/store.ts'
 import { CollisionPanel } from './ui/CollisionPanel.tsx'
+import { ExportPanel } from './ui/ExportPanel.tsx'
 import { MeasurePanel } from './ui/MeasurePanel.tsx'
+import { OpticsPanel } from './ui/OpticsPanel.tsx'
 import { ObjectProperties } from './ui/ObjectProperties.tsx'
 import { ObjectsPanel } from './ui/ObjectsPanel.tsx'
 import { PlanPanel } from './ui/PlanPanel.tsx'
@@ -33,8 +35,8 @@ const TABS: readonly { id: Tab; enabled: boolean; title: string }[] = [
   { id: 'OBJECTS', enabled: true, title: 'Hardware primitives and custom geometry' },
   { id: 'ATLAS', enabled: true, title: 'Atlas browsing and region meshes' },
   { id: 'MEASURE', enabled: true, title: 'Two-point distance measurement' },
-  { id: 'OPTICS', enabled: false, title: 'Milestone 3 — objective access planning' },
-  { id: 'EXPORT', enabled: false, title: 'Milestone 4 — planning sheet export' },
+  { id: 'OPTICS', enabled: true, title: 'Objective approach-angle sweep' },
+  { id: 'EXPORT', enabled: true, title: 'Project file and planning sheet' },
 ]
 
 export function App() {
@@ -106,6 +108,10 @@ export function App() {
             <ObjectsPanel />
           ) : tab === 'MEASURE' ? (
             <MeasurePanel />
+          ) : tab === 'OPTICS' ? (
+            <OpticsPanel />
+          ) : tab === 'EXPORT' && atlas ? (
+            <ExportPanel atlas={atlas} profile={profile} />
           ) : (
             <ScenePanel />
           )}

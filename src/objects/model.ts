@@ -61,8 +61,16 @@ export interface SceneObject {
   color: string
   opacity: number
   visible: boolean
-  /** Whether this object participates in collision checking (from M3). */
+  /** Whether this object participates in collision checking at all. */
   collision: boolean
+  /**
+   * Whether to check this object against anatomy.
+   *
+   * Defaults to false for insertion instruments, which are meant to enter the
+   * brain, and true for objectives, headplates and other hardware that must
+   * stay outside it.
+   */
+  anatomyCollision: boolean
   notes: string
 }
 
@@ -106,6 +114,11 @@ export const KIND_LABEL: Record<ObjectKind, string> = {
   custom: 'Custom geometry',
 }
 
+/** Objects that describe an insertion, and so have a meaningful trajectory. */
+export function isInsertionKind(kind: ObjectKind): boolean {
+  return kind === 'pipette' || kind === 'cannula' || kind === 'prism'
+}
+
 export function makeObject(
   id: string,
   kind: ObjectKind,
@@ -126,6 +139,7 @@ export function makeObject(
     opacity: kind === 'objective' ? 0.45 : 0.9,
     visible: true,
     collision: true,
+    anatomyCollision: !isInsertionKind(kind),
     notes: '',
   }
 }
@@ -157,11 +171,6 @@ export function effectivePivot(object: SceneObject, built: BuiltPrimitive): Vect
 /** Whether this object's natural pivot differs from its anchor. */
 export function pivotDiffersFromAnchor(built: BuiltPrimitive): boolean {
   return built.pivot.distanceToSquared(built.anchor) > 1e-12
-}
-
-/** Objects that describe an insertion, and so have a meaningful trajectory. */
-export function isInsertionKind(kind: ObjectKind): boolean {
-  return kind === 'pipette' || kind === 'cannula' || kind === 'prism'
 }
 
 /** Dispose derived geometry that the caller owns. */

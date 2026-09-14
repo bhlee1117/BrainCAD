@@ -340,8 +340,21 @@ export function ObjectProperties({
           />
           Include in collision checks
         </label>
+        <label className="check">
+          <input
+            type="checkbox"
+            checked={object.anatomyCollision}
+            disabled={!object.collision}
+            onChange={(event) =>
+              updateObject(object.id, { anatomyCollision: event.target.checked })
+            }
+          />
+          Also check against anatomy
+        </label>
         <p className="hint" style={{ marginTop: 2 }}>
-          Collision checking arrives in M3; this setting is stored with the project now.
+          {object.anatomyCollision
+            ? 'This object is expected to stay outside the brain.'
+            : 'Insertion instruments cross the brain surface by design, so anatomy is not treated as a collision for this object.'}
         </p>
       </div>
     </>
