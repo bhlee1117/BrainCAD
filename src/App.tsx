@@ -21,7 +21,7 @@ import {
 import { CollisionPanel } from './ui/CollisionPanel.tsx'
 import { ExportPanel } from './ui/ExportPanel.tsx'
 import { MeasurePanel } from './ui/MeasurePanel.tsx'
-import { MobileSheet } from './ui/MobileSheet.tsx'
+import { MobileSheet, ObjectsTab } from './ui/MobileSheet.tsx'
 import { OpticsPanel } from './ui/OpticsPanel.tsx'
 import { ObjectProperties } from './ui/ObjectProperties.tsx'
 import { ObjectsPanel } from './ui/ObjectsPanel.tsx'
@@ -105,6 +105,27 @@ export function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // The panel for the active tab, built once and used by whichever layout is
+  // mounted. Keeping it in one place is what stops the two layouts drifting —
+  // the compact branch used to omit it entirely, which left every header tab
+  // changing state and rendering nothing on a phone.
+  const tabPanel =
+    atlas && tab === 'ATLAS' ? (
+      <AtlasPanel atlas={atlas} />
+    ) : tab === 'OBJECTS' ? (
+      <ObjectsPanel />
+    ) : tab === 'OVERLAYS' && atlas ? (
+      <OverlaysPanel atlas={atlas} profile={profile} />
+    ) : tab === 'MEASURE' ? (
+      <MeasurePanel />
+    ) : tab === 'OPTICS' ? (
+      <OpticsPanel />
+    ) : tab === 'EXPORT' && atlas ? (
+      <ExportPanel atlas={atlas} profile={profile} />
+    ) : (
+      <ScenePanel />
+    )
+
   return (
     <div className="app">
       <header className="topbar">
@@ -128,25 +149,7 @@ export function App() {
       </header>
 
       <div className={compact ? 'main main--compact' : 'main'}>
-        {!compact && (
-        <aside className="panel panel--left">
-          {atlas && tab === 'ATLAS' ? (
-            <AtlasPanel atlas={atlas} />
-          ) : tab === 'OBJECTS' ? (
-            <ObjectsPanel />
-          ) : tab === 'OVERLAYS' && atlas ? (
-            <OverlaysPanel atlas={atlas} profile={profile} />
-          ) : tab === 'MEASURE' ? (
-            <MeasurePanel />
-          ) : tab === 'OPTICS' ? (
-            <OpticsPanel />
-          ) : tab === 'EXPORT' && atlas ? (
-            <ExportPanel atlas={atlas} profile={profile} />
-          ) : (
-            <ScenePanel />
-          )}
-        </aside>
-        )}
+        {!compact && <aside className="panel panel--left">{tabPanel}</aside>}
 
         <div style={{ display: 'grid', gridTemplateRows: '1fr auto', minWidth: 0 }}>
           <div style={{ position: 'relative', minHeight: 0 }}>
@@ -186,7 +189,13 @@ export function App() {
         </div>
 
         {compact && atlas && (
-          <MobileSheet atlas={atlas} profile={profile} target={target} />
+          <MobileSheet atlas={atlas} profile={profile} target={target} tab={tab}>
+            {/* The rig controls lead, then the same panel the desktop shows —
+                angle is what gets nudged at the rig, but the library has to be
+                reachable or OBJECTS is a dead end on a phone. */}
+            {tab === 'OBJECTS' && <ObjectsTab />}
+            <div className="panel panel--sheet">{tabPanel}</div>
+          </MobileSheet>
         )}
 
         {!compact && (

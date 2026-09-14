@@ -58,6 +58,10 @@ select {
   display: grid;
   grid-template-rows: auto 1fr auto;
   height: 100%;
+  /* Grid items default to min-width:auto, so without this any row wider than
+     the viewport — the tab strip on a phone — widens the whole app instead of
+     scrolling inside itself, and carries the rest of the layout sideways. */
+  min-width: 0;
 }
 
 .topbar {
@@ -68,11 +72,14 @@ select {
   height: 44px;
   background: var(--bg-panel);
   border-bottom: 1px solid var(--border);
+  min-width: 0;
 }
 
 .brand {
   font-weight: 650;
   letter-spacing: 0.2px;
+  /* Never squeezed by the tab strip beside it. */
+  flex: none;
 }
 
 .brand span {
@@ -86,9 +93,13 @@ select {
   display: flex;
   gap: 2px;
   margin-left: auto;
+  min-width: 0;
 }
 
 .tab {
+  /* Fixed size: in a strip that scrolls, a shrinkable button collapses to its
+     padding and the labels clip one character at a time. */
+  flex: none;
   padding: 5px 11px;
   border: 0;
   border-radius: 5px;
@@ -620,27 +631,27 @@ input[type='range'] {
   text-transform: uppercase;
 }
 
-.msheet__tabs {
-  display: flex;
-  gap: 2px;
-  padding: 0 10px 8px;
+/* Authoring tabs get more than the rig view's half screen: a region tree or an
+   experiment list in 50vh is a letterbox. */
+.msheet--tall {
+  max-height: 78vh;
 }
 
-.msheet__tab {
-  flex: 1;
-  padding: 9px 4px;
-  border: 0;
-  border-radius: 6px;
-  background: var(--bg-raised);
-  color: var(--text-dim);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
+.msheet__heading {
+  margin: 18px 0 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--text-faint);
 }
 
-.msheet__tab--active {
-  background: var(--accent-dim);
-  color: #fff;
+/* A desktop panel hosted inside the sheet. Inherits every `.panel *` rule, but
+   the sheet body owns the scrolling and the outer padding. */
+.panel--sheet {
+  background: transparent;
+  overflow: visible;
+  padding: 0;
 }
 
 .msheet__body {
@@ -808,13 +819,26 @@ input[type='range'] {
     display: none;
   }
 
+  /* Seven tabs do not fit a phone. The strip scrolls sideways on its own —
+     which only works because it is allowed to shrink below its content; left
+     at min-width:auto it instead stretched the document to 601px in a 375px
+     viewport and pushed the last three tabs somewhere unreachable. */
   .tabs {
+    flex: 1 1 0;
     overflow-x: auto;
     scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    /* Nudged off the left edge so a part-scrolled strip reads as scrollable. */
+    scroll-padding-inline: 8px;
   }
 
   .tabs::-webkit-scrollbar {
     display: none;
+  }
+
+  .tab {
+    /* Comfortable thumb target; 5px of padding is a desktop dimension. */
+    padding: 8px 11px;
   }
 
   .notice {

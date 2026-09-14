@@ -6,21 +6,24 @@
  * should hold the screen and controls live in a sheet that can be pulled up
  * when needed and pushed down when it is in the way.
  *
- * That use also shapes what belongs here. At the rig, the questions are "what
- * are the numbers" and "am I clear" — not "let me import an STL". So the sheet
- * carries coordinates, the region readout and collision state, and leaves the
- * heavier authoring tabs to the desktop layout.
+ * That use shapes what PLAN shows: at the rig the questions are "what are the
+ * numbers" and "am I clear", so the rig view leads with the coordinate, the
+ * region readout and collision state rather than with authoring controls.
+ *
+ * The sheet is also where the top tab bar lands on a phone. It used to carry a
+ * second, private set of tabs while the real ones sat inert in the header —
+ * seven tabs that changed state and rendered nothing, because the panel they
+ * drive is only mounted in the desktop branch. One tab system now, and every
+ * tab in it resolves to something.
  */
 
-import { useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 
 import { UNLABELLED } from '../atlas/annotation.ts'
 import type { LoadedAtlas } from '../atlas/load.ts'
 import type { CoordinateProfile } from '../atlas/profile.ts'
 import { STATE_COLOR, STATE_LABEL, formatSeparation } from '../collision/check.ts'
 import { useAppStore, type Target } from '../state/store.ts'
-
-type SheetTab = 'target' | 'objects' | 'clearance'
 
 /** Big, thumb-sized stepper for one coordinate axis. */
 function CoordStepper({
@@ -117,7 +120,14 @@ function TargetTab({
   )
 }
 
-function ObjectsTab() {
+/**
+ * Rig controls for the selected object: pick one, adjust its tilt.
+ *
+ * Sits above the full object library rather than replacing it — angle is what
+ * gets nudged at the rig, but "add hardware on a desktop browser" was a dead
+ * end on a tool that runs perfectly well in a phone browser.
+ */
+export function ObjectsTab() {
   const objects = useAppStore((s) => s.objects)
   const selection = useAppStore((s) => s.selection)
   const select = useAppStore((s) => s.select)
@@ -126,9 +136,7 @@ function ObjectsTab() {
   const selected =
     selection?.kind === 'object' ? objects.find((o) => o.id === selection.id) : objects[0]
 
-  if (objects.length === 0) {
-    return <p className="mhint">No objects placed. Add hardware on a desktop browser.</p>
-  }
+  if (objects.length === 0) return null
 
   return (
     <>
@@ -216,20 +224,48 @@ export function MobileSheet({
   atlas,
   profile,
   target,
+  tab,
+  children,
 }: {
   atlas: LoadedAtlas
   profile: CoordinateProfile
   target: Target | null
+  /** The active header tab, which is what the sheet body shows. */
+  tab: string
+  /** The panel for that tab; absent for PLAN, which has its own rig view. */
+  children?: ReactNode
 }) {
-  const [tab, setTab] = useState<SheetTab>('target')
   // Starts collapsed so the brain holds the screen, as the blueprint's mobile
   // mock shows: a large 3D view over a compact strip carrying the coordinate
   // and the clearance state. Controls are one tap away on the grip.
   const [expanded, setExpanded] = useState(false)
   const report = useAppStore((s) => s.collisionReport)
 
+  // Choosing a tab is a request to see it, so the sheet opens. Skipped on the
+  // first render, which would otherwise defeat the collapsed default above.
+  const mounted = useRef(false)
+  useEffect(() => {
+    if (mounted.current) setExpanded(true)
+    else mounted.current = true
+  }, [tab])
+
+  // The authoring panels are dense — a region tree, an experiment list — and
+  // half a screen turns them into a letterbox. The rig view keeps the blueprint
+  // 50vh, because there the brain is the point.
+  const tall = expanded && tab !== 'PLAN'
+
   return (
-    <div className={expanded ? 'msheet msheet--open' : 'msheet'}>
+    <div
+      className={
+        [
+          'msheet',
+          expanded ? 'msheet--open' : '',
+          tall ? 'msheet--tall' : '',
+        ]
+          .filter(Boolean)
+          .join(' ')
+      }
+    >
       <button
         className="msheet__grip"
         onClick={() => setExpanded((v) => !v)}
@@ -260,33 +296,17 @@ export function MobileSheet({
       </div>
 
       {expanded && (
-        <>
-          <div className="msheet__tabs">
-            {(
-              [
-                ['target', 'Target'],
-                ['objects', 'Objects'],
-                ['clearance', 'Clearance'],
-              ] as const
-            ).map(([id, label]) => (
-              <button
-                key={id}
-                className={tab === id ? 'msheet__tab msheet__tab--active' : 'msheet__tab'}
-                onClick={() => setTab(id)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-
-          <div className="msheet__body">
-            {tab === 'target' && (
+        <div className="msheet__body">
+          {tab === 'PLAN' ? (
+            <>
               <TargetTab atlas={atlas} profile={profile} target={target} />
-            )}
-            {tab === 'objects' && <ObjectsTab />}
-            {tab === 'clearance' && <ClearanceTab />}
-          </div>
-        </>
+              <h4 className="msheet__heading">Clearance</h4>
+              <ClearanceTab />
+            </>
+          ) : (
+            children
+          )}
+        </div>
       )}
     </div>
   )
