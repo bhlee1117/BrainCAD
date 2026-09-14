@@ -5,7 +5,7 @@
  * here?" — so it starts from a source structure rather than an experiment id.
  */
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import type { LoadedAtlas } from '../atlas/load.ts'
 import type { CoordinateProfile } from '../atlas/profile.ts'
@@ -13,7 +13,11 @@ import { parseNrrdAsync } from '../atlas/nrrd.ts'
 import { makeVolumeSpace } from '../atlas/space.ts'
 import { searchStructures } from '../atlas/ontology.ts'
 import {
-  describeExperiment,
+  describeDriver,
+  loadTransgenicLines,
+  type LineIndex,
+} from '../overlays/transgenicLines.ts'
+import {
   experimentCitation,
   experimentUrl,
   projectionVolumeUrl,
@@ -55,6 +59,20 @@ export function OverlaysPanel({
   const [threshold, setThreshold] = useState(DEFAULT_POINT_CLOUD_OPTIONS.threshold)
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [lines, setLines] = useState<LineIndex>(() => new Map())
+  const [expanded, setExpanded] = useState<number | null>(null)
+
+  // Loaded once and cached; the list still works without it, just without the
+  // plain-language descriptions.
+  useEffect(() => {
+    let live = true
+    void loadTransgenicLines().then((index) => {
+      if (live) setLines(index)
+    })
+    return () => {
+      live = false
+    }
+  }, [])
 
   const matches = useMemo(
     () => (query.trim() ? searchStructures(atlas.index, query, 8) : []),
@@ -251,19 +269,90 @@ export function OverlaysPanel({
             </div>
           )}
 
-          <div className="results" style={{ maxHeight: 260 }}>
-            {experiments.map((experiment) => (
-              <button
-                key={experiment.id}
-                className="result"
-                onClick={() => void loadExperiment(experiment)}
-                disabled={busy !== null}
-                title={describeExperiment(experiment)}
-              >
-                <span className="result__acronym">{experiment.id}</span>
-                <span className="result__name">{describeExperiment(experiment)}</span>
-              </button>
-            ))}
+          <div className="explist">
+            {experiments.map((experiment) => {
+              const driver = describeDriver(experiment.transgenicLine, lines)
+              const isOpen = expanded === experiment.id
+
+              return (
+                <div className="exp" key={experiment.id}>
+                  <div className="exp__main">
+                    <button
+                      className="exp__load"
+                      onClick={() => void loadExperiment(experiment)}
+                      disabled={busy !== null}
+                    >
+                      {/* The driver leads, because "which cells were labelled"
+                          is the question someone scanning this list is asking.
+                          The experiment id is an identifier, not information. */}
+                      <span className="exp__driver">
+                        {experiment.structureAbbrev} · {driver.label}
+                      </span>
+                      {driver.population && (
+                        <span className="exp__population">{driver.population}</span>
+                      )}
+                      <span className="exp__meta">
+                        {experiment.injectionVolumeMm3 !== null
+                          ? `${experiment.injectionVolumeMm3.toFixed(2)} mm³`
+                          : 'volume not reported'}
+                        {experiment.strain ? ` · ${experiment.strain}` : ''}
+                      </span>
+                    </button>
+
+                    <button
+                      className="exp__more"
+                      aria-expanded={isOpen}
+                      title={isOpen ? 'Hide details' : 'Show details'}
+                      onClick={() => setExpanded(isOpen ? null : experiment.id)}
+                    >
+                      {isOpen ? '−' : 'i'}
+                    </button>
+                  </div>
+
+                  {isOpen && (
+                    <div className="exp__detail">
+                      {driver.line?.description ? (
+                        <p className="exp__desc">{driver.line.description}</p>
+                      ) : experiment.transgenicLine ? (
+                        <p className="exp__desc exp__desc--missing">
+                          No expression description published for this line.
+                        </p>
+                      ) : (
+                        <p className="exp__desc">
+                          No Cre driver — the tracer labelled all cell types at the
+                          injection site.
+                        </p>
+                      )}
+
+                      <div className="exp__facts">
+                        <span>Experiment {experiment.id}</span>
+                        {driver.line?.stockNumber && (
+                          <span>
+                            {driver.line.sourceName ?? 'Stock'} {driver.line.stockNumber}
+                          </span>
+                        )}
+                        {experiment.gender && <span>{experiment.gender}</span>}
+                      </div>
+
+                      <div className="exp__links">
+                        <a
+                          href={experimentUrl(experiment.id)}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Experiment page ↗
+                        </a>
+                        {driver.line?.url && (
+                          <a href={driver.line.url} target="_blank" rel="noreferrer">
+                            Line at {driver.line.sourceName ?? 'source'} ↗
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </div>
         </div>
       )}
