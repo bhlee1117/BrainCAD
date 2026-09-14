@@ -30,7 +30,28 @@ import {
 
 import { ANATOMY_FLAG } from '../scene/Helper.tsx'
 
-const RENDER_SIZE = 700
+/**
+ * Capture resolution, in pixels square.
+ *
+ * Sized for print rather than for the screen. Two figures across a page put
+ * each at roughly 85 mm wide, which at 300 dpi is about 1000 px — so 1600 gives
+ * headroom to crop or enlarge one without it going soft, and costs a few
+ * hundred kilobytes in a document that is already self-contained.
+ *
+ * Clamped at runtime to the GPU's maximum texture size, which is 4096 or more
+ * almost everywhere but is not guaranteed.
+ */
+const REQUESTED_SIZE = 1600
+
+/**
+ * Multisample count for the capture.
+ *
+ * The interactive canvas gets antialiasing from its own context; a render
+ * target does not unless asked, which is why the earlier captures had visibly
+ * stepped edges on every pipette and mesh silhouette. Four samples is the point
+ * where the cost stops buying visible quality.
+ */
+const SAMPLES = 4
 
 export interface OverviewView {
   readonly name: string
@@ -67,6 +88,7 @@ const VIEWPOINTS: readonly {
  * rather than part of the plan.
  */
 export function renderOverviewViews(gl: WebGLRenderer, scene: Scene): OverviewView[] {
+  const size = Math.min(REQUESTED_SIZE, gl.capabilities.maxTextureSize)
   const hidden: Object3D[] = []
   scene.traverse((node) => {
     if (!node.visible) return
@@ -86,7 +108,7 @@ export function renderOverviewViews(gl: WebGLRenderer, scene: Scene): OverviewVi
   scene.add(headlight)
   scene.add(headlight.target)
 
-  const target = new WebGLRenderTarget(RENDER_SIZE, RENDER_SIZE)
+  const target = new WebGLRenderTarget(size, size, { samples: SAMPLES })
   const previousTarget = gl.getRenderTarget()
   const views: OverviewView[] = []
 
@@ -111,10 +133,10 @@ export function renderOverviewViews(gl: WebGLRenderer, scene: Scene): OverviewVi
 
       gl.setRenderTarget(target)
       gl.render(scene, camera)
-      const pixels = new Uint8Array(RENDER_SIZE * RENDER_SIZE * 4)
-      gl.readRenderTargetPixels(target, 0, 0, RENDER_SIZE, RENDER_SIZE, pixels)
+      const pixels = new Uint8Array(size * size * 4)
+      gl.readRenderTargetPixels(target, 0, 0, size, size, pixels)
 
-      const dataUrl = toDataUrl(pixels)
+      const dataUrl = toDataUrl(pixels, size)
       if (dataUrl) views.push({ name: viewpoint.name, dataUrl })
     }
   } catch (error) {
@@ -217,28 +239,28 @@ function boundingSphere(scene: Scene): Sphere {
 }
 
 /** Flip the GL rows into image order and encode as PNG. */
-function toDataUrl(pixels: Uint8Array): string | null {
+function toDataUrl(pixels: Uint8Array, size: number): string | null {
   const canvas = document.createElement('canvas')
-  canvas.width = RENDER_SIZE
-  canvas.height = RENDER_SIZE
+  canvas.width = size
+  canvas.height = size
   const context = canvas.getContext('2d')
   if (!context) return null
 
-  const image = context.createImageData(RENDER_SIZE, RENDER_SIZE)
-  for (let y = 0; y < RENDER_SIZE; y++) {
+  const image = context.createImageData(size, size)
+  for (let y = 0; y < size; y++) {
     // GL reads bottom-up; canvas expects top-down.
-    const source = (RENDER_SIZE - 1 - y) * RENDER_SIZE * 4
-    const destination = y * RENDER_SIZE * 4
-    image.data.set(pixels.subarray(source, source + RENDER_SIZE * 4), destination)
+    const source = (size - 1 - y) * size * 4
+    const destination = y * size * 4
+    image.data.set(pixels.subarray(source, source + size * 4), destination)
   }
 
   // Composite onto the viewport's own ground so transparent background pixels
   // do not print as white boxes around the brain.
   context.fillStyle = '#0b0e13'
-  context.fillRect(0, 0, RENDER_SIZE, RENDER_SIZE)
+  context.fillRect(0, 0, size, size)
   const layer = document.createElement('canvas')
-  layer.width = RENDER_SIZE
-  layer.height = RENDER_SIZE
+  layer.width = size
+  layer.height = size
   layer.getContext('2d')?.putImageData(image, 0, 0)
   context.drawImage(layer, 0, 0)
 

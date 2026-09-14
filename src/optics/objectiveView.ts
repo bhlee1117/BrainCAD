@@ -180,7 +180,10 @@ export function renderObjectiveView(
   scene.add(headlight)
   scene.add(headlight.target)
 
-  const target = new WebGLRenderTarget(RENDER_SIZE, RENDER_SIZE)
+  // Multisampled: a render target gets no antialiasing unless asked, and
+  // without it every implant edge and mesh silhouette in the figure is visibly
+  // stepped — which reads as geometry rather than as a rendering artifact.
+  const target = new WebGLRenderTarget(RENDER_SIZE, RENDER_SIZE, { samples: 4 })
   const previousTarget = gl.getRenderTarget()
 
   let pixels: Uint8Array
