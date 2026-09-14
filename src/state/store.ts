@@ -16,6 +16,9 @@ import type { Orientation } from '../objects/placement.ts'
 import type { SceneObject } from '../objects/model.ts'
 import { makeObject, releaseCustomGeometry } from '../objects/model.ts'
 import type { ObjectKind, PrimitiveParams } from '../objects/primitives.ts'
+import type { CollisionSettings, SceneCollisionReport } from '../collision/check.ts'
+import { DEFAULT_COLLISION_SETTINGS } from '../collision/check.ts'
+import type { Measurement } from '../measure/measure.ts'
 
 export interface Target {
   readonly id: string
@@ -68,6 +71,17 @@ export interface AppState {
   anatomy: AnatomyVisibility
   slices: SliceState
 
+  collisionEnabled: boolean
+  collisionSettings: CollisionSettings
+  /** Latest report, published by the collision hook for panels to read. */
+  collisionReport: SceneCollisionReport | null
+
+  measurements: Measurement[]
+  /** Which endpoint the next click in measure mode sets, or null when idle. */
+  measuring: 'a' | 'b' | null
+  /** Endpoint A while a measurement is being placed. */
+  pendingA: Measurement['a'] | null
+
   setAtlasStatus: (status: AtlasStatus) => void
   setProfileId: (id: string) => void
 
@@ -87,6 +101,17 @@ export interface AppState {
   setAnatomy: (patch: Partial<AnatomyVisibility>) => void
   toggleStructure: (id: number) => void
   setSlices: (patch: Partial<SliceState>) => void
+
+  setCollisionEnabled: (enabled: boolean) => void
+  setCollisionSettings: (patch: Partial<CollisionSettings>) => void
+  setCollisionReport: (report: SceneCollisionReport | null) => void
+
+  startMeasuring: () => void
+  cancelMeasuring: () => void
+  setPendingA: (point: Measurement['a']) => void
+  addMeasurement: (b: Measurement['b']) => void
+  updateMeasurement: (id: string, patch: Partial<Omit<Measurement, 'id'>>) => void
+  removeMeasurement: (id: string) => void
 }
 
 let targetCounter = 0
@@ -94,6 +119,8 @@ function nextTargetId(): string {
   targetCounter += 1
   return `target-${targetCounter}`
 }
+
+let measurementCounter = 0
 
 let objectCounter = 0
 function nextObjectId(): string {
@@ -129,6 +156,14 @@ export const useAppStore = create<AppState>((set, get) => {
       visibleStructureIds: [],
     },
     slices: { visible: true, followTarget: true },
+
+    collisionEnabled: true,
+    collisionSettings: { ...DEFAULT_COLLISION_SETTINGS },
+    collisionReport: null,
+
+    measurements: [],
+    measuring: null,
+    pendingA: null,
 
     setAtlasStatus: (atlasStatus) => set({ atlasStatus }),
     setProfileId: (profileId) => set({ profileId }),
@@ -235,6 +270,48 @@ export const useAppStore = create<AppState>((set, get) => {
       })),
 
     setGizmoMode: (gizmoMode) => set({ gizmoMode }),
+
+    setCollisionEnabled: (collisionEnabled) => set({ collisionEnabled }),
+
+    setCollisionSettings: (patch) =>
+      set((state) => ({ collisionSettings: { ...state.collisionSettings, ...patch } })),
+
+    setCollisionReport: (collisionReport) => set({ collisionReport }),
+
+    startMeasuring: () => set({ measuring: 'a', pendingA: null }),
+
+    cancelMeasuring: () => set({ measuring: null, pendingA: null }),
+
+    setPendingA: (pendingA) => set({ pendingA, measuring: 'b' }),
+
+    addMeasurement: (b) =>
+      set((state) => {
+        if (!state.pendingA) return {}
+        measurementCounter += 1
+        return {
+          measurements: [
+            ...state.measurements,
+            {
+              id: `measurement-${measurementCounter}`,
+              name: `Measurement ${state.measurements.length + 1}`,
+              a: state.pendingA,
+              b,
+              kind: 'euclidean' as const,
+              visible: true,
+            },
+          ],
+          measuring: null,
+          pendingA: null,
+        }
+      }),
+
+    updateMeasurement: (id, patch) =>
+      set((state) => ({
+        measurements: state.measurements.map((m) => (m.id === id ? { ...m, ...patch } : m)),
+      })),
+
+    removeMeasurement: (id) =>
+      set((state) => ({ measurements: state.measurements.filter((m) => m.id !== id) })),
 
     setAnatomy: (patch) => set((state) => ({ anatomy: { ...state.anatomy, ...patch } })),
 

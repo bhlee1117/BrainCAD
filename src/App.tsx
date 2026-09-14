@@ -18,6 +18,8 @@ import {
   useSelectedObject,
   useSelectedTarget,
 } from './state/store.ts'
+import { CollisionPanel } from './ui/CollisionPanel.tsx'
+import { MeasurePanel } from './ui/MeasurePanel.tsx'
 import { ObjectProperties } from './ui/ObjectProperties.tsx'
 import { ObjectsPanel } from './ui/ObjectsPanel.tsx'
 import { PlanPanel } from './ui/PlanPanel.tsx'
@@ -30,7 +32,7 @@ const TABS: readonly { id: Tab; enabled: boolean; title: string }[] = [
   { id: 'PLAN', enabled: true, title: 'Target and trajectory planning' },
   { id: 'OBJECTS', enabled: true, title: 'Hardware primitives and custom geometry' },
   { id: 'ATLAS', enabled: true, title: 'Atlas browsing and region meshes' },
-  { id: 'MEASURE', enabled: false, title: 'Milestone 3 — two-point measurement' },
+  { id: 'MEASURE', enabled: true, title: 'Two-point distance measurement' },
   { id: 'OPTICS', enabled: false, title: 'Milestone 3 — objective access planning' },
   { id: 'EXPORT', enabled: false, title: 'Milestone 4 — planning sheet export' },
 ]
@@ -102,6 +104,8 @@ export function App() {
             <AtlasPanel atlas={atlas} />
           ) : tab === 'OBJECTS' ? (
             <ObjectsPanel />
+          ) : tab === 'MEASURE' ? (
+            <MeasurePanel />
           ) : (
             <ScenePanel />
           )}
@@ -148,6 +152,7 @@ export function App() {
           {/* The properties panel follows the selection rather than the tab:
               selecting an object in the 3D view should show its properties
               wherever the user happens to be. */}
+          {atlas && <CollisionPanel stale={false} />}
           {atlas && selectedObject ? (
             <ObjectProperties object={selectedObject} atlas={atlas} profile={profile} />
           ) : (

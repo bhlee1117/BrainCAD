@@ -25,6 +25,7 @@ import {
   quaternionToOrientation,
   solvePlacement,
 } from '../objects/placement.ts'
+import { STATE_COLOR, stateForObject } from '../collision/check.ts'
 import { useAppStore } from '../state/store.ts'
 
 /** Small cross marking a declared point (anchor or pivot) on a selected object. */
@@ -73,6 +74,13 @@ function AxisLine({ length, color }: { length: number; color: string }) {
 
 function ObjectView({ object, selected }: { object: SceneObject; selected: boolean }) {
   const select = useAppStore((s) => s.select)
+  const report = useAppStore((s) => s.collisionReport)
+
+  // Collision state overrides the object's own colour, because a red implant is
+  // the single most important thing on screen when it happens.
+  const collisionState =
+    report && object.collision ? stateForObject(report, object.id) : 'safe'
+  const displayColor = collisionState === 'safe' ? object.color : STATE_COLOR[collisionState]
 
   const built = useMemo(() => resolveGeometry(object), [object])
 
@@ -110,7 +118,8 @@ function ObjectView({ object, selected }: { object: SceneObject; selected: boole
           }}
         >
           <meshStandardMaterial
-            color={object.color}
+            color={displayColor}
+            emissive={collisionState === 'collision' ? '#5a0f0a' : '#000000'}
             transparent={object.opacity < 1}
             opacity={object.opacity}
             roughness={0.45}
@@ -127,7 +136,7 @@ function ObjectView({ object, selected }: { object: SceneObject; selected: boole
             {pivot.distanceToSquared(built.anchor) > 1e-9 && (
               <PointMarker position={pivot} color="#4da3ff" size={0.4} />
             )}
-            <AxisLine length={built.lengthMm} color={object.color} />
+            <AxisLine length={built.lengthMm} color={displayColor} />
           </>
         )}
       </group>

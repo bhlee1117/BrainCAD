@@ -20,6 +20,8 @@ import { loadAtlasMesh } from '../atlas/mesh.ts'
 import { colorComponents } from '../atlas/ontology.ts'
 import type { CoordinateProfile } from '../atlas/profile.ts'
 import { SceneObjects } from './SceneObjects.tsx'
+import { Measurements, useMeasurementClick } from './Measurements.tsx'
+import { useCollision, type AnatomyMesh } from '../collision/useCollision.ts'
 import { useAppStore, type Target } from '../state/store.ts'
 import { atlasToWorldMatrix, stereotaxicToWorld } from './world.ts'
 
@@ -79,9 +81,21 @@ function useAtlasMeshGeometry(structureId: number): BufferGeometry | null {
  * inside it — with a single transparent pass, front faces would wash out the
  * markers behind them.
  */
-function BrainSurface({ matrix }: { matrix: Matrix4 }) {
+function BrainSurface({
+  matrix,
+  onGeometry,
+  onPick,
+}: {
+  matrix: Matrix4
+  onGeometry?: (geometry: BufferGeometry | null) => void
+  onPick?: (event: ThreeEvent<MouseEvent>) => void
+}) {
   const geometry = useAtlasMeshGeometry(ROOT_STRUCTURE_ID)
   const { showBrain, brainOpacity } = useAppStore((s) => s.anatomy)
+
+  useEffect(() => {
+    onGeometry?.(geometry)
+  }, [geometry, onGeometry])
 
   if (!geometry || !showBrain) return null
 
@@ -97,7 +111,7 @@ function BrainSurface({ matrix }: { matrix: Matrix4 }) {
           roughness={0.85}
         />
       </mesh>
-      <mesh geometry={geometry} renderOrder={-1}>
+      <mesh geometry={geometry} renderOrder={-1} onClick={onPick}>
         <meshStandardMaterial
           color="#b8cde4"
           transparent
@@ -271,9 +285,34 @@ function Scene({
   const targets = useAppStore((s) => s.targets)
   const selectedTargetId = useAppStore((s) => s.selectedTargetId)
   const visibleStructureIds = useAppStore((s) => s.anatomy.visibleStructureIds)
+  const collisionEnabled = useAppStore((s) => s.collisionEnabled)
+  const collisionSettings = useAppStore((s) => s.collisionSettings)
+  const setCollisionReport = useAppStore((s) => s.setCollisionReport)
+  const measuring = useAppStore((s) => s.measuring)
+  const onMeasureClick = useMeasurementClick()
   const groupRef = useRef<Group>(null)
 
   const matrix = useMemo(() => atlasToWorldMatrix(profile), [profile])
+
+  // The brain surface is the anatomy every implant is checked against.
+  const [brainGeometry, setBrainGeometry] = useState<BufferGeometry | null>(null)
+
+  const anatomy = useMemo<AnatomyMesh[]>(
+    () =>
+      brainGeometry
+        ? [{ id: 'brain', label: 'Brain surface', geometry: brainGeometry, matrix }]
+        : [],
+    [brainGeometry, matrix],
+  )
+
+  const { report, stale } = useCollision(anatomy, collisionSettings, collisionEnabled)
+
+  // Publish into the store so panels and object colouring can read it without
+  // the collision hook having to live at the top of the tree.
+  useEffect(() => {
+    setCollisionReport(report)
+  }, [report, setCollisionReport])
+  void stale
 
   return (
     <>
@@ -282,7 +321,20 @@ function Scene({
       <directionalLight position={[-10, -6, -8]} intensity={0.7} />
 
       <group ref={groupRef}>
-        <BrainSurface matrix={matrix} />
+        <BrainSurface
+          matrix={matrix}
+          onGeometry={setBrainGeometry}
+          onPick={
+            measuring
+              ? (event) => {
+                  // Stop here so the catcher sphere behind the brain does not
+                  // also fire and overwrite the surface point with a far one.
+                  event.stopPropagation()
+                  onMeasureClick(event.point)
+                }
+              : undefined
+          }
+        />
 
         {visibleStructureIds.map((id) => {
           const structure = atlas.index.byId.get(id)
@@ -301,6 +353,22 @@ function Scene({
         <AxisTriad />
 
         <SceneObjects />
+
+        <Measurements />
+
+        {/* While measuring, a large invisible sphere catches clicks that miss
+            every mesh, so a point can still be placed in open space. */}
+        {measuring && (
+          <mesh
+            onClick={(event) => {
+              event.stopPropagation()
+              onMeasureClick(event.point)
+            }}
+          >
+            <sphereGeometry args={[60, 16, 16]} />
+            <meshBasicMaterial visible={false} side={BackSide} />
+          </mesh>
+        )}
 
         {targets.map((target) => (
           <TargetMarker
