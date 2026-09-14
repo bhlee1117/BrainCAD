@@ -6,6 +6,7 @@
  */
 
 import { useEffect, useMemo, useState } from 'react'
+import { NumberField } from './NumberField.tsx'
 
 import type { LoadedAtlas } from '../atlas/load.ts'
 import type { CoordinateProfile } from '../atlas/profile.ts'
@@ -564,17 +565,13 @@ export function OverlaysPanel({
 
           <div className="field">
             <label htmlFor="proj-threshold">Thresh</label>
-            <input
+            <NumberField
               id="proj-threshold"
-              type="number"
               min={0}
               max={1}
               step={0.01}
               value={threshold}
-              onChange={(event) => {
-                const next = Number.parseFloat(event.target.value)
-                if (Number.isFinite(next)) setThreshold(Math.max(0, next))
-              }}
+              onChange={setThreshold}
             />
           </div>
 

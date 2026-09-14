@@ -7,6 +7,7 @@
  */
 
 import { Vector3 } from 'three'
+import { NumberField } from './NumberField.tsx'
 
 import { UNLABELLED } from '../atlas/annotation.ts'
 import type { Stereotaxic } from '../atlas/coords.ts'
@@ -53,7 +54,8 @@ const PARAM_LABELS: Record<string, string> = {
   fieldOfViewMm: 'Field of view',
 }
 
-function NumberField({
+/** A labelled, unit-suffixed row wrapping the shared numeric input. */
+function LabelledNumber({
   label,
   value,
   step = 0.05,
@@ -69,15 +71,7 @@ function NumberField({
   return (
     <div className="field">
       <label title={label}>{label}</label>
-      <input
-        type="number"
-        step={step}
-        value={Number.isFinite(value) ? Number(value.toFixed(4)) : 0}
-        onChange={(event) => {
-          const next = Number.parseFloat(event.target.value)
-          if (Number.isFinite(next)) onChange(next)
-        }}
-      />
+      <NumberField step={step} value={value} onChange={onChange} />
       <span className="unit">{unit}</span>
     </div>
   )
@@ -149,28 +143,28 @@ export function ObjectProperties({
 
       <div className="section">
         <h2>Anchor position</h2>
-        <NumberField label="AP" value={object.target.ap} onChange={(ap) => setTarget({ ap })} />
-        <NumberField label="ML" value={object.target.ml} onChange={(ml) => setTarget({ ml })} />
-        <NumberField label="DV" value={object.target.dv} onChange={(dv) => setTarget({ dv })} />
+        <LabelledNumber label="AP" value={object.target.ap} onChange={(ap) => setTarget({ ap })} />
+        <LabelledNumber label="ML" value={object.target.ml} onChange={(ml) => setTarget({ ml })} />
+        <LabelledNumber label="DV" value={object.target.dv} onChange={(dv) => setTarget({ dv })} />
       </div>
 
       <div className="section">
         <h2>Orientation</h2>
-        <NumberField
+        <LabelledNumber
           label="AP tilt"
           value={object.orientation.apTiltDeg}
           step={0.5}
           unit="°"
           onChange={(apTiltDeg) => setObjectOrientation(object.id, { apTiltDeg })}
         />
-        <NumberField
+        <LabelledNumber
           label="ML tilt"
           value={object.orientation.mlTiltDeg}
           step={0.5}
           unit="°"
           onChange={(mlTiltDeg) => setObjectOrientation(object.id, { mlTiltDeg })}
         />
-        <NumberField
+        <LabelledNumber
           label="Roll"
           value={object.orientation.rollDeg}
           step={1}
@@ -228,7 +222,7 @@ export function ObjectProperties({
 
         {object.pivotMode === 'custom' && (
           <>
-            <NumberField
+            <LabelledNumber
               label="X"
               value={object.pivotCustom[0]}
               onChange={(x) =>
@@ -237,7 +231,7 @@ export function ObjectProperties({
                 })
               }
             />
-            <NumberField
+            <LabelledNumber
               label="Y"
               value={object.pivotCustom[1]}
               onChange={(y) =>
@@ -246,7 +240,7 @@ export function ObjectProperties({
                 })
               }
             />
-            <NumberField
+            <LabelledNumber
               label="Z"
               value={object.pivotCustom[2]}
               onChange={(z) =>
@@ -297,7 +291,7 @@ export function ObjectProperties({
         <div className="section">
           <h2>Dimensions</h2>
           {Object.entries(object.spec.params).map(([key, value]) => (
-            <NumberField
+            <LabelledNumber
               key={key}
               label={PARAM_LABELS[key] ?? key}
               value={value as number}

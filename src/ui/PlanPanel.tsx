@@ -4,6 +4,7 @@
  */
 
 import { useCallback } from 'react'
+import { NumberField } from './NumberField.tsx'
 
 import { UNLABELLED } from '../atlas/annotation.ts'
 import { formatStereotaxic, type Stereotaxic } from '../atlas/coords.ts'
@@ -24,16 +25,7 @@ function CoordinateInput({
   return (
     <div className="field">
       <label htmlFor={`coord-${label}`}>{label}</label>
-      <input
-        id={`coord-${label}`}
-        type="number"
-        step={0.05}
-        value={Number.isFinite(value) ? value : 0}
-        onChange={(event) => {
-          const next = Number.parseFloat(event.target.value)
-          if (Number.isFinite(next)) onChange(next)
-        }}
-      />
+      <NumberField id={`coord-${label}`} step={0.05} value={value} onChange={onChange} />
       <span className="unit">mm</span>
     </div>
   )

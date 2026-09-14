@@ -3,6 +3,7 @@
  */
 
 import { useRef, useState } from 'react'
+import { NumberField } from './NumberField.tsx'
 import { Vector3 } from 'three'
 
 import {
@@ -167,14 +168,11 @@ function ImportPanel() {
 
           <div className="field">
             <label htmlFor="imp-scale">Scale</label>
-            <input
+            <NumberField
               id="imp-scale"
-              type="number"
               step={0.1}
               value={options.scale}
-              onChange={(e) =>
-                setOptions({ ...options, scale: Number.parseFloat(e.target.value) || 1 })
-              }
+              onChange={(scale) => setOptions({ ...options, scale })}
             />
           </div>
 

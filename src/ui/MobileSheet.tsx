@@ -18,6 +18,7 @@
  */
 
 import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { NumberField } from './NumberField.tsx'
 
 import { UNLABELLED } from '../atlas/annotation.ts'
 import type { LoadedAtlas } from '../atlas/load.ts'
@@ -49,16 +50,13 @@ function CoordStepper({
       >
         −
       </button>
-      <input
+      <NumberField
         className="mstep__value"
-        type="number"
-        inputMode="decimal"
+        ariaLabel={label}
         step={step}
-        value={Number(value.toFixed(3))}
-        onChange={(event) => {
-          const next = Number.parseFloat(event.target.value)
-          if (Number.isFinite(next)) onChange(next)
-        }}
+        decimals={3}
+        value={value}
+        onChange={onChange}
       />
       <button
         className="mstep__btn"

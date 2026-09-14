@@ -7,6 +7,7 @@
  */
 
 import { useMemo, useState } from 'react'
+import { NumberField } from './NumberField.tsx'
 
 import { STATE_COLOR, type CollisionMesh } from '../collision/check.ts'
 import { cachedBvh, objectWorldMatrix } from '../collision/useCollision.ts'
@@ -194,17 +195,14 @@ export function OpticsPanel() {
         <h2>Approach sweep</h2>
         <div className="field">
           <label htmlFor="sweep-step">Step</label>
-          <input
+          <NumberField
             id="sweep-step"
-            type="number"
             min={1}
             max={15}
             step={1}
+            integer
             value={step}
-            onChange={(event) => {
-              const next = Number.parseInt(event.target.value, 10)
-              if (Number.isFinite(next) && next > 0) setStep(next)
-            }}
+            onChange={setStep}
           />
           <span className="unit">°</span>
         </div>

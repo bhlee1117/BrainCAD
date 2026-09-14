@@ -14,6 +14,7 @@ import {
   type PairReport,
   type SceneCollisionReport,
 } from '../collision/check.ts'
+import { NumberField } from './NumberField.tsx'
 import { useAppStore } from '../state/store.ts'
 
 function StatePill({ state }: { state: CollisionState }) {
@@ -80,18 +81,12 @@ export function CollisionPanel({ stale }: { stale: boolean }) {
             <label htmlFor="warn-clearance" title="Warn below this clearance">
               Warn
             </label>
-            <input
+            <NumberField
               id="warn-clearance"
-              type="number"
               step={0.05}
               min={0}
               value={settings.warnClearanceMm}
-              onChange={(event) => {
-                const next = Number.parseFloat(event.target.value)
-                if (Number.isFinite(next) && next >= 0) {
-                  setSettings({ warnClearanceMm: next })
-                }
-              }}
+              onChange={(warnClearanceMm) => setSettings({ warnClearanceMm })}
             />
             <span className="unit">mm</span>
           </div>
