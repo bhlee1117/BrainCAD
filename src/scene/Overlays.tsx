@@ -11,7 +11,12 @@ import { Billboard, Line, Text } from '@react-three/drei'
 import { useEffect, useMemo } from 'react'
 import { AdditiveBlending, BufferAttribute, BufferGeometry, Vector3 } from 'three'
 
-import type { ProjectionOverlay } from '../overlays/model.ts'
+import {
+  NEURON_AXON_COLOR,
+  NEURON_DENDRITE_COLOR,
+  type NeuronOverlay,
+  type ProjectionOverlay,
+} from '../overlays/model.ts'
 import { useAppStore } from '../state/store.ts'
 import { Helper } from './Helper.tsx'
 import { stereotaxicToWorld } from './world.ts'
@@ -148,20 +153,97 @@ function OverlayPoints({ overlay }: { overlay: ProjectionOverlay }) {
   )
 }
 
+/**
+ * One arbor, drawn as line segments.
+ *
+ * `LineSegments` rather than drei's `<Line>`: an axon runs to several thousand
+ * nodes, and the fat-line implementation allocates several attributes per
+ * segment. Plain GL lines are one buffer and one draw call, which is what makes
+ * a dozen neurons practical.
+ */
+function ArborLines({
+  positions,
+  color,
+  opacity,
+}: {
+  positions: Float32Array | null
+  color: string
+  opacity: number
+}) {
+  const geometry = useMemo(() => {
+    if (!positions || positions.length === 0) return null
+    const buffer = new BufferGeometry()
+    buffer.setAttribute('position', new BufferAttribute(positions, 3))
+    buffer.computeBoundingSphere()
+    return buffer
+  }, [positions])
+
+  useEffect(() => () => geometry?.dispose(), [geometry])
+
+  if (!geometry) return null
+
+  return (
+    <lineSegments geometry={geometry} renderOrder={2}>
+      <lineBasicMaterial
+        color={color}
+        transparent
+        opacity={opacity}
+        depthWrite={false}
+      />
+    </lineSegments>
+  )
+}
+
+function NeuronArbors({ overlay }: { overlay: NeuronOverlay }) {
+  const soma = overlay.somaWorld
+
+  if (!overlay.visible) return null
+
+  return (
+    <group>
+      {overlay.showAxon && (
+        <ArborLines
+          positions={overlay.axonWorld}
+          color={NEURON_AXON_COLOR}
+          opacity={overlay.opacity}
+        />
+      )}
+      {overlay.showDendrite && (
+        <ArborLines
+          positions={overlay.dendriteWorld}
+          color={NEURON_DENDRITE_COLOR}
+          opacity={overlay.opacity}
+        />
+      )}
+
+      {soma && (
+        <mesh position={[soma[0], soma[1], soma[2]]} renderOrder={3}>
+          <sphereGeometry args={[0.06, 14, 14]} />
+          <meshBasicMaterial color={overlay.color} />
+        </mesh>
+      )}
+    </group>
+  )
+}
+
 export function Overlays() {
   const overlays = useAppStore((s) => s.overlays)
 
   return (
     <group>
-      {overlays.map((overlay) => (
-        <group key={overlay.id}>
-          <OverlayPoints overlay={overlay} />
-          <InjectionPoints overlay={overlay} />
-          <Helper>
-            <InjectionMarker overlay={overlay} />
-          </Helper>
-        </group>
-      ))}
+      {overlays.map((overlay) =>
+        overlay.kind === 'neuron-arbor' ? (
+          <NeuronArbors key={overlay.id} overlay={overlay} />
+        ) : (
+          <group key={overlay.id}>
+            <OverlayPoints overlay={overlay} />
+            <InjectionPoints overlay={overlay} />
+            <Helper>
+              <InjectionMarker overlay={overlay} />
+            </Helper>
+          </group>
+        ),
+      )}
     </group>
   )
 }

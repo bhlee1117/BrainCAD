@@ -17,7 +17,7 @@ import type { BufferGeometry, Points } from 'three'
 
 import type { ProjectionPointCloud } from './pointCloud.ts'
 
-export type OverlayKind = 'projection-points'
+export type OverlayKind = 'projection-points' | 'neuron-arbor'
 
 /** How much the overlay should be trusted, and as what. */
 export type OverlayEvidence =
@@ -57,7 +57,9 @@ export interface InjectionSite {
 
 export interface ProjectionOverlay {
   readonly id: string
-  readonly kind: OverlayKind
+  // A literal, not `OverlayKind`: this is the discriminant that lets every
+  // consumer narrow the union, and a widened type here silently disables that.
+  readonly kind: 'projection-points'
   name: string
   visible: boolean
   color: string
@@ -80,6 +82,63 @@ export interface ProjectionOverlay {
   readonly worldPositions: Float32Array
   readonly colors: Float32Array
 }
+
+/**
+ * A single reconstructed neuron, drawn as line segments.
+ *
+ * Deliberately a sibling of `ProjectionOverlay` rather than a variant of it.
+ * The two answer the same question at different resolutions — where do axons
+ * from here go — but one is a population average over a bulk injection and the
+ * other is one cell, and a shape that let them be handled interchangeably would
+ * invite exactly the conflation the provenance fields exist to prevent.
+ */
+export interface NeuronOverlay {
+  readonly id: string
+  readonly kind: 'neuron-arbor'
+  name: string
+  visible: boolean
+  color: string
+  opacity: number
+  /** MouseLight's published identifier, e.g. "AL0017". */
+  readonly idString: string
+  readonly somaAcronym: string | null
+  /** Whether the dendritic arbor is drawn alongside the axon. */
+  showDendrite: boolean
+  showAxon: boolean
+  readonly totalNodes: number
+  readonly provenance: OverlayProvenance
+  /** World-space segment endpoints, ready for a LineSegments geometry. */
+  readonly axonWorld: Float32Array | null
+  readonly dendriteWorld: Float32Array | null
+  /** Soma position in world millimetres. */
+  readonly somaWorld: readonly [number, number, number] | null
+}
+
+/** Anything the overlay list can hold. */
+export type Overlay = ProjectionOverlay | NeuronOverlay
+
+/** Fields every overlay carries and the UI may patch. */
+export type OverlayPatch = Partial<{
+  name: string
+  visible: boolean
+  color: string
+  opacity: number
+  pointSizeMm: number
+  threshold: number
+  excludeInjection: boolean
+  showInjection: boolean
+  showDendrite: boolean
+  showAxon: boolean
+}>
+
+/**
+ * Axon and dendrite read as different things at a glance.
+ *
+ * Warm for the axon because it is the part that travels and the part a
+ * trajectory can run into; cool and dimmer for the dendrite, which stays local.
+ */
+export const NEURON_AXON_COLOR = '#ffb347'
+export const NEURON_DENDRITE_COLOR = '#5ec8f0'
 
 /** Default colour ramp endpoints, chosen to read over grey anatomy. */
 export const OVERLAY_COLORS = [

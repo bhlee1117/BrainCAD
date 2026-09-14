@@ -35,10 +35,23 @@ import {
 } from '../overlays/connectivity.ts'
 import {
   CONNECTIVITY_CAVEATS,
+  NEURON_AXON_COLOR,
+  NEURON_DENDRITE_COLOR,
   overlayColorFor,
   type InjectionSite,
+  type NeuronOverlay,
+  type OverlayPatch,
   type ProjectionOverlay,
 } from '../overlays/model.ts'
+import {
+  MOUSELIGHT_CAVEATS,
+  loadNeuronGeometry,
+  loadNeuronIndex,
+  neuronCitation,
+  neuronUrl,
+  neuronsInStructure,
+  type NeuronIndexEntry,
+} from '../overlays/mouselight.ts'
 import {
   DEFAULT_POINT_CLOUD_OPTIONS,
   buildProjectionPointCloud,
@@ -50,6 +63,72 @@ import { atlasToWorldMatrix } from '../scene/world.ts'
 import { useAppStore } from '../state/store.ts'
 
 let overlayCounter = 0
+
+/**
+ * Controls for a loaded neuron.
+ *
+ * Axon and dendrite toggle separately because they answer different questions:
+ * the axon is where the cell sends output — and the part a trajectory can run
+ * into — while the dendrite says what the cell is listening to locally. The
+ * swatches carry the drawing colours so the legend is the control.
+ */
+function NeuronControls({
+  overlay,
+  updateOverlay,
+}: {
+  overlay: NeuronOverlay
+  updateOverlay: (id: string, patch: OverlayPatch) => void
+}) {
+  return (
+    <>
+      <div className="row">
+        <span>Reconstructed nodes</span>
+        <b>{overlay.totalNodes.toLocaleString()}</b>
+      </div>
+      <div className="row">
+        <span>Soma region</span>
+        <b>{overlay.somaAcronym ?? '—'}</b>
+      </div>
+
+      <label className="check">
+        <input
+          type="checkbox"
+          checked={overlay.showAxon}
+          onChange={(event) => updateOverlay(overlay.id, { showAxon: event.target.checked })}
+        />
+        <span className="swatch" style={{ background: NEURON_AXON_COLOR }} />
+        Axon
+      </label>
+      <label className="check">
+        <input
+          type="checkbox"
+          checked={overlay.showDendrite}
+          disabled={overlay.dendriteWorld === null}
+          onChange={(event) =>
+            updateOverlay(overlay.id, { showDendrite: event.target.checked })
+          }
+        />
+        <span className="swatch" style={{ background: NEURON_DENDRITE_COLOR }} />
+        Dendrite{overlay.dendriteWorld === null ? ' — none traced' : ''}
+      </label>
+
+      <div className="field">
+        <label htmlFor={`nop-${overlay.id}`}>Opac</label>
+        <input
+          id={`nop-${overlay.id}`}
+          type="range"
+          min={0.1}
+          max={1}
+          step={0.05}
+          value={overlay.opacity}
+          onChange={(event) =>
+            updateOverlay(overlay.id, { opacity: Number(event.target.value) })
+          }
+        />
+      </div>
+    </>
+  )
+}
 
 export function OverlaysPanel({
   atlas,
@@ -63,6 +142,8 @@ export function OverlaysPanel({
   const updateOverlay = useAppStore((s) => s.updateOverlay)
   const removeOverlay = useAppStore((s) => s.removeOverlay)
 
+  const [mode, setMode] = useState<'projections' | 'neurons'>('projections')
+  const [neurons, setNeurons] = useState<NeuronIndexEntry[] | null>(null)
   const [query, setQuery] = useState('')
   const [structureId, setStructureId] = useState<number | null>(null)
   const [experiments, setExperiments] = useState<ConnectivityExperiment[] | null>(null)
@@ -138,6 +219,71 @@ export function OverlaysPanel({
               'This is usually temporary — try that region again.'
           : message,
       )
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  async function findNeurons(id: number) {
+    setStructureId(id)
+    setNeurons(null)
+    setError(null)
+    setBusy('Searching bundled neurons…')
+    try {
+      setNeurons(neuronsInStructure(await loadNeuronIndex(), id))
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause))
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  async function loadNeuron(neuron: NeuronIndexEntry) {
+    setError(null)
+    setBusy(`Loading ${neuron.id}…`)
+    try {
+      const geometry = await loadNeuronGeometry(neuron.id)
+
+      // The same matrix the anatomy uses, so an arbor cannot drift relative to
+      // the brain it is drawn in.
+      const matrix = atlasToWorldMatrix(profile)
+      const toWorld = (um: Float32Array | null) =>
+        um ? positionsToWorld(um, matrix) : null
+
+      const somaWorld = neuron.soma
+        ? (Array.from(
+            positionsToWorld(Float32Array.from(neuron.soma), matrix),
+          ) as [number, number, number])
+        : null
+
+      overlayCounter += 1
+      const overlay: NeuronOverlay = {
+        id: `overlay-${overlayCounter}`,
+        kind: 'neuron-arbor',
+        name: `${neuron.id} · ${neuron.somaAcronym ?? 'neuron'}`,
+        visible: true,
+        color: overlayColorFor(overlays.length),
+        opacity: 0.9,
+        idString: neuron.id,
+        somaAcronym: neuron.somaAcronym,
+        showAxon: true,
+        showDendrite: true,
+        totalNodes: neuron.axonSegments + neuron.dendriteSegments,
+        provenance: {
+          evidence: 'measured',
+          citation: neuronCitation(neuron),
+          url: neuronUrl(neuron.id),
+          registeredTo: 'Allen CCFv3',
+          resolutionUm: 1,
+          caveats: MOUSELIGHT_CAVEATS,
+        },
+        axonWorld: toWorld(geometry.axonUm),
+        dendriteWorld: toWorld(geometry.dendriteUm),
+        somaWorld,
+      }
+      addOverlay(overlay)
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause))
     } finally {
       setBusy(null)
     }
@@ -279,7 +425,30 @@ export function OverlaysPanel({
   return (
     <>
       <div className="section">
-        <h2>Projections from a region</h2>
+        {/* Two resolutions of one question — where do axons from here go. The
+            bulk injection answers it for a population, the reconstruction for a
+            single cell; they belong side by side, not in separate tabs. */}
+        <div className="modes">
+          {(
+            [
+              ['projections', 'Projections'],
+              ['neurons', 'Single neurons'],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              className={mode === id ? 'mode mode--active' : 'mode'}
+              aria-pressed={mode === id}
+              onClick={() => setMode(id)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        <h2>
+          {mode === 'projections' ? 'Projections from a region' : 'Neurons with soma here'}
+        </h2>
         <div className="field">
           <input
             type="text"
@@ -296,7 +465,11 @@ export function OverlaysPanel({
                 key={structure.id}
                 className="result"
                 aria-pressed={structure.id === structureId}
-                onClick={() => void findExperiments(structure.id)}
+                onClick={() =>
+                  void (mode === 'projections'
+                    ? findExperiments(structure.id)
+                    : findNeurons(structure.id))
+                }
               >
                 <span className="result__acronym">{structure.acronym}</span>
                 <span className="result__name">{structure.name}</span>
@@ -306,10 +479,60 @@ export function OverlaysPanel({
         )}
 
         <p className="hint">
-          Searches the Allen Mouse Brain Connectivity Atlas for anterograde tracing experiments
-          injected into that structure.
+          {mode === 'projections'
+            ? 'Searches the Allen Mouse Brain Connectivity Atlas for anterograde tracing ' +
+              'experiments injected into that structure.'
+            : 'Completely reconstructed MouseLight neurons whose soma sits in that ' +
+              'structure, or any structure below it. Bundled with this build — a ' +
+              'structure with none may still have neurons upstream; run ' +
+              'npm run mouselight:fetch to add more.'}
         </p>
       </div>
+
+      {mode === 'neurons' && neurons !== null && (
+        <div className="section">
+          <h2>
+            {neurons.length} neuron{neurons.length === 1 ? '' : 's'}
+          </h2>
+          {neurons.length === 0 && (
+            <p className="hint">
+              No bundled reconstructions with a soma here. Try a parent structure, or run
+              <code> npm run mouselight:fetch {selectedStructure?.acronym ?? ''}</code> to
+              fetch this one.
+            </p>
+          )}
+          <div className="list">
+            {neurons.map((neuron) => {
+              const loaded = overlays.some(
+                (o) => o.kind === 'neuron-arbor' && o.idString === neuron.id,
+              )
+              return (
+                <button
+                  key={neuron.id}
+                  className="exp"
+                  disabled={busy !== null || loaded}
+                  onClick={() => void loadNeuron(neuron)}
+                >
+                  <div className="exp__head">
+                    <b>{neuron.id}</b>
+                    <span className="exp__tag">{neuron.somaAcronym ?? '—'}</span>
+                  </div>
+                  <div className="exp__sub">
+                    {neuron.somaName ?? 'Soma region not reported'}
+                  </div>
+                  <div className="exp__meta">
+                    {neuron.axonSegments.toLocaleString()} axon segments
+                    {neuron.dendriteSegments > 0
+                      ? ` · ${neuron.dendriteSegments.toLocaleString()} dendrite`
+                      : ' · no dendrite traced'}
+                    {loaded ? ' · loaded' : ''}
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {busy && <div className="status status--ok">{busy}</div>}
       {error && (
@@ -528,6 +751,10 @@ export function OverlaysPanel({
               </button>
             </div>
 
+            {overlay.kind === 'neuron-arbor' ? (
+              <NeuronControls overlay={overlay} updateOverlay={updateOverlay} />
+            ) : (
+              <>
             <div className="row">
               <span>Points</span>
               <b>{overlay.cloud.pointCount.toLocaleString()}</b>
@@ -650,6 +877,9 @@ export function OverlaysPanel({
                 }
               />
             </div>
+
+              </>
+            )}
 
             <div className="provenance">
               <span className="badge badge--measured">measured</span>

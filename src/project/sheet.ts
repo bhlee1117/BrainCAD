@@ -41,8 +41,11 @@ export interface SheetInput {
   /** Data overlays shown with the plan. */
   readonly overlays: readonly {
     readonly name: string
-    readonly experimentId: number
-    readonly threshold: number
+    /** Null for overlays that are not a connectivity experiment. */
+    readonly experimentId: number | null
+    /** Null where no density threshold applies, as for a traced neuron. */
+    readonly threshold: number | null
+    /** Points for a projection cloud; reconstructed nodes for a neuron. */
     readonly pointCount: number
     /** Injection site: where the tracer went in. */
     readonly injectionSummary: string | null
@@ -224,7 +227,11 @@ function overlaySection(input: SheetInput): string {
       (overlay) => `<div class="overlay">
         <strong>${escapeHtml(overlay.name)}</strong>
         <span class="evidence">${escapeHtml(overlay.evidence)}</span>
-        <div class="overlay__meta">${overlay.pointCount.toLocaleString()} points above density ${overlay.threshold.toFixed(2)} · ${overlay.resolutionUm} µm grid</div>
+        <div class="overlay__meta">${
+          overlay.threshold !== null
+            ? `${overlay.pointCount.toLocaleString()} points above density ${overlay.threshold.toFixed(2)} · ${overlay.resolutionUm} µm grid`
+            : `${overlay.pointCount.toLocaleString()} reconstructed nodes · ${overlay.resolutionUm} µm reference`
+        }</div>
         ${
           overlay.injectionSummary
             ? `<div class="overlay__meta"><b>Injection:</b> ${escapeHtml(overlay.injectionSummary)}${

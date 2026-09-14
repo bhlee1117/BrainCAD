@@ -19,7 +19,7 @@ import type { ObjectKind, PrimitiveParams } from '../objects/primitives.ts'
 import type { CollisionSettings, SceneCollisionReport } from '../collision/check.ts'
 import { DEFAULT_COLLISION_SETTINGS } from '../collision/check.ts'
 import type { Measurement } from '../measure/measure.ts'
-import type { ProjectionOverlay } from '../overlays/model.ts'
+import type { Overlay, OverlayPatch } from '../overlays/model.ts'
 
 export interface Target {
   readonly id: string
@@ -79,7 +79,7 @@ export interface AppState {
 
   measurements: Measurement[]
   /** Loaded data overlays, drawn over the anatomy. */
-  overlays: ProjectionOverlay[]
+  overlays: Overlay[]
   /** Which endpoint the next click in measure mode sets, or null when idle. */
   measuring: 'a' | 'b' | null
   /** Endpoint A while a measurement is being placed. */
@@ -116,8 +116,8 @@ export interface AppState {
   updateMeasurement: (id: string, patch: Partial<Omit<Measurement, 'id'>>) => void
   removeMeasurement: (id: string) => void
 
-  addOverlay: (overlay: ProjectionOverlay) => void
-  updateOverlay: (id: string, patch: Partial<Omit<ProjectionOverlay, 'id'>>) => void
+  addOverlay: (overlay: Overlay) => void
+  updateOverlay: (id: string, patch: OverlayPatch) => void
   removeOverlay: (id: string) => void
 }
 

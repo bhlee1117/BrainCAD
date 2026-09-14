@@ -128,25 +128,44 @@ export function ExportPanel({
       collision: store.collisionReport,
       screenshot: includeScreenshot ? captureCanvas() : null,
       objectiveViews,
-      overlays: store.overlays.map((o) => ({
-        name: o.name,
-        experimentId: o.experimentId,
-        threshold: o.threshold,
-        pointCount: o.cloud.pointCount,
-        injectionSummary: o.injection.centre
-          ? `AP ${o.injection.centre.ap.toFixed(2)}, ML ${o.injection.centre.ml.toFixed(2)}, ` +
-            `DV ${o.injection.centre.dv.toFixed(2)} mm` +
-            (o.injection.volumeMm3 !== null
-              ? `, ${o.injection.volumeMm3.toFixed(2)} mm³`
-              : '')
-          : null,
-        injectionStructures: o.injection.structures,
-        evidence: o.provenance.evidence,
-        citation: o.provenance.citation,
-        url: o.provenance.url,
-        resolutionUm: o.provenance.resolutionUm,
-        caveats: o.provenance.caveats,
-      })),
+      // A neuron and a projection volume are both overlays, but they carry
+      // different evidence and the sheet must not flatten them into one row
+      // shape — "threshold 0.05" against a traced arbor would be meaningless.
+      overlays: store.overlays.map((o) =>
+        o.kind === 'neuron-arbor'
+          ? {
+              name: o.name,
+              experimentId: null,
+              threshold: null,
+              pointCount: o.totalNodes,
+              injectionSummary: null,
+              injectionStructures: o.somaAcronym ? [o.somaAcronym] : [],
+              evidence: o.provenance.evidence,
+              citation: o.provenance.citation,
+              url: o.provenance.url,
+              resolutionUm: o.provenance.resolutionUm,
+              caveats: o.provenance.caveats,
+            }
+          : {
+              name: o.name,
+              experimentId: o.experimentId,
+              threshold: o.threshold,
+              pointCount: o.cloud.pointCount,
+              injectionSummary: o.injection.centre
+                ? `AP ${o.injection.centre.ap.toFixed(2)}, ML ${o.injection.centre.ml.toFixed(2)}, ` +
+                  `DV ${o.injection.centre.dv.toFixed(2)} mm` +
+                  (o.injection.volumeMm3 !== null
+                    ? `, ${o.injection.volumeMm3.toFixed(2)} mm³`
+                    : '')
+                : null,
+              injectionStructures: o.injection.structures,
+              evidence: o.provenance.evidence,
+              citation: o.provenance.citation,
+              url: o.provenance.url,
+              resolutionUm: o.provenance.resolutionUm,
+              caveats: o.provenance.caveats,
+            },
+      ),
       targetRegions,
     })
 

@@ -1,0 +1,2724 @@
+{
+ "generated": "2026-09-14T12:03:01.640Z",
+ "ccfVersion": "CCFV30",
+ "source": "Janelia MouseLight \u2014 Winnubst et al. (2019), Cell 179(1):268-281.",
+ "coordinateOrder": "AP,DV,ML micrometres in Allen CCFv3",
+ "neurons": [
+  {
+   "id": "AA1640",
+   "somaAcronym": "CP",
+   "somaName": "Caudoputamen",
+   "somaStructureId": 672,
+   "somaStructureIdPath": "/997/8/567/623/477/485/672/",
+   "soma": [
+    4632,
+    4853,
+    3769
+   ],
+   "axonSegments": 505,
+   "dendriteSegments": 193
+  },
+  {
+   "id": "AA1639",
+   "somaAcronym": "CP",
+   "somaName": "Caudoputamen",
+   "somaStructureId": 672,
+   "somaStructureIdPath": "/997/8/567/623/477/485/672/",
+   "soma": [
+    6453,
+    4005,
+    2049
+   ],
+   "axonSegments": 843,
+   "dendriteSegments": 268
+  },
+  {
+   "id": "AA1636",
+   "somaAcronym": "LGd-sh",
+   "somaName": "Dorsal part of the lateral geniculate complex shell",
+   "somaStructureId": 496345664,
+   "somaStructureIdPath": "/997/8/343/1129/549/864/1008/170/496345664/",
+   "soma": [
+    7753,
+    2955,
+    3555
+   ],
+   "axonSegments": 7078,
+   "dendriteSegments": 282
+  },
+  {
+   "id": "AA1632",
+   "somaAcronym": "VISp6a",
+   "somaName": "Primary visual area layer 6a",
+   "somaStructureId": 33,
+   "somaStructureIdPath": "/997/8/567/688/695/315/669/385/33/",
+   "soma": [
+    8894,
+    1513,
+    8212
+   ],
+   "axonSegments": 2967,
+   "dendriteSegments": 387
+  },
+  {
+   "id": "AA1588",
+   "somaAcronym": "CP",
+   "somaName": "Caudoputamen",
+   "somaStructureId": 672,
+   "somaStructureIdPath": "/997/8/567/623/477/485/672/",
+   "soma": [
+    6106,
+    4841,
+    8521
+   ],
+   "axonSegments": 2086,
+   "dendriteSegments": 179
+  },
+  {
+   "id": "AA1579",
+   "somaAcronym": "MOp5",
+   "somaName": "Primary motor area Layer 5",
+   "somaStructureId": 648,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/648/",
+   "soma": [
+    4601,
+    1948,
+    7424
+   ],
+   "axonSegments": 3664,
+   "dendriteSegments": 409
+  },
+  {
+   "id": "AA1571",
+   "somaAcronym": "MOp6a",
+   "somaName": "Primary motor area Layer 6a",
+   "somaStructureId": 844,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/844/",
+   "soma": [
+    4549,
+    2483,
+    7339
+   ],
+   "axonSegments": 2021,
+   "dendriteSegments": 191
+  },
+  {
+   "id": "AA1567",
+   "somaAcronym": "MOp6a",
+   "somaName": "Primary motor area Layer 6a",
+   "somaStructureId": 844,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/844/",
+   "soma": [
+    4110,
+    3356,
+    8085
+   ],
+   "axonSegments": 1079,
+   "dendriteSegments": 176
+  },
+  {
+   "id": "AA1566",
+   "somaAcronym": "MOp5",
+   "somaName": "Primary motor area Layer 5",
+   "somaStructureId": 648,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/648/",
+   "soma": [
+    4280,
+    2407,
+    3702
+   ],
+   "axonSegments": 7068,
+   "dendriteSegments": 361
+  },
+  {
+   "id": "AA1563",
+   "somaAcronym": "SSp-m5",
+   "somaName": "Primary somatosensory area mouth layer 5",
+   "somaStructureId": 974,
+   "somaStructureIdPath": "/997/8/567/688/695/315/453/322/345/974/",
+   "soma": [
+    4801,
+    3517,
+    9340
+   ],
+   "axonSegments": 599,
+   "dendriteSegments": 398
+  },
+  {
+   "id": "AA1557",
+   "somaAcronym": "DG-sg",
+   "somaName": "Dentate gyrus granule cell layer",
+   "somaStructureId": 632,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/726/632/",
+   "soma": [
+    9011,
+    4664,
+    2866
+   ],
+   "axonSegments": 6616,
+   "dendriteSegments": 332
+  },
+  {
+   "id": "AA1549",
+   "somaAcronym": "CA1",
+   "somaName": "Field CA1",
+   "somaStructureId": 382,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/375/382/",
+   "soma": [
+    6930,
+    1919,
+    6206
+   ],
+   "axonSegments": 11442,
+   "dendriteSegments": 728
+  },
+  {
+   "id": "AA1548",
+   "somaAcronym": "CA1",
+   "somaName": "Field CA1",
+   "somaStructureId": 382,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/375/382/",
+   "soma": [
+    7397,
+    2339,
+    2828
+   ],
+   "axonSegments": 3412,
+   "dendriteSegments": 1050
+  },
+  {
+   "id": "AA1542",
+   "somaAcronym": "MOp6a",
+   "somaName": "Primary motor area Layer 6a",
+   "somaStructureId": 844,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/844/",
+   "soma": [
+    4367,
+    2696,
+    7839
+   ],
+   "axonSegments": 2674,
+   "dendriteSegments": 1998
+  },
+  {
+   "id": "AA1539",
+   "somaAcronym": "MOp6a",
+   "somaName": "Primary motor area Layer 6a",
+   "somaStructureId": 844,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/844/",
+   "soma": [
+    4164,
+    2691,
+    7770
+   ],
+   "axonSegments": 4188,
+   "dendriteSegments": 1036
+  },
+  {
+   "id": "AA1507",
+   "somaAcronym": "CA1",
+   "somaName": "Field CA1",
+   "somaStructureId": 382,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/375/382/",
+   "soma": [
+    6450,
+    2203,
+    5483
+   ],
+   "axonSegments": 1615,
+   "dendriteSegments": 297
+  },
+  {
+   "id": "AA1506",
+   "somaAcronym": "CA1",
+   "somaName": "Field CA1",
+   "somaStructureId": 382,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/375/382/",
+   "soma": [
+    7445,
+    1558,
+    4498
+   ],
+   "axonSegments": 1977,
+   "dendriteSegments": 1295
+  },
+  {
+   "id": "AA1492",
+   "somaAcronym": "CP",
+   "somaName": "Caudoputamen",
+   "somaStructureId": 672,
+   "somaStructureIdPath": "/997/8/567/623/477/485/672/",
+   "soma": [
+    6227,
+    4565,
+    8482
+   ],
+   "axonSegments": 20598,
+   "dendriteSegments": 277
+  },
+  {
+   "id": "AA1449",
+   "somaAcronym": "SNr",
+   "somaName": "Substantia nigra reticular part",
+   "somaStructureId": 381,
+   "somaStructureIdPath": "/997/8/343/313/323/381/",
+   "soma": [
+    8652,
+    4904,
+    4269
+   ],
+   "axonSegments": 50959,
+   "dendriteSegments": 258
+  },
+  {
+   "id": "AA1447",
+   "somaAcronym": "SNr",
+   "somaName": "Substantia nigra reticular part",
+   "somaStructureId": 381,
+   "somaStructureIdPath": "/997/8/343/313/323/381/",
+   "soma": [
+    8953,
+    4817,
+    4074
+   ],
+   "axonSegments": 28146,
+   "dendriteSegments": 254
+  },
+  {
+   "id": "AA1420",
+   "somaAcronym": "CP",
+   "somaName": "Caudoputamen",
+   "somaStructureId": 672,
+   "somaStructureIdPath": "/997/8/567/623/477/485/672/",
+   "soma": [
+    6610,
+    4691,
+    8788
+   ],
+   "axonSegments": 24826,
+   "dendriteSegments": 217
+  },
+  {
+   "id": "AA1391",
+   "somaAcronym": "DG-po",
+   "somaName": "Dentate gyrus polymorph layer",
+   "somaStructureId": 10704,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/726/10704/",
+   "soma": [
+    6535,
+    2746,
+    6337
+   ],
+   "axonSegments": 27163,
+   "dendriteSegments": 117
+  },
+  {
+   "id": "AA1367",
+   "somaAcronym": "CA1sp",
+   "somaName": "Field CA1 pyramidal layer",
+   "somaStructureId": 407,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/375/382/407/",
+   "soma": [
+    6699,
+    1906,
+    4073
+   ],
+   "axonSegments": 8394,
+   "dendriteSegments": 270
+  },
+  {
+   "id": "AA1366",
+   "somaAcronym": "CA1sp",
+   "somaName": "Field CA1 pyramidal layer",
+   "somaStructureId": 407,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/375/382/407/",
+   "soma": [
+    7983,
+    2852,
+    9282
+   ],
+   "axonSegments": 8810,
+   "dendriteSegments": 369
+  },
+  {
+   "id": "AA1365",
+   "somaAcronym": "MOp5",
+   "somaName": "Primary motor area Layer 5",
+   "somaStructureId": 648,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/648/",
+   "soma": [
+    3905,
+    2359,
+    8039
+   ],
+   "axonSegments": 21755,
+   "dendriteSegments": 546
+  },
+  {
+   "id": "AA1364",
+   "somaAcronym": "MOp6a",
+   "somaName": "Primary motor area Layer 6a",
+   "somaStructureId": 844,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/844/",
+   "soma": [
+    4267,
+    2450,
+    3778
+   ],
+   "axonSegments": 17654,
+   "dendriteSegments": 573
+  },
+  {
+   "id": "AA1317",
+   "somaAcronym": "SSp-bfd5",
+   "somaName": "Primary somatosensory area barrel field layer 5",
+   "somaStructureId": 1070,
+   "somaStructureIdPath": "/997/8/567/688/695/315/453/322/329/1070/",
+   "soma": [
+    7140,
+    1705,
+    8815
+   ],
+   "axonSegments": 2946,
+   "dendriteSegments": 276
+  },
+  {
+   "id": "AA1315",
+   "somaAcronym": "DG-po",
+   "somaName": "Dentate gyrus polymorph layer",
+   "somaStructureId": 10704,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/726/10704/",
+   "soma": [
+    7358,
+    2378,
+    4077
+   ],
+   "axonSegments": 38703,
+   "dendriteSegments": 144
+  },
+  {
+   "id": "AA1304",
+   "somaAcronym": "VISp5",
+   "somaName": "Primary visual area layer 5",
+   "somaStructureId": 778,
+   "somaStructureIdPath": "/997/8/567/688/695/315/669/385/778/",
+   "soma": [
+    9398,
+    1476,
+    3046
+   ],
+   "axonSegments": 5686,
+   "dendriteSegments": 312
+  },
+  {
+   "id": "AA1302",
+   "somaAcronym": "VISp5",
+   "somaName": "Primary visual area layer 5",
+   "somaStructureId": 778,
+   "somaStructureIdPath": "/997/8/567/688/695/315/669/385/778/",
+   "soma": [
+    9247,
+    1383,
+    2894
+   ],
+   "axonSegments": 5860,
+   "dendriteSegments": 307
+  },
+  {
+   "id": "AA1286",
+   "somaAcronym": "VISp4",
+   "somaName": "Primary visual area layer 4",
+   "somaStructureId": 721,
+   "somaStructureIdPath": "/997/8/567/688/695/315/669/385/721/",
+   "soma": [
+    8847,
+    863,
+    8103
+   ],
+   "axonSegments": 3347,
+   "dendriteSegments": 339
+  },
+  {
+   "id": "AA1277",
+   "somaAcronym": "SSp-ul5",
+   "somaName": "Primary somatosensory area upper limb layer 5",
+   "somaStructureId": 625,
+   "somaStructureIdPath": "/997/8/567/688/695/315/453/322/369/625/",
+   "soma": [
+    5219,
+    2053,
+    3317
+   ],
+   "axonSegments": 7947,
+   "dendriteSegments": 577
+  },
+  {
+   "id": "AA1274",
+   "somaAcronym": "SSp-ll6a",
+   "somaName": "Primary somatosensory area lower limb layer 6a",
+   "somaStructureId": 478,
+   "somaStructureIdPath": "/997/8/567/688/695/315/453/322/337/478/",
+   "soma": [
+    4578,
+    2756,
+    7953
+   ],
+   "axonSegments": 11941,
+   "dendriteSegments": 480
+  },
+  {
+   "id": "AA1267",
+   "somaAcronym": "SSp-m5",
+   "somaName": "Primary somatosensory area mouth layer 5",
+   "somaStructureId": 974,
+   "somaStructureIdPath": "/997/8/567/688/695/315/453/322/345/974/",
+   "soma": [
+    4603,
+    2477,
+    2943
+   ],
+   "axonSegments": 14786,
+   "dendriteSegments": 470
+  },
+  {
+   "id": "AA1262",
+   "somaAcronym": "SSp-ll5",
+   "somaName": "Primary somatosensory area lower limb layer 5",
+   "somaStructureId": 1128,
+   "somaStructureIdPath": "/997/8/567/688/695/315/453/322/337/1128/",
+   "soma": [
+    4613,
+    2155,
+    3452
+   ],
+   "axonSegments": 10453,
+   "dendriteSegments": 204
+  },
+  {
+   "id": "AA1257",
+   "somaAcronym": "VISp4",
+   "somaName": "Primary visual area layer 4",
+   "somaStructureId": 721,
+   "somaStructureIdPath": "/997/8/567/688/695/315/669/385/721/",
+   "soma": [
+    8784,
+    1383,
+    2467
+   ],
+   "axonSegments": 5566,
+   "dendriteSegments": 166
+  },
+  {
+   "id": "AA1248",
+   "somaAcronym": "VISp5",
+   "somaName": "Primary visual area layer 5",
+   "somaStructureId": 778,
+   "somaStructureIdPath": "/997/8/567/688/695/315/669/385/778/",
+   "soma": [
+    8726,
+    1455,
+    8531
+   ],
+   "axonSegments": 4098,
+   "dendriteSegments": 1512
+  },
+  {
+   "id": "AA1246",
+   "somaAcronym": "DG-mo",
+   "somaName": "Dentate gyrus molecular layer",
+   "somaStructureId": 10703,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/726/10703/",
+   "soma": [
+    8097,
+    5983,
+    7619
+   ],
+   "axonSegments": 7175,
+   "dendriteSegments": 139
+  },
+  {
+   "id": "AA1242",
+   "somaAcronym": "CA1",
+   "somaName": "Field CA1",
+   "somaStructureId": 382,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/375/382/",
+   "soma": [
+    6623,
+    2221,
+    5913
+   ],
+   "axonSegments": 5025,
+   "dendriteSegments": 163
+  },
+  {
+   "id": "AA1240",
+   "somaAcronym": "MOp5",
+   "somaName": "Primary motor area Layer 5",
+   "somaStructureId": 648,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/648/",
+   "soma": [
+    3207,
+    3428,
+    8497
+   ],
+   "axonSegments": 13303,
+   "dendriteSegments": 364
+  },
+  {
+   "id": "AA1236",
+   "somaAcronym": "SSp-un6a",
+   "somaName": "Primary somatosensory area unassigned layer 6a",
+   "somaStructureId": 182305709,
+   "somaStructureIdPath": "/997/8/567/688/695/315/453/322/182305689/182305709/",
+   "soma": [
+    5968,
+    2013,
+    8250
+   ],
+   "axonSegments": 1362,
+   "dendriteSegments": 477
+  },
+  {
+   "id": "AA1234",
+   "somaAcronym": "CP",
+   "somaName": "Caudoputamen",
+   "somaStructureId": 672,
+   "somaStructureIdPath": "/997/8/567/623/477/485/672/",
+   "soma": [
+    5156,
+    4295,
+    8199
+   ],
+   "axonSegments": 763,
+   "dendriteSegments": 185
+  },
+  {
+   "id": "AA1229",
+   "somaAcronym": "SSp-n6a",
+   "somaName": "Primary somatosensory area nose layer 6a",
+   "somaStructureId": 889,
+   "somaStructureIdPath": "/997/8/567/688/695/315/453/322/353/889/",
+   "soma": [
+    5848,
+    2411,
+    8810
+   ],
+   "axonSegments": 11756,
+   "dendriteSegments": 373
+  },
+  {
+   "id": "AA1222",
+   "somaAcronym": "SSp-bfd5",
+   "somaName": "Primary somatosensory area barrel field layer 5",
+   "somaStructureId": 1070,
+   "somaStructureIdPath": "/997/8/567/688/695/315/453/322/329/1070/",
+   "soma": [
+    6997,
+    1351,
+    8367
+   ],
+   "axonSegments": 2410,
+   "dendriteSegments": 324
+  },
+  {
+   "id": "AA1219",
+   "somaAcronym": "SSp-bfd5",
+   "somaName": "Primary somatosensory area barrel field layer 5",
+   "somaStructureId": 1070,
+   "somaStructureIdPath": "/997/8/567/688/695/315/453/322/329/1070/",
+   "soma": [
+    6988,
+    1594,
+    2649
+   ],
+   "axonSegments": 6089,
+   "dendriteSegments": 538
+  },
+  {
+   "id": "AA1211",
+   "somaAcronym": "MOp2/3",
+   "somaName": "Primary motor area Layer 2/3",
+   "somaStructureId": 943,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/943/",
+   "soma": [
+    4312,
+    1870,
+    3566
+   ],
+   "axonSegments": 1952,
+   "dendriteSegments": 468
+  },
+  {
+   "id": "AA1193",
+   "somaAcronym": "CP",
+   "somaName": "Caudoputamen",
+   "somaStructureId": 672,
+   "somaStructureIdPath": "/997/8/567/623/477/485/672/",
+   "soma": [
+    4886,
+    5015,
+    7233
+   ],
+   "axonSegments": 493,
+   "dendriteSegments": 263
+  },
+  {
+   "id": "AA1190",
+   "somaAcronym": "MOp5",
+   "somaName": "Primary motor area Layer 5",
+   "somaStructureId": 648,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/648/",
+   "soma": [
+    3586,
+    3229,
+    8268
+   ],
+   "axonSegments": 4274,
+   "dendriteSegments": 617
+  },
+  {
+   "id": "AA1186",
+   "somaAcronym": "CP",
+   "somaName": "Caudoputamen",
+   "somaStructureId": 672,
+   "somaStructureIdPath": "/997/8/567/623/477/485/672/",
+   "soma": [
+    5012,
+    3726,
+    3422
+   ],
+   "axonSegments": 457,
+   "dendriteSegments": 193
+  },
+  {
+   "id": "AA1185",
+   "somaAcronym": "CP",
+   "somaName": "Caudoputamen",
+   "somaStructureId": 672,
+   "somaStructureIdPath": "/997/8/567/623/477/485/672/",
+   "soma": [
+    4009,
+    3828,
+    4085
+   ],
+   "axonSegments": 535,
+   "dendriteSegments": 191
+  },
+  {
+   "id": "AA1182",
+   "somaAcronym": "VISp5",
+   "somaName": "Primary visual area layer 5",
+   "somaStructureId": 778,
+   "somaStructureIdPath": "/997/8/567/688/695/315/669/385/778/",
+   "soma": [
+    8389,
+    1236,
+    8361
+   ],
+   "axonSegments": 2073,
+   "dendriteSegments": 381
+  },
+  {
+   "id": "AA1177",
+   "somaAcronym": "SSp-m5",
+   "somaName": "Primary somatosensory area mouth layer 5",
+   "somaStructureId": 974,
+   "somaStructureIdPath": "/997/8/567/688/695/315/453/322/345/974/",
+   "soma": [
+    4503,
+    2982,
+    9000
+   ],
+   "axonSegments": 7871,
+   "dendriteSegments": 565
+  },
+  {
+   "id": "AA1171",
+   "somaAcronym": "DG-sg",
+   "somaName": "Dentate gyrus granule cell layer",
+   "somaStructureId": 632,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/726/632/",
+   "soma": [
+    8220,
+    2276,
+    7502
+   ],
+   "axonSegments": 751,
+   "dendriteSegments": 121
+  },
+  {
+   "id": "AA1142",
+   "somaAcronym": "CA1",
+   "somaName": "Field CA1",
+   "somaStructureId": 382,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/375/382/",
+   "soma": [
+    6687,
+    1831,
+    4535
+   ],
+   "axonSegments": 612,
+   "dendriteSegments": 1341
+  },
+  {
+   "id": "AA1136",
+   "somaAcronym": "VISp6b",
+   "somaName": "Primary visual area layer 6b",
+   "somaStructureId": 305,
+   "somaStructureIdPath": "/997/8/567/688/695/315/669/385/305/",
+   "soma": [
+    9061,
+    1737,
+    8087
+   ],
+   "axonSegments": 5562,
+   "dendriteSegments": 141
+  },
+  {
+   "id": "AA1122",
+   "somaAcronym": "VISp6b",
+   "somaName": "Primary visual area layer 6b",
+   "somaStructureId": 305,
+   "somaStructureIdPath": "/997/8/567/688/695/315/669/385/305/",
+   "soma": [
+    9427,
+    2099,
+    8512
+   ],
+   "axonSegments": 14857,
+   "dendriteSegments": 191
+  },
+  {
+   "id": "AA1112",
+   "somaAcronym": "MOp5",
+   "somaName": "Primary motor area Layer 5",
+   "somaStructureId": 648,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/648/",
+   "soma": [
+    4015,
+    1733,
+    6844
+   ],
+   "axonSegments": 7508,
+   "dendriteSegments": 681
+  },
+  {
+   "id": "AA1110",
+   "somaAcronym": "MOp6b",
+   "somaName": "Primary motor area Layer 6b",
+   "somaStructureId": 882,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/882/",
+   "soma": [
+    4478,
+    2416,
+    6946
+   ],
+   "axonSegments": 9047,
+   "dendriteSegments": 200
+  },
+  {
+   "id": "AA1088",
+   "somaAcronym": "SSp-m6a",
+   "somaName": "Primary somatosensory area mouth layer 6a",
+   "somaStructureId": 1102,
+   "somaStructureIdPath": "/997/8/567/688/695/315/453/322/345/1102/",
+   "soma": [
+    4780,
+    2614,
+    8513
+   ],
+   "axonSegments": 648,
+   "dendriteSegments": 200
+  },
+  {
+   "id": "AA1078",
+   "somaAcronym": "SSp-m5",
+   "somaName": "Primary somatosensory area mouth layer 5",
+   "somaStructureId": 974,
+   "somaStructureIdPath": "/997/8/567/688/695/315/453/322/345/974/",
+   "soma": [
+    4024,
+    3385,
+    8815
+   ],
+   "axonSegments": 1177,
+   "dendriteSegments": 536
+  },
+  {
+   "id": "AA1051",
+   "somaAcronym": "MOp5",
+   "somaName": "Primary motor area Layer 5",
+   "somaStructureId": 648,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/648/",
+   "soma": [
+    3950,
+    3288,
+    8730
+   ],
+   "axonSegments": 3072,
+   "dendriteSegments": 778
+  },
+  {
+   "id": "AA1050",
+   "somaAcronym": "MOp5",
+   "somaName": "Primary motor area Layer 5",
+   "somaStructureId": 648,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/648/",
+   "soma": [
+    4243,
+    2099,
+    7515
+   ],
+   "axonSegments": 3812,
+   "dendriteSegments": 766
+  },
+  {
+   "id": "AA1049",
+   "somaAcronym": "SSp-m5",
+   "somaName": "Primary somatosensory area mouth layer 5",
+   "somaStructureId": 974,
+   "somaStructureIdPath": "/997/8/567/688/695/315/453/322/345/974/",
+   "soma": [
+    4913,
+    3306,
+    9279
+   ],
+   "axonSegments": 582,
+   "dendriteSegments": 379
+  },
+  {
+   "id": "AA1043",
+   "somaAcronym": "MOp6a",
+   "somaName": "Primary motor area Layer 6a",
+   "somaStructureId": 844,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/844/",
+   "soma": [
+    3909,
+    3445,
+    8417
+   ],
+   "axonSegments": 1979,
+   "dendriteSegments": 819
+  },
+  {
+   "id": "AA0998",
+   "somaAcronym": "DG-sg",
+   "somaName": "Dentate gyrus granule cell layer",
+   "somaStructureId": 632,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/726/632/",
+   "soma": [
+    6837,
+    2412,
+    6786
+   ],
+   "axonSegments": 7908,
+   "dendriteSegments": 108
+  },
+  {
+   "id": "AA0994",
+   "somaAcronym": "SSp-m6a",
+   "somaName": "Primary somatosensory area mouth layer 6a",
+   "somaStructureId": 1102,
+   "somaStructureIdPath": "/997/8/567/688/695/315/453/322/345/1102/",
+   "soma": [
+    4945,
+    2666,
+    3032
+   ],
+   "axonSegments": 549,
+   "dendriteSegments": 194
+  },
+  {
+   "id": "AA0959",
+   "somaAcronym": "CA1",
+   "somaName": "Field CA1",
+   "somaStructureId": 382,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/375/382/",
+   "soma": [
+    6548,
+    1948,
+    7143
+   ],
+   "axonSegments": 3753,
+   "dendriteSegments": 355
+  },
+  {
+   "id": "AA0956",
+   "somaAcronym": "MOp5",
+   "somaName": "Primary motor area Layer 5",
+   "somaStructureId": 648,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/648/",
+   "soma": [
+    3949,
+    3435,
+    2707
+   ],
+   "axonSegments": 5517,
+   "dendriteSegments": 375
+  },
+  {
+   "id": "AA0949",
+   "somaAcronym": "VISp5",
+   "somaName": "Primary visual area layer 5",
+   "somaStructureId": 778,
+   "somaStructureIdPath": "/997/8/567/688/695/315/669/385/778/",
+   "soma": [
+    9044,
+    1477,
+    8668
+   ],
+   "axonSegments": 2083,
+   "dendriteSegments": 469
+  },
+  {
+   "id": "AA0945",
+   "somaAcronym": "SSp-bfd5",
+   "somaName": "Primary somatosensory area barrel field layer 5",
+   "somaStructureId": 1070,
+   "somaStructureIdPath": "/997/8/567/688/695/315/453/322/329/1070/",
+   "soma": [
+    7117,
+    1653,
+    8883
+   ],
+   "axonSegments": 4982,
+   "dendriteSegments": 474
+  },
+  {
+   "id": "AA0944",
+   "somaAcronym": "SSp-m5",
+   "somaName": "Primary somatosensory area mouth layer 5",
+   "somaStructureId": 974,
+   "somaStructureIdPath": "/997/8/567/688/695/315/453/322/345/974/",
+   "soma": [
+    5263,
+    2771,
+    9112
+   ],
+   "axonSegments": 3248,
+   "dendriteSegments": 517
+  },
+  {
+   "id": "AA0927",
+   "somaAcronym": "MOp5",
+   "somaName": "Primary motor area Layer 5",
+   "somaStructureId": 648,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/648/",
+   "soma": [
+    4425,
+    1879,
+    7180
+   ],
+   "axonSegments": 4524,
+   "dendriteSegments": 736
+  },
+  {
+   "id": "AA0926",
+   "somaAcronym": "MOp5",
+   "somaName": "Primary motor area Layer 5",
+   "somaStructureId": 648,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/648/",
+   "soma": [
+    4746,
+    1759,
+    7123
+   ],
+   "axonSegments": 4817,
+   "dendriteSegments": 831
+  },
+  {
+   "id": "AA0923",
+   "somaAcronym": "MOp5",
+   "somaName": "Primary motor area Layer 5",
+   "somaStructureId": 648,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/648/",
+   "soma": [
+    5680,
+    1384,
+    6917
+   ],
+   "axonSegments": 3910,
+   "dendriteSegments": 506
+  },
+  {
+   "id": "AA0910",
+   "somaAcronym": "CA1",
+   "somaName": "Field CA1",
+   "somaStructureId": 382,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/375/382/",
+   "soma": [
+    7943,
+    1767,
+    7867
+   ],
+   "axonSegments": 461,
+   "dendriteSegments": 355
+  },
+  {
+   "id": "AA0909",
+   "somaAcronym": "CA1",
+   "somaName": "Field CA1",
+   "somaStructureId": 382,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/375/382/",
+   "soma": [
+    8075,
+    2109,
+    8063
+   ],
+   "axonSegments": 1672,
+   "dendriteSegments": 133
+  },
+  {
+   "id": "AA0895",
+   "somaAcronym": "VISp6b",
+   "somaName": "Primary visual area layer 6b",
+   "somaStructureId": 305,
+   "somaStructureIdPath": "/997/8/567/688/695/315/669/385/305/",
+   "soma": [
+    8242,
+    1467,
+    8166
+   ],
+   "axonSegments": 1890,
+   "dendriteSegments": 275
+  },
+  {
+   "id": "AA0869",
+   "somaAcronym": "DG-sg",
+   "somaName": "Dentate gyrus granule cell layer",
+   "somaStructureId": 632,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/726/632/",
+   "soma": [
+    7618,
+    2446,
+    6895
+   ],
+   "axonSegments": 105,
+   "dendriteSegments": 50
+  },
+  {
+   "id": "AA0864",
+   "somaAcronym": "CA1",
+   "somaName": "Field CA1",
+   "somaStructureId": 382,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/375/382/",
+   "soma": [
+    8091,
+    1738,
+    7345
+   ],
+   "axonSegments": 989,
+   "dendriteSegments": 209
+  },
+  {
+   "id": "AA0857",
+   "somaAcronym": "VISp6b",
+   "somaName": "Primary visual area layer 6b",
+   "somaStructureId": 305,
+   "somaStructureIdPath": "/997/8/567/688/695/315/669/385/305/",
+   "soma": [
+    8291,
+    1297,
+    7657
+   ],
+   "axonSegments": 902,
+   "dendriteSegments": 292
+  },
+  {
+   "id": "AA0851",
+   "somaAcronym": "CA1",
+   "somaName": "Field CA1",
+   "somaStructureId": 382,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/375/382/",
+   "soma": [
+    8013,
+    1729,
+    7306
+   ],
+   "axonSegments": 518,
+   "dendriteSegments": 366
+  },
+  {
+   "id": "AA0820",
+   "somaAcronym": "CA1",
+   "somaName": "Field CA1",
+   "somaStructureId": 382,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/375/382/",
+   "soma": [
+    8111,
+    1812,
+    7512
+   ],
+   "axonSegments": 1460,
+   "dendriteSegments": 396
+  },
+  {
+   "id": "AA0819",
+   "somaAcronym": "CA1",
+   "somaName": "Field CA1",
+   "somaStructureId": 382,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/375/382/",
+   "soma": [
+    8156,
+    1828,
+    7664
+   ],
+   "axonSegments": 1048,
+   "dendriteSegments": 323
+  },
+  {
+   "id": "AA0818",
+   "somaAcronym": "CA1",
+   "somaName": "Field CA1",
+   "somaStructureId": 382,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/375/382/",
+   "soma": [
+    8069,
+    1831,
+    7877
+   ],
+   "axonSegments": 1453,
+   "dendriteSegments": 415
+  },
+  {
+   "id": "AA0816",
+   "somaAcronym": "CA1",
+   "somaName": "Field CA1",
+   "somaStructureId": 382,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/375/382/",
+   "soma": [
+    8339,
+    1891,
+    7953
+   ],
+   "axonSegments": 1024,
+   "dendriteSegments": 328
+  },
+  {
+   "id": "AA0815",
+   "somaAcronym": "CA1",
+   "somaName": "Field CA1",
+   "somaStructureId": 382,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/375/382/",
+   "soma": [
+    8364,
+    1830,
+    7939
+   ],
+   "axonSegments": 4554,
+   "dendriteSegments": 278
+  },
+  {
+   "id": "AA0736",
+   "somaAcronym": "CA1",
+   "somaName": "Field CA1",
+   "somaStructureId": 382,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/375/382/",
+   "soma": [
+    8128,
+    1802,
+    7412
+   ],
+   "axonSegments": 1710,
+   "dendriteSegments": 328
+  },
+  {
+   "id": "AA0705",
+   "somaAcronym": "POST",
+   "somaName": "Postsubiculum",
+   "somaStructureId": 1037,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/822/1037/",
+   "soma": [
+    8965,
+    2794,
+    8285
+   ],
+   "axonSegments": 1082,
+   "dendriteSegments": 181
+  },
+  {
+   "id": "AA0680",
+   "somaAcronym": "VISp6a",
+   "somaName": "Primary visual area layer 6a",
+   "somaStructureId": 33,
+   "somaStructureIdPath": "/997/8/567/688/695/315/669/385/33/",
+   "soma": [
+    8806,
+    1707,
+    8723
+   ],
+   "axonSegments": 14212,
+   "dendriteSegments": 227
+  },
+  {
+   "id": "AA0673",
+   "somaAcronym": "MOp2/3",
+   "somaName": "Primary motor area Layer 2/3",
+   "somaStructureId": 943,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/943/",
+   "soma": [
+    4415,
+    1387,
+    7490
+   ],
+   "axonSegments": 3778,
+   "dendriteSegments": 135
+  },
+  {
+   "id": "AA0665",
+   "somaAcronym": "MOp2/3",
+   "somaName": "Primary motor area Layer 2/3",
+   "somaStructureId": 943,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/943/",
+   "soma": [
+    4727,
+    1164,
+    6977
+   ],
+   "axonSegments": 1215,
+   "dendriteSegments": 315
+  },
+  {
+   "id": "AA0662",
+   "somaAcronym": "MOp2/3",
+   "somaName": "Primary motor area Layer 2/3",
+   "somaStructureId": 943,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/943/",
+   "soma": [
+    4659,
+    1287,
+    6980
+   ],
+   "axonSegments": 2460,
+   "dendriteSegments": 312
+  },
+  {
+   "id": "AA0658",
+   "somaAcronym": "MOp2/3",
+   "somaName": "Primary motor area Layer 2/3",
+   "somaStructureId": 943,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/943/",
+   "soma": [
+    4804,
+    1226,
+    6893
+   ],
+   "axonSegments": 2189,
+   "dendriteSegments": 452
+  },
+  {
+   "id": "AA0657",
+   "somaAcronym": "CA1",
+   "somaName": "Field CA1",
+   "somaStructureId": 382,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/375/382/",
+   "soma": [
+    8311,
+    1706,
+    8171
+   ],
+   "axonSegments": 5251,
+   "dendriteSegments": 289
+  },
+  {
+   "id": "AA0649",
+   "somaAcronym": "MOp6a",
+   "somaName": "Primary motor area Layer 6a",
+   "somaStructureId": 844,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/844/",
+   "soma": [
+    4347,
+    2289,
+    7072
+   ],
+   "axonSegments": 1171,
+   "dendriteSegments": 215
+  },
+  {
+   "id": "AA0643",
+   "somaAcronym": "CA1",
+   "somaName": "Field CA1",
+   "somaStructureId": 382,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/375/382/",
+   "soma": [
+    8176,
+    1795,
+    8031
+   ],
+   "axonSegments": 4122,
+   "dendriteSegments": 284
+  },
+  {
+   "id": "AA0642",
+   "somaAcronym": "MOp6a",
+   "somaName": "Primary motor area Layer 6a",
+   "somaStructureId": 844,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/844/",
+   "soma": [
+    3635,
+    2541,
+    7165
+   ],
+   "axonSegments": 9078,
+   "dendriteSegments": 261
+  },
+  {
+   "id": "AA0638",
+   "somaAcronym": "VISp6b",
+   "somaName": "Primary visual area layer 6b",
+   "somaStructureId": 305,
+   "somaStructureIdPath": "/997/8/567/688/695/315/669/385/305/",
+   "soma": [
+    8531,
+    1338,
+    7672
+   ],
+   "axonSegments": 11754,
+   "dendriteSegments": 235
+  },
+  {
+   "id": "AA0637",
+   "somaAcronym": "MOp6a",
+   "somaName": "Primary motor area Layer 6a",
+   "somaStructureId": 844,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/844/",
+   "soma": [
+    3911,
+    2234,
+    7190
+   ],
+   "axonSegments": 2293,
+   "dendriteSegments": 328
+  },
+  {
+   "id": "AA0635",
+   "somaAcronym": "MOp6a",
+   "somaName": "Primary motor area Layer 6a",
+   "somaStructureId": 844,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/844/",
+   "soma": [
+    4143,
+    1635,
+    7137
+   ],
+   "axonSegments": 8955,
+   "dendriteSegments": 156
+  },
+  {
+   "id": "AA0631",
+   "somaAcronym": "CA1",
+   "somaName": "Field CA1",
+   "somaStructureId": 382,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/375/382/",
+   "soma": [
+    8363,
+    1804,
+    8021
+   ],
+   "axonSegments": 1888,
+   "dendriteSegments": 238
+  },
+  {
+   "id": "AA0630",
+   "somaAcronym": "MOp6a",
+   "somaName": "Primary motor area Layer 6a",
+   "somaStructureId": 844,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/844/",
+   "soma": [
+    4245,
+    2239,
+    7241
+   ],
+   "axonSegments": 1955,
+   "dendriteSegments": 218
+  },
+  {
+   "id": "AA0623",
+   "somaAcronym": "MOp6a",
+   "somaName": "Primary motor area Layer 6a",
+   "somaStructureId": 844,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/844/",
+   "soma": [
+    4107,
+    2346,
+    7179
+   ],
+   "axonSegments": 6670,
+   "dendriteSegments": 199
+  },
+  {
+   "id": "AA0622",
+   "somaAcronym": "MOp5",
+   "somaName": "Primary motor area Layer 5",
+   "somaStructureId": 648,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/648/",
+   "soma": [
+    4140,
+    1899,
+    7425
+   ],
+   "axonSegments": 45555,
+   "dendriteSegments": 630
+  },
+  {
+   "id": "AA0621",
+   "somaAcronym": "CA1",
+   "somaName": "Field CA1",
+   "somaStructureId": 382,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/375/382/",
+   "soma": [
+    7765,
+    1706,
+    7974
+   ],
+   "axonSegments": 18878,
+   "dendriteSegments": 377
+  },
+  {
+   "id": "AA0618",
+   "somaAcronym": "MOp2/3",
+   "somaName": "Primary motor area Layer 2/3",
+   "somaStructureId": 943,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/943/",
+   "soma": [
+    4540,
+    1331,
+    7212
+   ],
+   "axonSegments": 1512,
+   "dendriteSegments": 321
+  },
+  {
+   "id": "AA0617",
+   "somaAcronym": "MOp5",
+   "somaName": "Primary motor area Layer 5",
+   "somaStructureId": 648,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/648/",
+   "soma": [
+    4471,
+    1751,
+    7297
+   ],
+   "axonSegments": 5795,
+   "dendriteSegments": 520
+  },
+  {
+   "id": "AA0597",
+   "somaAcronym": "MOp2/3",
+   "somaName": "Primary motor area Layer 2/3",
+   "somaStructureId": 943,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/943/",
+   "soma": [
+    5004,
+    1210,
+    7384
+   ],
+   "axonSegments": 1686,
+   "dendriteSegments": 345
+  },
+  {
+   "id": "AA0596",
+   "somaAcronym": "MOp6a",
+   "somaName": "Primary motor area Layer 6a",
+   "somaStructureId": 844,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/844/",
+   "soma": [
+    3855,
+    2022,
+    7171
+   ],
+   "axonSegments": 3265,
+   "dendriteSegments": 305
+  },
+  {
+   "id": "AA0592",
+   "somaAcronym": "MOp2/3",
+   "somaName": "Primary motor area Layer 2/3",
+   "somaStructureId": 943,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/943/",
+   "soma": [
+    4696,
+    1513,
+    7095
+   ],
+   "axonSegments": 5352,
+   "dendriteSegments": 433
+  },
+  {
+   "id": "AA0589",
+   "somaAcronym": "MOp2/3",
+   "somaName": "Primary motor area Layer 2/3",
+   "somaStructureId": 943,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/943/",
+   "soma": [
+    4281,
+    1617,
+    7164
+   ],
+   "axonSegments": 3587,
+   "dendriteSegments": 0
+  },
+  {
+   "id": "AA0587",
+   "somaAcronym": "MOp5",
+   "somaName": "Primary motor area Layer 5",
+   "somaStructureId": 648,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/648/",
+   "soma": [
+    4323,
+    1560,
+    6949
+   ],
+   "axonSegments": 7529,
+   "dendriteSegments": 537
+  },
+  {
+   "id": "AA0585",
+   "somaAcronym": "MOp2/3",
+   "somaName": "Primary motor area Layer 2/3",
+   "somaStructureId": 943,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/943/",
+   "soma": [
+    4322,
+    1638,
+    7133
+   ],
+   "axonSegments": 2888,
+   "dendriteSegments": 0
+  },
+  {
+   "id": "AA0584",
+   "somaAcronym": "MOp5",
+   "somaName": "Primary motor area Layer 5",
+   "somaStructureId": 648,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/648/",
+   "soma": [
+    4556,
+    1854,
+    7021
+   ],
+   "axonSegments": 2198,
+   "dendriteSegments": 755
+  },
+  {
+   "id": "AA0573",
+   "somaAcronym": "DG-sg",
+   "somaName": "Dentate gyrus granule cell layer",
+   "somaStructureId": 632,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/726/632/",
+   "soma": [
+    8311,
+    2629,
+    7702
+   ],
+   "axonSegments": 100,
+   "dendriteSegments": 124
+  },
+  {
+   "id": "AA0572",
+   "somaAcronym": "DG-sg",
+   "somaName": "Dentate gyrus granule cell layer",
+   "somaStructureId": 632,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/726/632/",
+   "soma": [
+    8700,
+    2668,
+    7871
+   ],
+   "axonSegments": 56,
+   "dendriteSegments": 76
+  },
+  {
+   "id": "AA0571",
+   "somaAcronym": "DG-sg",
+   "somaName": "Dentate gyrus granule cell layer",
+   "somaStructureId": 632,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/726/632/",
+   "soma": [
+    8376,
+    2590,
+    7646
+   ],
+   "axonSegments": 86,
+   "dendriteSegments": 120
+  },
+  {
+   "id": "AA0568",
+   "somaAcronym": "DG-mo",
+   "somaName": "Dentate gyrus molecular layer",
+   "somaStructureId": 10703,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/726/10703/",
+   "soma": [
+    8639,
+    2592,
+    7792
+   ],
+   "axonSegments": 504,
+   "dendriteSegments": 115
+  },
+  {
+   "id": "AA0561",
+   "somaAcronym": "DG-mo",
+   "somaName": "Dentate gyrus molecular layer",
+   "somaStructureId": 10703,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/726/10703/",
+   "soma": [
+    8533,
+    2514,
+    7668
+   ],
+   "axonSegments": 95,
+   "dendriteSegments": 126
+  },
+  {
+   "id": "AA0536",
+   "somaAcronym": "DG-mo",
+   "somaName": "Dentate gyrus molecular layer",
+   "somaStructureId": 10703,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/726/10703/",
+   "soma": [
+    9143,
+    3829,
+    8462
+   ],
+   "axonSegments": 540,
+   "dendriteSegments": 86
+  },
+  {
+   "id": "AA0533",
+   "somaAcronym": "DG-mo",
+   "somaName": "Dentate gyrus molecular layer",
+   "somaStructureId": 10703,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/726/10703/",
+   "soma": [
+    9079,
+    3442,
+    8664
+   ],
+   "axonSegments": 628,
+   "dendriteSegments": 99
+  },
+  {
+   "id": "AA0521",
+   "somaAcronym": "DG-mo",
+   "somaName": "Dentate gyrus molecular layer",
+   "somaStructureId": 10703,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/726/10703/",
+   "soma": [
+    6910,
+    2978,
+    5046
+   ],
+   "axonSegments": 1440,
+   "dendriteSegments": 269
+  },
+  {
+   "id": "AA0492",
+   "somaAcronym": "VISp5",
+   "somaName": "Primary visual area layer 5",
+   "somaStructureId": 778,
+   "somaStructureIdPath": "/997/8/567/688/695/315/669/385/778/",
+   "soma": [
+    8637,
+    1151,
+    7771
+   ],
+   "axonSegments": 4639,
+   "dendriteSegments": 369
+  },
+  {
+   "id": "AA0491",
+   "somaAcronym": "SUB",
+   "somaName": "Subiculum",
+   "somaStructureId": 502,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/822/502/",
+   "soma": [
+    8271,
+    2222,
+    7395
+   ],
+   "axonSegments": 2866,
+   "dendriteSegments": 642
+  },
+  {
+   "id": "AA0487",
+   "somaAcronym": "DG-mo",
+   "somaName": "Dentate gyrus molecular layer",
+   "somaStructureId": 10703,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/726/10703/",
+   "soma": [
+    8128,
+    2613,
+    7563
+   ],
+   "axonSegments": 96,
+   "dendriteSegments": 80
+  },
+  {
+   "id": "AA0484",
+   "somaAcronym": "DG-mo",
+   "somaName": "Dentate gyrus molecular layer",
+   "somaStructureId": 10703,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/726/10703/",
+   "soma": [
+    8319,
+    2715,
+    7736
+   ],
+   "axonSegments": 71,
+   "dendriteSegments": 69
+  },
+  {
+   "id": "AA0362",
+   "somaAcronym": "DG-mo",
+   "somaName": "Dentate gyrus molecular layer",
+   "somaStructureId": 10703,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/726/10703/",
+   "soma": [
+    8101,
+    2241,
+    7492
+   ],
+   "axonSegments": 114,
+   "dendriteSegments": 86
+  },
+  {
+   "id": "AA0361",
+   "somaAcronym": "DG-sg",
+   "somaName": "Dentate gyrus granule cell layer",
+   "somaStructureId": 632,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/726/632/",
+   "soma": [
+    8029,
+    2297,
+    7447
+   ],
+   "axonSegments": 170,
+   "dendriteSegments": 86
+  },
+  {
+   "id": "AA0360",
+   "somaAcronym": "DG-sg",
+   "somaName": "Dentate gyrus granule cell layer",
+   "somaStructureId": 632,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/726/632/",
+   "soma": [
+    8022,
+    2290,
+    7372
+   ],
+   "axonSegments": 110,
+   "dendriteSegments": 85
+  },
+  {
+   "id": "AA0309",
+   "somaAcronym": "DG-mo",
+   "somaName": "Dentate gyrus molecular layer",
+   "somaStructureId": 10703,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/726/10703/",
+   "soma": [
+    8422,
+    3423,
+    2296
+   ],
+   "axonSegments": 144,
+   "dendriteSegments": 8
+  },
+  {
+   "id": "AA0308",
+   "somaAcronym": "CA1",
+   "somaName": "Field CA1",
+   "somaStructureId": 382,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/375/382/",
+   "soma": [
+    8634,
+    3800,
+    2176
+   ],
+   "axonSegments": 643,
+   "dendriteSegments": 21
+  },
+  {
+   "id": "AA0306",
+   "somaAcronym": "CA1",
+   "somaName": "Field CA1",
+   "somaStructureId": 382,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/375/382/",
+   "soma": [
+    7843,
+    2705,
+    2317
+   ],
+   "axonSegments": 577,
+   "dendriteSegments": 313
+  },
+  {
+   "id": "AA0305",
+   "somaAcronym": "DG-mo",
+   "somaName": "Dentate gyrus molecular layer",
+   "somaStructureId": 10703,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/726/10703/",
+   "soma": [
+    8017,
+    2617,
+    3006
+   ],
+   "axonSegments": 139,
+   "dendriteSegments": 80
+  },
+  {
+   "id": "AA0292",
+   "somaAcronym": "DG-mo",
+   "somaName": "Dentate gyrus molecular layer",
+   "somaStructureId": 10703,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/726/10703/",
+   "soma": [
+    7242,
+    2810,
+    4687
+   ],
+   "axonSegments": 2724,
+   "dendriteSegments": 191
+  },
+  {
+   "id": "AA0282",
+   "somaAcronym": "VISp6a",
+   "somaName": "Primary visual area layer 6a",
+   "somaStructureId": 33,
+   "somaStructureIdPath": "/997/8/567/688/695/315/669/385/33/",
+   "soma": [
+    9413,
+    1878,
+    8564
+   ],
+   "axonSegments": 798,
+   "dendriteSegments": 1666
+  },
+  {
+   "id": "AA0275",
+   "somaAcronym": "VISp6b",
+   "somaName": "Primary visual area layer 6b",
+   "somaStructureId": 305,
+   "somaStructureIdPath": "/997/8/567/688/695/315/669/385/305/",
+   "soma": [
+    8982,
+    1876,
+    8516
+   ],
+   "axonSegments": 1181,
+   "dendriteSegments": 169
+  },
+  {
+   "id": "AA0228",
+   "somaAcronym": "VISp6a",
+   "somaName": "Primary visual area layer 6a",
+   "somaStructureId": 33,
+   "somaStructureIdPath": "/997/8/567/688/695/315/669/385/33/",
+   "soma": [
+    8751,
+    1578,
+    8224
+   ],
+   "axonSegments": 1248,
+   "dendriteSegments": 927
+  },
+  {
+   "id": "AA0225",
+   "somaAcronym": "MOp6a",
+   "somaName": "Primary motor area Layer 6a",
+   "somaStructureId": 844,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/844/",
+   "soma": [
+    4087,
+    2476,
+    4024
+   ],
+   "axonSegments": 762,
+   "dendriteSegments": 150
+  },
+  {
+   "id": "AA0224",
+   "somaAcronym": "MOp6a",
+   "somaName": "Primary motor area Layer 6a",
+   "somaStructureId": 844,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/844/",
+   "soma": [
+    4297,
+    2721,
+    4005
+   ],
+   "axonSegments": 3605,
+   "dendriteSegments": 241
+  },
+  {
+   "id": "AA0208",
+   "somaAcronym": "CA1",
+   "somaName": "Field CA1",
+   "somaStructureId": 382,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/375/382/",
+   "soma": [
+    7034,
+    1889,
+    5070
+   ],
+   "axonSegments": 865,
+   "dendriteSegments": 1291
+  },
+  {
+   "id": "AA0202",
+   "somaAcronym": "DG-mo",
+   "somaName": "Dentate gyrus molecular layer",
+   "somaStructureId": 10703,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/726/10703/",
+   "soma": [
+    8933,
+    3459,
+    8466
+   ],
+   "axonSegments": 470,
+   "dendriteSegments": 551
+  },
+  {
+   "id": "AA0198",
+   "somaAcronym": "DG-mo",
+   "somaName": "Dentate gyrus molecular layer",
+   "somaStructureId": 10703,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/726/10703/",
+   "soma": [
+    8906,
+    3311,
+    8385
+   ],
+   "axonSegments": 99,
+   "dendriteSegments": 383
+  },
+  {
+   "id": "AA0197",
+   "somaAcronym": "DG-po",
+   "somaName": "Dentate gyrus polymorph layer",
+   "somaStructureId": 10704,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/726/10704/",
+   "soma": [
+    8695,
+    3158,
+    8414
+   ],
+   "axonSegments": 2719,
+   "dendriteSegments": 134
+  },
+  {
+   "id": "AA0196",
+   "somaAcronym": "DG-po",
+   "somaName": "Dentate gyrus polymorph layer",
+   "somaStructureId": 10704,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/726/10704/",
+   "soma": [
+    8624,
+    3093,
+    8475
+   ],
+   "axonSegments": 114,
+   "dendriteSegments": 105
+  },
+  {
+   "id": "AA0193",
+   "somaAcronym": "DG-po",
+   "somaName": "Dentate gyrus polymorph layer",
+   "somaStructureId": 10704,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/726/10704/",
+   "soma": [
+    8698,
+    2982,
+    8286
+   ],
+   "axonSegments": 121,
+   "dendriteSegments": 101
+  },
+  {
+   "id": "AA0192",
+   "somaAcronym": "DG-mo",
+   "somaName": "Dentate gyrus molecular layer",
+   "somaStructureId": 10703,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/726/10703/",
+   "soma": [
+    8912,
+    2865,
+    8368
+   ],
+   "axonSegments": 106,
+   "dendriteSegments": 104
+  },
+  {
+   "id": "AA0191",
+   "somaAcronym": "DG-mo",
+   "somaName": "Dentate gyrus molecular layer",
+   "somaStructureId": 10703,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/726/10703/",
+   "soma": [
+    8912,
+    2921,
+    8424
+   ],
+   "axonSegments": 88,
+   "dendriteSegments": 74
+  },
+  {
+   "id": "AA0189",
+   "somaAcronym": "DG-mo",
+   "somaName": "Dentate gyrus molecular layer",
+   "somaStructureId": 10703,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/726/10703/",
+   "soma": [
+    8916,
+    2927,
+    8444
+   ],
+   "axonSegments": 105,
+   "dendriteSegments": 144
+  },
+  {
+   "id": "AA0166",
+   "somaAcronym": "DG-mo",
+   "somaName": "Dentate gyrus molecular layer",
+   "somaStructureId": 10703,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/726/10703/",
+   "soma": [
+    8897,
+    3554,
+    8481
+   ],
+   "axonSegments": 517,
+   "dendriteSegments": 144
+  },
+  {
+   "id": "AA0165",
+   "somaAcronym": "DG-mo",
+   "somaName": "Dentate gyrus molecular layer",
+   "somaStructureId": 10703,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/726/10703/",
+   "soma": [
+    8867,
+    3187,
+    8284
+   ],
+   "axonSegments": 652,
+   "dendriteSegments": 149
+  },
+  {
+   "id": "AA0162",
+   "somaAcronym": "DG-mo",
+   "somaName": "Dentate gyrus molecular layer",
+   "somaStructureId": 10703,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/726/10703/",
+   "soma": [
+    8712,
+    2748,
+    7829
+   ],
+   "axonSegments": 86,
+   "dendriteSegments": 80
+  },
+  {
+   "id": "AA0160",
+   "somaAcronym": "VISp6a",
+   "somaName": "Primary visual area layer 6a",
+   "somaStructureId": 33,
+   "somaStructureIdPath": "/997/8/567/688/695/315/669/385/33/",
+   "soma": [
+    8993,
+    1469,
+    8185
+   ],
+   "axonSegments": 1335,
+   "dendriteSegments": 234
+  },
+  {
+   "id": "AA0156",
+   "somaAcronym": "DG-sg",
+   "somaName": "Dentate gyrus granule cell layer",
+   "somaStructureId": 632,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/726/632/",
+   "soma": [
+    8796,
+    2938,
+    8154
+   ],
+   "axonSegments": 144,
+   "dendriteSegments": 113
+  },
+  {
+   "id": "AA0155",
+   "somaAcronym": "DG-sg",
+   "somaName": "Dentate gyrus granule cell layer",
+   "somaStructureId": 632,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/726/632/",
+   "soma": [
+    8796,
+    2900,
+    8134
+   ],
+   "axonSegments": 106,
+   "dendriteSegments": 137
+  },
+  {
+   "id": "AA0154",
+   "somaAcronym": "DG-mo",
+   "somaName": "Dentate gyrus molecular layer",
+   "somaStructureId": 10703,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/726/10703/",
+   "soma": [
+    8788,
+    2948,
+    8050
+   ],
+   "axonSegments": 564,
+   "dendriteSegments": 124
+  },
+  {
+   "id": "AA0151",
+   "somaAcronym": "DG-sg",
+   "somaName": "Dentate gyrus granule cell layer",
+   "somaStructureId": 632,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/726/632/",
+   "soma": [
+    7050,
+    2782,
+    4981
+   ],
+   "axonSegments": 76,
+   "dendriteSegments": 67
+  },
+  {
+   "id": "AA0150",
+   "somaAcronym": "DG-po",
+   "somaName": "Dentate gyrus polymorph layer",
+   "somaStructureId": 10704,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/726/10704/",
+   "soma": [
+    8488,
+    2795,
+    8093
+   ],
+   "axonSegments": 99,
+   "dendriteSegments": 83
+  },
+  {
+   "id": "AA0149",
+   "somaAcronym": "DG-po",
+   "somaName": "Dentate gyrus polymorph layer",
+   "somaStructureId": 10704,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/726/10704/",
+   "soma": [
+    8703,
+    2973,
+    8250
+   ],
+   "axonSegments": 203,
+   "dendriteSegments": 150
+  },
+  {
+   "id": "AA0148",
+   "somaAcronym": "DG-sg",
+   "somaName": "Dentate gyrus granule cell layer",
+   "somaStructureId": 632,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/726/632/",
+   "soma": [
+    8741,
+    2939,
+    8165
+   ],
+   "axonSegments": 153,
+   "dendriteSegments": 106
+  },
+  {
+   "id": "AA0147",
+   "somaAcronym": "DG-sg",
+   "somaName": "Dentate gyrus granule cell layer",
+   "somaStructureId": 632,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/726/632/",
+   "soma": [
+    8893,
+    2969,
+    8172
+   ],
+   "axonSegments": 189,
+   "dendriteSegments": 121
+  },
+  {
+   "id": "AA0146",
+   "somaAcronym": "DG-mo",
+   "somaName": "Dentate gyrus molecular layer",
+   "somaStructureId": 10703,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/726/10703/",
+   "soma": [
+    8864,
+    3060,
+    8191
+   ],
+   "axonSegments": 149,
+   "dendriteSegments": 160
+  },
+  {
+   "id": "AA0145",
+   "somaAcronym": "DG-mo",
+   "somaName": "Dentate gyrus molecular layer",
+   "somaStructureId": 10703,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/726/10703/",
+   "soma": [
+    8917,
+    3126,
+    8249
+   ],
+   "axonSegments": 133,
+   "dendriteSegments": 177
+  },
+  {
+   "id": "AA0144",
+   "somaAcronym": "DG-mo",
+   "somaName": "Dentate gyrus molecular layer",
+   "somaStructureId": 10703,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/726/10703/",
+   "soma": [
+    8798,
+    2874,
+    7935
+   ],
+   "axonSegments": 105,
+   "dendriteSegments": 140
+  },
+  {
+   "id": "AA0143",
+   "somaAcronym": "DG-sg",
+   "somaName": "Dentate gyrus granule cell layer",
+   "somaStructureId": 632,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/726/632/",
+   "soma": [
+    8702,
+    2775,
+    7905
+   ],
+   "axonSegments": 244,
+   "dendriteSegments": 176
+  },
+  {
+   "id": "AA0135",
+   "somaAcronym": "MOp5",
+   "somaName": "Primary motor area Layer 5",
+   "somaStructureId": 648,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/648/",
+   "soma": [
+    3893,
+    2212,
+    7517
+   ],
+   "axonSegments": 1640,
+   "dendriteSegments": 471
+  },
+  {
+   "id": "AA0132",
+   "somaAcronym": "MOp5",
+   "somaName": "Primary motor area Layer 5",
+   "somaStructureId": 648,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/648/",
+   "soma": [
+    4257,
+    1959,
+    7326
+   ],
+   "axonSegments": 3388,
+   "dendriteSegments": 554
+  },
+  {
+   "id": "AA0131",
+   "somaAcronym": "MOp5",
+   "somaName": "Primary motor area Layer 5",
+   "somaStructureId": 648,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/648/",
+   "soma": [
+    3987,
+    2335,
+    7534
+   ],
+   "axonSegments": 2059,
+   "dendriteSegments": 872
+  },
+  {
+   "id": "AA0127",
+   "somaAcronym": "VISp6b",
+   "somaName": "Primary visual area layer 6b",
+   "somaStructureId": 305,
+   "somaStructureIdPath": "/997/8/567/688/695/315/669/385/305/",
+   "soma": [
+    8686,
+    1503,
+    7993
+   ],
+   "axonSegments": 2103,
+   "dendriteSegments": 225
+  },
+  {
+   "id": "AA0123",
+   "somaAcronym": "CA1",
+   "somaName": "Field CA1",
+   "somaStructureId": 382,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/375/382/",
+   "soma": [
+    8732,
+    2197,
+    8560
+   ],
+   "axonSegments": 7551,
+   "dendriteSegments": 505
+  },
+  {
+   "id": "AA0107",
+   "somaAcronym": "MOp6a",
+   "somaName": "Primary motor area Layer 6a",
+   "somaStructureId": 844,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/844/",
+   "soma": [
+    3956,
+    2860,
+    3920
+   ],
+   "axonSegments": 1402,
+   "dendriteSegments": 556
+  },
+  {
+   "id": "AA0102",
+   "somaAcronym": "MOp5",
+   "somaName": "Primary motor area Layer 5",
+   "somaStructureId": 648,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/648/",
+   "soma": [
+    4480,
+    2019,
+    4094
+   ],
+   "axonSegments": 6387,
+   "dendriteSegments": 14729
+  },
+  {
+   "id": "AA0091",
+   "somaAcronym": "DG-sg",
+   "somaName": "Dentate gyrus granule cell layer",
+   "somaStructureId": 632,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/726/632/",
+   "soma": [
+    8979,
+    3473,
+    8649
+   ],
+   "axonSegments": 156,
+   "dendriteSegments": 93
+  },
+  {
+   "id": "AA0085",
+   "somaAcronym": "VISp6b",
+   "somaName": "Primary visual area layer 6b",
+   "somaStructureId": 305,
+   "somaStructureIdPath": "/997/8/567/688/695/315/669/385/305/",
+   "soma": [
+    9174,
+    1884,
+    8421
+   ],
+   "axonSegments": 2140,
+   "dendriteSegments": 255
+  },
+  {
+   "id": "AA0078",
+   "somaAcronym": "CA1",
+   "somaName": "Field CA1",
+   "somaStructureId": 382,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/375/382/",
+   "soma": [
+    8925,
+    2195,
+    8481
+   ],
+   "axonSegments": 6733,
+   "dendriteSegments": 1174
+  },
+  {
+   "id": "AA0058",
+   "somaAcronym": "CA1",
+   "somaName": "Field CA1",
+   "somaStructureId": 382,
+   "somaStructureIdPath": "/997/8/567/688/695/1089/1080/375/382/",
+   "soma": [
+    8015,
+    1624,
+    7314
+   ],
+   "axonSegments": 1015,
+   "dendriteSegments": 358
+  },
+  {
+   "id": "AA0046",
+   "somaAcronym": "MOp5",
+   "somaName": "Primary motor area Layer 5",
+   "somaStructureId": 648,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/648/",
+   "soma": [
+    4602,
+    1877,
+    4036
+   ],
+   "axonSegments": 6036,
+   "dendriteSegments": 9370
+  },
+  {
+   "id": "AA0045",
+   "somaAcronym": "MOp6a",
+   "somaName": "Primary motor area Layer 6a",
+   "somaStructureId": 844,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/844/",
+   "soma": [
+    4385,
+    2876,
+    3685
+   ],
+   "axonSegments": 3694,
+   "dendriteSegments": 9034
+  },
+  {
+   "id": "AA0043",
+   "somaAcronym": "MOp6a",
+   "somaName": "Primary motor area Layer 6a",
+   "somaStructureId": 844,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/844/",
+   "soma": [
+    4728,
+    2358,
+    3979
+   ],
+   "axonSegments": 2514,
+   "dendriteSegments": 7290
+  },
+  {
+   "id": "AA0042",
+   "somaAcronym": "MOp6a",
+   "somaName": "Primary motor area Layer 6a",
+   "somaStructureId": 844,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/844/",
+   "soma": [
+    4633,
+    2009,
+    4326
+   ],
+   "axonSegments": 10431,
+   "dendriteSegments": 12473
+  },
+  {
+   "id": "AA0041",
+   "somaAcronym": "MOp6a",
+   "somaName": "Primary motor area Layer 6a",
+   "somaStructureId": 844,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/844/",
+   "soma": [
+    4590,
+    2199,
+    4123
+   ],
+   "axonSegments": 5289,
+   "dendriteSegments": 7284
+  },
+  {
+   "id": "AA0040",
+   "somaAcronym": "MOp6a",
+   "somaName": "Primary motor area Layer 6a",
+   "somaStructureId": 844,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/844/",
+   "soma": [
+    4269,
+    2360,
+    4090
+   ],
+   "axonSegments": 1592,
+   "dendriteSegments": 292
+  },
+  {
+   "id": "AA0035",
+   "somaAcronym": "MOp5",
+   "somaName": "Primary motor area Layer 5",
+   "somaStructureId": 648,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/648/",
+   "soma": [
+    4156,
+    2364,
+    3762
+   ],
+   "axonSegments": 8193,
+   "dendriteSegments": 18795
+  },
+  {
+   "id": "AA0034",
+   "somaAcronym": "MOp5",
+   "somaName": "Primary motor area Layer 5",
+   "somaStructureId": 648,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/648/",
+   "soma": [
+    3938,
+    2108,
+    3860
+   ],
+   "axonSegments": 29499,
+   "dendriteSegments": 24693
+  },
+  {
+   "id": "AA0028",
+   "somaAcronym": "VISp4",
+   "somaName": "Primary visual area layer 4",
+   "somaStructureId": 721,
+   "somaStructureIdPath": "/997/8/567/688/695/315/669/385/721/",
+   "soma": [
+    8774,
+    853,
+    7635
+   ],
+   "axonSegments": 516,
+   "dendriteSegments": 996
+  },
+  {
+   "id": "AA0027",
+   "somaAcronym": "VISp6a",
+   "somaName": "Primary visual area layer 6a",
+   "somaStructureId": 33,
+   "somaStructureIdPath": "/997/8/567/688/695/315/669/385/33/",
+   "soma": [
+    8611,
+    1205,
+    7450
+   ],
+   "axonSegments": 2502,
+   "dendriteSegments": 273
+  },
+  {
+   "id": "AA0009",
+   "somaAcronym": "MOp2/3",
+   "somaName": "Primary motor area Layer 2/3",
+   "somaStructureId": 943,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/943/",
+   "soma": [
+    4941,
+    1385,
+    3667
+   ],
+   "axonSegments": 5025,
+   "dendriteSegments": 15401
+  },
+  {
+   "id": "AA0008",
+   "somaAcronym": "SSp-ul2/3",
+   "somaName": "Primary somatosensory area upper limb layer 2/3",
+   "somaStructureId": 854,
+   "somaStructureIdPath": "/997/8/567/688/695/315/453/322/369/854/",
+   "soma": [
+    4892,
+    1825,
+    2772
+   ],
+   "axonSegments": 5673,
+   "dendriteSegments": 1914
+  },
+  {
+   "id": "AA0007",
+   "somaAcronym": "SSp-ul2/3",
+   "somaName": "Primary somatosensory area upper limb layer 2/3",
+   "somaStructureId": 854,
+   "somaStructureIdPath": "/997/8/567/688/695/315/453/322/369/854/",
+   "soma": [
+    4406,
+    1968,
+    2886
+   ],
+   "axonSegments": 5244,
+   "dendriteSegments": 12357
+  },
+  {
+   "id": "AA0006",
+   "somaAcronym": "MOp2/3",
+   "somaName": "Primary motor area Layer 2/3",
+   "somaStructureId": 943,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/943/",
+   "soma": [
+    3569,
+    2335,
+    2962
+   ],
+   "axonSegments": 3400,
+   "dendriteSegments": 2063
+  },
+  {
+   "id": "AA0005",
+   "somaAcronym": "MOp6a",
+   "somaName": "Primary motor area Layer 6a",
+   "somaStructureId": 844,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/844/",
+   "soma": [
+    4482,
+    2314,
+    3974
+   ],
+   "axonSegments": 12823,
+   "dendriteSegments": 334
+  },
+  {
+   "id": "AA0004",
+   "somaAcronym": "MOp5",
+   "somaName": "Primary motor area Layer 5",
+   "somaStructureId": 648,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/648/",
+   "soma": [
+    4689,
+    2213,
+    3326
+   ],
+   "axonSegments": 6610,
+   "dendriteSegments": 530
+  },
+  {
+   "id": "AA0003",
+   "somaAcronym": "MOp2/3",
+   "somaName": "Primary motor area Layer 2/3",
+   "somaStructureId": 943,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/943/",
+   "soma": [
+    4845,
+    1514,
+    3771
+   ],
+   "axonSegments": 6156,
+   "dendriteSegments": 328
+  },
+  {
+   "id": "AA0002",
+   "somaAcronym": "MOp5",
+   "somaName": "Primary motor area Layer 5",
+   "somaStructureId": 648,
+   "somaStructureIdPath": "/997/8/567/688/695/315/500/985/648/",
+   "soma": [
+    5067,
+    1824,
+    3680
+   ],
+   "axonSegments": 16478,
+   "dendriteSegments": 2684
+  },
+  {
+   "id": "AA0001",
+   "somaAcronym": "SSp-m5",
+   "somaName": "Primary somatosensory area mouth layer 5",
+   "somaStructureId": 974,
+   "somaStructureIdPath": "/997/8/567/688/695/315/453/322/345/974/",
+   "soma": [
+    4625,
+    2535,
+    2977
+   ],
+   "axonSegments": 11144,
+   "dendriteSegments": 953
+  }
+ ]
+}
