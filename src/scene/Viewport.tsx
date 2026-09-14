@@ -24,6 +24,7 @@ import { Measurements, useMeasurementClick } from './Measurements.tsx'
 import { Overlays } from './Overlays.tsx'
 import { useCollision, type AnatomyMesh } from '../collision/useCollision.ts'
 import { useAppStore, type Target } from '../state/store.ts'
+import { Helper } from './Helper.tsx'
 import { setSceneHandle } from './handle.ts'
 import { atlasToWorldMatrix, stereotaxicToWorld } from './world.ts'
 
@@ -368,13 +369,17 @@ function Scene({
           )
         })}
 
-        <AxisTriad />
+        <Helper>
+          <AxisTriad />
+        </Helper>
 
         <SceneObjects />
 
         <Overlays />
 
-        <Measurements />
+        <Helper>
+          <Measurements />
+        </Helper>
 
         {/* While measuring, a large invisible sphere catches clicks that miss
             every mesh, so a point can still be placed in open space. */}
@@ -390,13 +395,15 @@ function Scene({
           </mesh>
         )}
 
-        {targets.map((target) => (
-          <TargetMarker
-            key={target.id}
-            target={target}
-            selected={target.id === selectedTargetId}
-          />
-        ))}
+        <Helper>
+          {targets.map((target) => (
+            <TargetMarker
+              key={target.id}
+              target={target}
+              selected={target.id === selectedTargetId}
+            />
+          ))}
+        </Helper>
       </group>
 
       <SceneHandlePublisher />

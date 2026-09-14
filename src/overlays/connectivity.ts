@@ -47,6 +47,34 @@ interface RawExperiment {
   'injection-coordinates'?: number[]
 }
 
+/** Raised when the Allen service fails in a way that is worth retrying. */
+export class TransientApiError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'TransientApiError'
+  }
+}
+
+/**
+ * Whether an API failure looks transient.
+ *
+ * The connectivity service intermittently answers a perfectly valid query with
+ * `success: false` and "Informatics service request failed" — the same
+ * structure id succeeds on the very next request. Treating that as a permanent
+ * rejection told users their region had no data when it simply had not been
+ * asked twice.
+ */
+function isTransient(message: string): boolean {
+  return /informatics service request failed|timeout|temporarily/i.test(message)
+}
+
+/** Backoff between retries. Overridable so tests need not sleep through it. */
+export const RETRY_DELAYS_MS = [400, 1200, 2500]
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
 /**
  * Search experiments by injection structure id.
  *
@@ -54,8 +82,37 @@ interface RawExperiment {
  * injection site is this structure. Without it the API also returns
  * experiments that merely spilled into it, which is rarely what someone
  * planning from a source region means.
+ *
+ * Retries transient service failures before giving up, since they are common
+ * and indistinguishable to the user from "this region has no data".
  */
 export async function searchExperiments(
+  structureId: number,
+  options: {
+    primaryStructureOnly?: boolean
+    limit?: number
+    retryDelaysMs?: readonly number[]
+  } = {},
+): Promise<ConnectivityExperiment[]> {
+  const delays = options.retryDelaysMs ?? RETRY_DELAYS_MS
+  let lastError: Error | null = null
+
+  for (let attempt = 0; attempt <= delays.length; attempt++) {
+    try {
+      return await searchExperimentsOnce(structureId, options)
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error))
+      if (!(error instanceof TransientApiError)) throw error
+      const delay = delays[attempt]
+      if (delay === undefined) break
+      await sleep(delay)
+    }
+  }
+
+  throw lastError ?? new Error('Allen API request failed.')
+}
+
+async function searchExperimentsOnce(
   structureId: number,
   options: { primaryStructureOnly?: boolean; limit?: number } = {},
 ): Promise<ConnectivityExperiment[]> {
@@ -82,7 +139,11 @@ export async function searchExperiments(
   }
 
   if (!payload.success || !Array.isArray(payload.msg)) {
-    throw new Error('Allen API rejected the query.')
+    const detail = typeof payload.msg === 'string' ? payload.msg : 'no detail given'
+    if (isTransient(detail)) {
+      throw new TransientApiError(`Allen connectivity service is busy: ${detail}`)
+    }
+    throw new Error(`Allen API rejected the query: ${detail}`)
   }
 
   return (payload.msg as RawExperiment[])

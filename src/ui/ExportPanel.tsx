@@ -101,11 +101,18 @@ export function ExportPanel({
       dataUrl: string
       fieldOfViewMm: number
       workingDistanceMm: number
+      extentMm: number
     }[] = []
 
-    if (includeObjectiveViews) {
+    const objectiveCount = store.objects.filter(
+      (o) => o.kind === 'objective' && o.visible,
+    ).length
+
+    if (includeObjectiveViews && objectiveCount > 0) {
       const handle = getSceneHandle()
-      if (handle) {
+      if (!handle) {
+        console.warn('No live renderer available; objective views were skipped.')
+      } else {
         for (const object of store.objects) {
           if (object.kind !== 'objective' || !object.visible) continue
           const view = renderObjectiveView(handle.gl, handle.scene, object)
@@ -142,7 +149,9 @@ export function ExportPanel({
         `Exported ${sheetFilename(name)}`,
         objectiveViews.length
           ? `Included ${objectiveViews.length} objective view(s).`
-          : 'Open it in a browser and print to PDF if you need one.',
+          : objectiveCount > 0 && includeObjectiveViews
+            ? `Could not render ${objectiveCount} objective view(s) — see the console.`
+            : 'Open it in a browser and print to PDF if you need one.',
       ],
     })
   }

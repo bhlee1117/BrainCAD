@@ -73,7 +73,16 @@ export function OverlaysPanel({
       setTotalExperiments(all.length)
       setExperiments(all.slice(0, 40))
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause))
+      const message = cause instanceof Error ? cause.message : String(cause)
+      // Separate "the service is having a moment" from "this region has no
+      // tracing data" — they look identical in the raw response but mean
+      // opposite things to someone planning an experiment.
+      setError(
+        /busy|informatics service/i.test(message)
+          ? 'The Allen connectivity service did not respond after several attempts. ' +
+              'This is usually temporary — try that region again.'
+          : message,
+      )
     } finally {
       setBusy(null)
     }
@@ -180,7 +189,22 @@ export function OverlaysPanel({
       </div>
 
       {busy && <div className="status status--ok">{busy}</div>}
-      {error && <div className="status status--error">{error}</div>}
+      {error && (
+        <div className="status status--error">
+          <div className="status__head">Search failed</div>
+          <div className="status__line">{error}</div>
+          {structureId !== null && (
+            <button
+              className="btn"
+              style={{ marginTop: 8 }}
+              disabled={busy !== null}
+              onClick={() => void findExperiments(structureId)}
+            >
+              Retry
+            </button>
+          )}
+        </div>
+      )}
 
       {experiments && (
         <div className="section">

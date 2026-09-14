@@ -26,6 +26,7 @@ import {
   solvePlacement,
 } from '../objects/placement.ts'
 import { STATE_COLOR, stateForObject } from '../collision/check.ts'
+import { Helper } from './Helper.tsx'
 import { useAppStore } from '../state/store.ts'
 
 /** Small cross marking a declared point (anchor or pivot) on a selected object. */
@@ -129,7 +130,7 @@ function ObjectView({ object, selected }: { object: SceneObject; selected: boole
         </mesh>
 
         {selected && (
-          <>
+          <Helper>
             {/* Anchor in the target colour; pivot in a cooler tone, so the two
                 concepts are visually distinct at a glance. */}
             <PointMarker position={built.anchor} color="#ff6b4a" />
@@ -137,7 +138,7 @@ function ObjectView({ object, selected }: { object: SceneObject; selected: boole
               <PointMarker position={pivot} color="#4da3ff" size={0.4} />
             )}
             <AxisLine length={built.lengthMm} color={displayColor} />
-          </>
+          </Helper>
         )}
       </group>
     </group>
@@ -233,7 +234,11 @@ export function SceneObjects() {
           selected={selectedObject?.id === object.id}
         />
       ))}
-      {selectedObject && <ObjectGizmo key={selectedObject.id} object={selectedObject} />}
+      {selectedObject && (
+        <Helper>
+          <ObjectGizmo key={selectedObject.id} object={selectedObject} />
+        </Helper>
+      )}
     </group>
   )
 }

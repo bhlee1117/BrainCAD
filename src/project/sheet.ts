@@ -35,6 +35,8 @@ export interface SheetInput {
     readonly dataUrl: string
     readonly fieldOfViewMm: number
     readonly workingDistanceMm: number
+    /** Side of the region shown, in millimetres. */
+    readonly extentMm: number
   }[]
   /** Data overlays shown with the plan. */
   readonly overlays: readonly {
@@ -187,7 +189,7 @@ function objectiveViewSection(input: SheetInput): string {
         <img src="${view.dataUrl}" alt="Simulated view through ${escapeHtml(view.name)}">
         <figcaption>
           <strong>${escapeHtml(view.name)}</strong><br>
-          ${view.fieldOfViewMm.toFixed(2)} mm field · ${view.workingDistanceMm.toFixed(1)} mm working distance
+          ${view.extentMm.toFixed(0)} × ${view.extentMm.toFixed(0)} mm shown · ${view.fieldOfViewMm.toFixed(2)} mm field marked · ${view.workingDistanceMm.toFixed(1)} mm working distance
         </figcaption>
       </figure>`,
     )
@@ -196,9 +198,11 @@ function objectiveViewSection(input: SheetInput): string {
   return `<h2>View through the objective</h2>
     <div class="objviews">${figures}</div>
     <p class="caveat">
-      Geometric occlusion only — what physically blocks the light path, rendered orthographically
-      down the optical axis from the front element. Not an optical simulation: it does not model
-      scattering, aberration, depth of field or the effect of any intervening optic.
+      Looking down the optical axis from the front element, orthographically. The dashed circle is
+      the objective's actual field; the surrounding frame is wider context, showing anatomy,
+      implants and overlays near the light path.
+      Geometric occlusion only — not an optical simulation:
+      no scattering, aberration, depth of field, or any intervening optic.
     </p>`
 }
 
@@ -275,7 +279,7 @@ export function renderPlanningSheet(input: SheetInput): string {
   img.capture { width: 100%; border: 1px solid #dfe5ea; border-radius: 6px; margin-top: 8px; }
   .objviews { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 8px; }
   .objview { margin: 0; width: 220px; }
-  .objview img { width: 220px; height: 220px; border-radius: 50%; background: #000; display: block; }
+  .objview img { width: 220px; height: 220px; border-radius: 6px; background: #05070a; display: block; }
   .objview figcaption { font-size: 11px; color: #5d6b7a; margin-top: 6px; line-height: 1.4; }
   .caveat { font-size: 11px; color: #5d6b7a; margin-top: 10px; }
   .overlay { border-left: 3px solid #c0392b; background: #fdf3f1; padding: 10px 13px; border-radius: 0 6px 6px 0; margin-bottom: 10px; }

@@ -218,13 +218,15 @@ describe('planning sheet', () => {
             dataUrl: 'data:image/png;base64,AAAA',
             fieldOfViewMm: 0.85,
             workingDistanceMm: 3,
+            extentMm: 3,
           },
         ],
       }),
     )
     expect(html).toContain('View through the objective')
     expect(html).toContain('16x Nikon')
-    expect(html).toContain('0.85 mm field')
+    expect(html).toContain('3 × 3 mm shown')
+    expect(html).toContain('0.85 mm field marked')
     expect(html).toContain('3.0 mm working distance')
     expect(html).toContain('data:image/png;base64,AAAA')
   })
@@ -239,13 +241,17 @@ describe('planning sheet', () => {
             dataUrl: 'data:image/png;base64,AAAA',
             fieldOfViewMm: 1,
             workingDistanceMm: 3,
+            extentMm: 3,
           },
         ],
       }),
     )
     expect(html).toContain('Geometric occlusion only')
-    expect(html).toContain('Not an optical simulation')
+    expect(html).toContain('not an optical simulation')
     expect(html).toMatch(/scattering, aberration, depth of field/)
+    // The frame is wider than the field; conflating them would overstate
+    // the objective's coverage threefold.
+    expect(html).toContain("the objective's actual field")
   })
 })
 

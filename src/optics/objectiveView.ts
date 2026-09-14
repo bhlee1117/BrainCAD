@@ -13,19 +13,33 @@
  */
 
 import {
+  DirectionalLight,
   OrthographicCamera,
   Vector3,
   WebGLRenderTarget,
+  type Object3D,
   type Scene,
   type WebGLRenderer,
 } from 'three'
 
+import { HELPER_FLAG } from '../scene/Helper.tsx'
 import { effectivePivot, resolveGeometry, type SceneObject } from '../objects/model.ts'
 import { localToWorld, solvePlacement, worldAxis } from '../objects/placement.ts'
 import type { ObjectiveParams } from '../objects/primitives.ts'
 
 /** Square edge of the rendered image, in pixels. */
 const RENDER_SIZE = 512
+
+/**
+ * Side of the region rendered, in millimetres.
+ *
+ * Deliberately wider than any objective's field. A frame cropped to the field
+ * itself shows the target and almost nothing else, which answers "what is at
+ * the focus" but not the question the view is for: *what surrounds it, and what
+ * is in the way*. The field boundary is drawn inside this wider context
+ * instead, so both readings are available at once.
+ */
+export const VIEW_EXTENT_MM = 3
 
 /**
  * Where the objective's camera sits and what it looks at.
@@ -44,6 +58,8 @@ export interface ObjectiveViewGeometry {
   readonly axis: Vector3
   readonly fieldOfViewMm: number
   readonly workingDistanceMm: number
+  /** Side of the rendered region, in millimetres. */
+  readonly extentMm: number
 }
 
 /**
@@ -85,16 +101,19 @@ export function objectiveViewGeometry(
     axis,
     fieldOfViewMm,
     workingDistanceMm,
+    extentMm: VIEW_EXTENT_MM,
   }
 }
 
 export interface ObjectiveViewResult {
   /** PNG data URL of the circular field of view. */
   readonly dataUrl: string
-  /** Field diameter actually rendered, in millimetres. */
+  /** The objective's own field diameter, marked on the image. */
   readonly fieldOfViewMm: number
   /** Working distance used to place the camera. */
   readonly workingDistanceMm: number
+  /** Side of the region rendered, in millimetres. */
+  readonly extentMm: number
 }
 
 /**
@@ -112,19 +131,54 @@ export function renderObjectiveView(
   const view = objectiveViewGeometry(objective)
   if (!view) return null
 
-  const half = view.fieldOfViewMm / 2
+  const half = view.extentMm / 2
   const camera = new OrthographicCamera(
     -half,
     half,
     half,
     -half,
     0.01,
-    view.workingDistanceMm * 6,
+    // Far enough to cover the whole brain from outside it, so anatomy and
+    // overlays behind the focal plane are part of the picture rather than
+    // clipped away.
+    view.workingDistanceMm + 30,
   )
   camera.position.copy(view.eye)
   camera.up.set(0, 1, 0)
   camera.lookAt(view.lookAt)
   camera.updateProjectionMatrix()
+
+  // Hide helper decoration — target markers, the axis triad, measurement lines
+  // and the transform gizmo. None of it can occlude light, and it sits exactly
+  // on the focal point the reader is trying to assess, so leaving it in would
+  // show an obstruction that is not there.
+  //
+  // The gizmo is matched by type rather than by the userData flag because
+  // three.js attaches TransformControls' visual root to the scene itself, not
+  // to the React element that declared it — so wrapping it is not enough.
+  const hidden: Object3D[] = []
+  scene.traverse((node) => {
+    if (!node.visible) return
+    const isFlagged = node.userData?.[HELPER_FLAG] === true
+    const isGizmo =
+      node.type.startsWith('TransformControls') ||
+      node.constructor?.name?.startsWith('TransformControls') === true
+    if (isFlagged || isGizmo) {
+      node.visible = false
+      hidden.push(node)
+    }
+  })
+
+  // The viewport's lights come from above and behind the default camera, so
+  // looking down the objective's own axis leaves the anatomy unlit and the
+  // brain — already at low opacity — renders as near-black. A light travelling
+  // with the objective is added for the capture only, and removed after, so the
+  // scene the user is looking at is untouched.
+  const headlight = new DirectionalLight(0xffffff, 2.6)
+  headlight.position.copy(view.eye)
+  headlight.target.position.copy(view.focal)
+  scene.add(headlight)
+  scene.add(headlight.target)
 
   const target = new WebGLRenderTarget(RENDER_SIZE, RENDER_SIZE)
   const previousTarget = gl.getRenderTarget()
@@ -135,31 +189,45 @@ export function renderObjectiveView(
     gl.render(scene, camera)
     pixels = new Uint8Array(RENDER_SIZE * RENDER_SIZE * 4)
     gl.readRenderTargetPixels(target, 0, 0, RENDER_SIZE, RENDER_SIZE, pixels)
-  } catch {
+  } catch (error) {
+    // Say why. A silently-null view produces a planning sheet with no
+    // objective figure and no explanation, which is indistinguishable from
+    // "there was nothing to show".
+    console.warn(`Objective view for "${objective.name}" failed to render`, error)
     return null
   } finally {
     gl.setRenderTarget(previousTarget)
     target.dispose()
+    scene.remove(headlight)
+    scene.remove(headlight.target)
+    headlight.dispose()
+    for (const node of hidden) node.visible = true
   }
 
-  const dataUrl = composeFieldImage(pixels, view.fieldOfViewMm)
+  const dataUrl = composeFieldImage(pixels, view.extentMm, view.fieldOfViewMm)
   return dataUrl
     ? {
         dataUrl,
         fieldOfViewMm: view.fieldOfViewMm,
         workingDistanceMm: view.workingDistanceMm,
+        extentMm: view.extentMm,
       }
     : null
 }
 
 /**
- * Draw the raw pixels into a circular aperture with a scale bar.
+ * Compose the rendered pixels into the final figure.
  *
- * The circular mask is not decoration: a square frame would imply the objective
- * sees the corners, and someone judging occlusion from this image needs the
- * real aperture shape.
+ * The whole 3 mm region is shown as a square frame, with the objective's actual
+ * field drawn as a circle inside it. Cropping to the field instead would throw
+ * away the surrounding context that makes the picture useful — you would see
+ * the target and not the headbar about to occlude it.
  */
-function composeFieldImage(pixels: Uint8Array, fieldOfViewMm: number): string | null {
+function composeFieldImage(
+  pixels: Uint8Array,
+  extentMm: number,
+  fieldOfViewMm: number,
+): string | null {
   const canvas = document.createElement('canvas')
   canvas.width = RENDER_SIZE
   canvas.height = RENDER_SIZE
@@ -174,31 +242,70 @@ function composeFieldImage(pixels: Uint8Array, fieldOfViewMm: number): string | 
     image.data.set(pixels.subarray(source, source + RENDER_SIZE * 4), destination)
   }
 
-  const scratch = document.createElement('canvas')
-  scratch.width = RENDER_SIZE
-  scratch.height = RENDER_SIZE
-  scratch.getContext('2d')?.putImageData(image, 0, 0)
-
-  // Outside the aperture is black, as it would be down a barrel.
-  context.fillStyle = '#000'
+  context.fillStyle = '#05070a'
   context.fillRect(0, 0, RENDER_SIZE, RENDER_SIZE)
+  context.putImageData(image, 0, 0)
+
+  drawFieldBoundary(context, extentMm, fieldOfViewMm)
+  drawScaleBar(context, extentMm)
+
+  // Frame edge, so the figure reads as a bounded region rather than bleeding
+  // into the page.
+  context.strokeStyle = 'rgba(255,255,255,0.25)'
+  context.lineWidth = 2
+  context.strokeRect(1, 1, RENDER_SIZE - 2, RENDER_SIZE - 2)
+
+  return canvas.toDataURL('image/png')
+}
+
+/**
+ * Mark the objective's actual field inside the wider frame.
+ *
+ * Drawn as a dashed circle with its diameter labelled, because the reader needs
+ * to distinguish "what the objective images" from "what this figure shows" —
+ * conflating them would overstate the instrument's coverage threefold.
+ */
+function drawFieldBoundary(
+  context: CanvasRenderingContext2D,
+  extentMm: number,
+  fieldOfViewMm: number,
+): void {
+  const pixelsPerMm = RENDER_SIZE / extentMm
+  const radius = (fieldOfViewMm / 2) * pixelsPerMm
+  const centre = RENDER_SIZE / 2
+
+  if (radius <= 2 || radius > RENDER_SIZE) return
 
   context.save()
-  context.beginPath()
-  context.arc(RENDER_SIZE / 2, RENDER_SIZE / 2, RENDER_SIZE / 2 - 2, 0, Math.PI * 2)
-  context.clip()
-  context.drawImage(scratch, 0, 0)
-  context.restore()
-
-  // Aperture edge.
-  context.strokeStyle = 'rgba(255,255,255,0.35)'
+  context.setLineDash([7, 6])
+  context.strokeStyle = 'rgba(255,255,255,0.85)'
   context.lineWidth = 2
   context.beginPath()
-  context.arc(RENDER_SIZE / 2, RENDER_SIZE / 2, RENDER_SIZE / 2 - 2, 0, Math.PI * 2)
+  context.arc(centre, centre, radius, 0, Math.PI * 2)
+  context.stroke()
+  context.restore()
+
+  // Crosshair at the focal point, kept short so it does not obscure the centre.
+  context.strokeStyle = 'rgba(255,255,255,0.55)'
+  context.lineWidth = 1
+  const tick = Math.min(14, radius * 0.35)
+  context.beginPath()
+  context.moveTo(centre - tick, centre)
+  context.lineTo(centre + tick, centre)
+  context.moveTo(centre, centre - tick)
+  context.lineTo(centre, centre + tick)
   context.stroke()
 
-  drawScaleBar(context, fieldOfViewMm)
-  return canvas.toDataURL('image/png')
+  const label = `field ${fieldOfViewMm.toFixed(2)} mm`
+  context.font = '500 13px ui-sans-serif, system-ui, sans-serif'
+  context.textAlign = 'center'
+
+  const labelY = centre - radius - 9
+  const width = context.measureText(label).width
+  context.fillStyle = 'rgba(0,0,0,0.6)'
+  context.fillRect(centre - width / 2 - 6, labelY - 13, width + 12, 18)
+  context.fillStyle = '#fff'
+  context.fillText(label, centre, labelY)
 }
 
 /**
@@ -207,8 +314,8 @@ function composeFieldImage(pixels: Uint8Array, fieldOfViewMm: number): string | 
  * Picked from a 1-2-5 sequence so the bar is always a value someone can reason
  * with, rather than whatever fraction of the field happens to be convenient.
  */
-function drawScaleBar(context: CanvasRenderingContext2D, fieldOfViewMm: number): void {
-  const fieldUm = fieldOfViewMm * 1000
+function drawScaleBar(context: CanvasRenderingContext2D, extentMm: number): void {
+  const fieldUm = extentMm * 1000
   const candidates = [10, 20, 50, 100, 200, 500, 1000, 2000, 5000]
   const barUm =
     candidates.filter((c) => c <= fieldUm * 0.4).pop() ?? Math.round(fieldUm * 0.25)
