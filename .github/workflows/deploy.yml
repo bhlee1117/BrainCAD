@@ -32,6 +32,26 @@ jobs:
           node-version: 22
           cache: npm
 
+      # Fails fast with an explanation if the lockfile was generated in a way
+      # that omits this runner's native binaries. `npm install
+      # --package-lock-only` on macOS records only the darwin rollup/esbuild
+      # packages; npm ci then installs a tree with no Linux binary, and vitest
+      # dies instantly with an error that says nothing about lockfiles.
+      - name: Verify lockfile covers this platform
+        run: |
+          node -e "
+            const lock = require('./package-lock.json');
+            const names = Object.keys(lock.packages ?? {});
+            const missing = ['@rollup/rollup-linux-x64-gnu', '@esbuild/linux-x64']
+              .filter((p) => !names.includes('node_modules/' + p));
+            if (missing.length) {
+              console.error('package-lock.json is missing Linux binaries: ' + missing.join(', '));
+              console.error('Regenerate it with a full \`npm install\` (not --package-lock-only).');
+              process.exit(1);
+            }
+            console.log('Lockfile covers Linux: ok');
+          "
+
       - run: npm ci
 
       # The atlas assets are committed under public/atlas, so the build needs
