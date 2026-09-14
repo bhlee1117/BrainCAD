@@ -850,6 +850,18 @@ input[type='range'] {
   .viewbar .btn {
     padding: 6px 10px;
   }
+
+  /* Three sections side by side are ~124px each on a phone — too small to read
+     a structure boundary off. Stacked, each gets the full width. */
+  .slices {
+    grid-template-columns: 1fr;
+    height: auto;
+    border-top: 0;
+  }
+
+  .slices .slice {
+    height: 210px;
+  }
 }
 
 /* ---------- M2: object library, import, properties ---------- */

@@ -30,13 +30,36 @@ import { PlanPanel } from './ui/PlanPanel.tsx'
 import { AtlasPanel, ProfilePanel, ScenePanel } from './ui/SidePanels.tsx'
 import { SlicePanel } from './ui/SlicePanel.tsx'
 
-type Tab = 'PLAN' | 'OBJECTS' | 'ATLAS' | 'OVERLAYS' | 'MEASURE' | 'OPTICS' | 'EXPORT'
+type Tab =
+  | 'PLAN'
+  | 'OBJECTS'
+  | 'ATLAS'
+  | 'OVERLAYS'
+  | 'SLICES'
+  | 'MEASURE'
+  | 'OPTICS'
+  | 'EXPORT'
 
-const TABS: readonly { id: Tab; enabled: boolean; title: string }[] = [
+const TABS: readonly {
+  id: Tab
+  enabled: boolean
+  title: string
+  /** Only offered in the compact layout. */
+  compactOnly?: boolean
+}[] = [
   { id: 'PLAN', enabled: true, title: 'Target and trajectory planning' },
   { id: 'OBJECTS', enabled: true, title: 'Hardware primitives and custom geometry' },
   { id: 'ATLAS', enabled: true, title: 'Atlas browsing and region meshes' },
   { id: 'OVERLAYS', enabled: true, title: 'Axon projection data from the Allen Connectivity Atlas' },
+  // The desktop keeps the slice strip permanently under the 3D view, so this
+  // tab would be a second way to see what is already on screen. On a phone
+  // there is no room for the strip and the slices were simply unavailable.
+  {
+    id: 'SLICES',
+    enabled: true,
+    title: 'Coronal, sagittal and horizontal sections at the target',
+    compactOnly: true,
+  },
   { id: 'MEASURE', enabled: true, title: 'Two-point distance measurement' },
   { id: 'OPTICS', enabled: true, title: 'Objective approach-angle sweep' },
   { id: 'EXPORT', enabled: true, title: 'Project file and planning sheet' },
@@ -75,6 +98,13 @@ export function App() {
   const atlasStatus = useAppStore((s) => s.atlasStatus)
   const setAtlasStatus = useAppStore((s) => s.setAtlasStatus)
 
+  // Widening the window retires the compact-only tabs. Without this, rotating a
+  // tablet while on SLICES leaves the active tab pointing at a button that is
+  // no longer in the strip.
+  useEffect(() => {
+    if (!compact && TABS.find((t) => t.id === tab)?.compactOnly) setTab('PLAN')
+  }, [compact, tab])
+
   useEffect(() => {
     // The load itself is shared and uncancellable; this flag only suppresses
     // state updates from an effect run that has already been torn down.
@@ -112,6 +142,12 @@ export function App() {
   const tabPanel =
     atlas && tab === 'ATLAS' ? (
       <AtlasPanel atlas={atlas} />
+    ) : atlas && tab === 'SLICES' ? (
+      target ? (
+        <SlicePanel atlas={atlas} profile={profile} coord={target.coord} />
+      ) : (
+        <p className="mhint">No target selected — sections follow the target.</p>
+      )
     ) : tab === 'OBJECTS' ? (
       <ObjectsPanel />
     ) : tab === 'OVERLAYS' && atlas ? (
@@ -133,7 +169,7 @@ export function App() {
           BrainCAD<span>3D stereotaxic planning</span>
         </div>
         <nav className="tabs">
-          {TABS.map((entry) => (
+          {TABS.filter((entry) => !entry.compactOnly || compact).map((entry) => (
             <button
               key={entry.id}
               className="tab"
