@@ -265,6 +265,8 @@ describe('overlay provenance on the sheet', () => {
     citation: 'Allen Mouse Brain Connectivity Atlas, experiment 180296424. Oh et al. (2014).',
     url: 'https://connectivity.brain-map.org/projection/experiment/180296424',
     resolutionUm: 100,
+    injectionSummary: 'AP -3.89, ML -3.71, DV -1.89 mm, 0.81 mm³',
+    injectionStructures: ['VISp', 'VISl', 'VISpl'],
     caveats: ['Measured from a single injection in a single animal.'],
   }
 
@@ -278,6 +280,16 @@ describe('overlay provenance on the sheet', () => {
     expect(html).toContain('VISp → projections')
     expect(html).toContain('45,365 points above density 0.05')
     expect(html).toContain('100 µm grid')
+  })
+
+  it('records where the tracer was injected, and that it spread', () => {
+    // Projection density is measured relative to an injection; a sheet that
+    // shows the projections without the source cannot be interpreted, and an
+    // injection that spanned five areas cannot be attributed to one.
+    const html = renderPlanningSheet(sheetInput({ overlays: [overlay] }))
+    expect(html).toContain('AP -3.89, ML -3.71, DV -1.89 mm')
+    expect(html).toContain('VISp, VISl, VISpl')
+    expect(html).toContain('not attributable to the named region alone')
   })
 
   it('carries the citation, the source link and every caveat', () => {

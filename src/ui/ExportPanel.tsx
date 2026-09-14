@@ -133,6 +133,14 @@ export function ExportPanel({
         experimentId: o.experimentId,
         threshold: o.threshold,
         pointCount: o.cloud.pointCount,
+        injectionSummary: o.injection.centre
+          ? `AP ${o.injection.centre.ap.toFixed(2)}, ML ${o.injection.centre.ml.toFixed(2)}, ` +
+            `DV ${o.injection.centre.dv.toFixed(2)} mm` +
+            (o.injection.volumeMm3 !== null
+              ? `, ${o.injection.volumeMm3.toFixed(2)} mm³`
+              : '')
+          : null,
+        injectionStructures: o.injection.structures,
         evidence: o.provenance.evidence,
         citation: o.provenance.citation,
         url: o.provenance.url,

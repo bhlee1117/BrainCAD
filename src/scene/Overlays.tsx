@@ -13,6 +13,43 @@ import { AdditiveBlending, BufferAttribute, BufferGeometry } from 'three'
 import type { ProjectionOverlay } from '../overlays/model.ts'
 import { useAppStore } from '../state/store.ts'
 
+/**
+ * The injection site, drawn in white rather than on the overlay's density ramp.
+ *
+ * Deliberately not the same colour as the projections. The site is where the
+ * tracer was *put*, not somewhere it travelled to, and rendering both on one
+ * scale invites reading the brightest region as the strongest target when it is
+ * the opposite.
+ */
+function InjectionPoints({ overlay }: { overlay: ProjectionOverlay }) {
+  const positions = overlay.injection.worldPositions
+
+  const geometry = useMemo(() => {
+    if (!positions) return null
+    const buffer = new BufferGeometry()
+    buffer.setAttribute('position', new BufferAttribute(positions, 3))
+    buffer.computeBoundingSphere()
+    return buffer
+  }, [positions])
+
+  useEffect(() => () => geometry?.dispose(), [geometry])
+
+  if (!geometry || !overlay.visible || !overlay.showInjection) return null
+
+  return (
+    <points geometry={geometry} renderOrder={3}>
+      <pointsMaterial
+        size={overlay.pointSizeMm * 1.4}
+        sizeAttenuation
+        color="#ffffff"
+        transparent
+        opacity={Math.min(1, overlay.opacity * 0.9)}
+        depthWrite={false}
+      />
+    </points>
+  )
+}
+
 function OverlayPoints({ overlay }: { overlay: ProjectionOverlay }) {
   const geometry = useMemo(() => {
     const buffer = new BufferGeometry()
@@ -51,7 +88,10 @@ export function Overlays() {
   return (
     <group>
       {overlays.map((overlay) => (
-        <OverlayPoints key={overlay.id} overlay={overlay} />
+        <group key={overlay.id}>
+          <OverlayPoints overlay={overlay} />
+          <InjectionPoints overlay={overlay} />
+        </group>
       ))}
     </group>
   )

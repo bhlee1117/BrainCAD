@@ -34,6 +34,14 @@ export interface ConnectivityExperiment {
   readonly injectionVolumeMm3: number | null
   /** Injection site in CCF micrometres, as the API reports it. */
   readonly injectionCoordinatesUm: readonly [number, number, number] | null
+  /**
+   * Every structure the injection actually touched, primary first.
+   *
+   * Injections are rarely confined to one region — a VISp injection was
+   * verified spreading into VISl, VISpl, VISli and VISpor — and a projection
+   * read as coming purely from the named structure would be over-attributed.
+   */
+  readonly injectionStructures: readonly string[]
 }
 
 interface RawExperiment {
@@ -45,6 +53,7 @@ interface RawExperiment {
   strain?: string
   'injection-volume'?: number
   'injection-coordinates'?: number[]
+  'injection-structures'?: { abbreviation?: string; name?: string }[]
 }
 
 /** Raised when the Allen service fails in a way that is worth retrying. */
@@ -187,6 +196,9 @@ function normaliseExperiment(row: RawExperiment): ConnectivityExperiment {
       Array.isArray(coords) && coords.length === 3
         ? [coords[0]!, coords[1]!, coords[2]!]
         : null,
+    injectionStructures: (row['injection-structures'] ?? [])
+      .map((s) => s?.abbreviation)
+      .filter((a): a is string => typeof a === 'string' && a.length > 0),
   }
 }
 
@@ -205,6 +217,27 @@ export function projectionVolumeUrl(
   resolutionUm: GridResolutionUm = 100,
 ): string {
   return `${API_BASE}/grid_data/download_file/${experimentId}?image=projection_density&resolution=${resolutionUm}`
+}
+
+/**
+ * URL of the injection-site volume for an experiment.
+ *
+ * `injection_fraction` gives the fraction of each voxel occupied by the
+ * injection, which is what distinguishes the site itself from the axons
+ * leaving it. At 100 µm it is under 10 KB, so loading it alongside the
+ * projection volume costs nothing.
+ *
+ * This matters more than its size suggests. `projection_density` *includes*
+ * the injection site, and measured on a real experiment the site averages 0.997
+ * while genuine projections average 0.010 — a hundredfold difference. Rendered
+ * without separation, the brightest feature of a projection overlay is the
+ * injection, which is the one place the tracer did not travel to.
+ */
+export function injectionVolumeUrl(
+  experimentId: number,
+  resolutionUm: GridResolutionUm = 100,
+): string {
+  return `${API_BASE}/grid_data/download_file/${experimentId}?image=injection_fraction&resolution=${resolutionUm}`
 }
 
 /** A short human description, for the overlay list and the planning sheet. */

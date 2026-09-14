@@ -96,6 +96,113 @@ describe('thresholding', () => {
   })
 })
 
+describe('injection-site masking', () => {
+  // Measured on Allen experiment 180296424 at 100 um: mean projection density
+  // inside the injection site is 0.997, outside it is 0.0099 — a hundredfold
+  // difference. The site is in the projection volume and saturates it, so
+  // without masking the brightest feature of the overlay is the one place the
+  // tracer did not travel to.
+  function projectionWithInjection() {
+    const space = makeVolumeSpace([10, 1, 1], 100, 'asr')
+    const density = new Float32Array(10)
+    const injection = new Float32Array(10)
+
+    // Voxels 0-2 are the injection site: saturated in both volumes.
+    for (let i = 0; i <= 2; i++) {
+      density[flatIndex(space, i, 0, 0)] = 1.0
+      injection[flatIndex(space, i, 0, 0)] = 0.95
+    }
+    // Voxels 5-8 are real, much fainter, projections.
+    for (let i = 5; i <= 8; i++) {
+      density[flatIndex(space, i, 0, 0)] = 0.08
+    }
+    return { space, density, injection }
+  }
+
+  it('excludes injection voxels from the projection cloud', () => {
+    const { space, density, injection } = projectionWithInjection()
+    const cloud = buildProjectionPointCloud(density, space, {
+      threshold: 0.05,
+      maxPoints: 1000,
+      mask: injection,
+    })
+
+    expect(cloud.pointCount).toBe(4)
+    expect(cloud.maskedOut).toBe(3)
+    for (const d of cloud.densities) expect(d).toBeCloseTo(0.08, 5)
+  })
+
+  it('keeps the injection in when no mask is supplied', () => {
+    const { space, density } = projectionWithInjection()
+    const cloud = buildProjectionPointCloud(density, space, {
+      threshold: 0.05,
+      maxPoints: 1000,
+    })
+    expect(cloud.pointCount).toBe(7)
+    expect(cloud.maskedOut).toBe(0)
+  })
+
+  it('scales colour to the projections, not the saturated site', () => {
+    // With the site included the peak is 1.0 and a 0.08 projection renders at
+    // the faint extreme; excluded, the same projections span the full ramp.
+    const { space, density, injection } = projectionWithInjection()
+
+    const masked = buildProjectionPointCloud(density, space, {
+      threshold: 0.05,
+      maxPoints: 1000,
+      mask: injection,
+    })
+    const unmasked = buildProjectionPointCloud(density, space, {
+      threshold: 0.05,
+      maxPoints: 1000,
+    })
+
+    expect(masked.maxDensity).toBeCloseTo(0.08, 5)
+    expect(unmasked.maxDensity).toBeCloseTo(1.0, 5)
+  })
+
+  it('honours a custom mask threshold', () => {
+    const { space, density, injection } = projectionWithInjection()
+    const cloud = buildProjectionPointCloud(density, space, {
+      threshold: 0.05,
+      maxPoints: 1000,
+      mask: injection,
+      maskThreshold: 0.99, // above the site's 0.95, so nothing is masked
+    })
+    expect(cloud.maskedOut).toBe(0)
+    expect(cloud.pointCount).toBe(7)
+  })
+
+  it('does not count below-threshold voxels as masked out', () => {
+    // maskedOut reports what the mask removed from the visible cloud, not every
+    // voxel the mask happens to cover.
+    const space = makeVolumeSpace([4, 1, 1], 100, 'asr')
+    const density = new Float32Array(4)
+    const injection = new Float32Array(4)
+    injection[flatIndex(space, 0, 0, 0)] = 1 // masked but empty in projection
+    density[flatIndex(space, 1, 0, 0)] = 0.3
+
+    const cloud = buildProjectionPointCloud(density, space, {
+      threshold: 0.05,
+      maxPoints: 100,
+      mask: injection,
+    })
+    expect(cloud.maskedOut).toBe(0)
+    expect(cloud.pointCount).toBe(1)
+  })
+
+  it('caps against unmasked voxels only', () => {
+    const { space, density, injection } = projectionWithInjection()
+    const cloud = buildProjectionPointCloud(density, space, {
+      threshold: 0.0,
+      maxPoints: 2,
+      mask: injection,
+    })
+    // Every kept point must be a projection, never the saturated site.
+    for (const d of cloud.densities) expect(d).toBeLessThan(0.5)
+  })
+})
+
 describe('point placement', () => {
   it('puts points at voxel centres, not corners', () => {
     // At 100 µm a corner sits 50 µm off the tissue it represents.

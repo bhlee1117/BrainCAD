@@ -1427,3 +1427,43 @@ input[type='range'] {
   text-transform: uppercase;
   letter-spacing: 0.3px;
 }
+
+/* ---------- Injection site ---------- */
+
+.injection {
+  margin-top: 9px;
+  padding: 8px 9px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+}
+
+.injection__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-bottom: 6px;
+}
+
+.injection__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #fff;
+  flex: none;
+}
+
+.injection__structures {
+  margin-top: 4px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-dim);
+}
+
+.injection__structures span {
+  color: var(--text-faint);
+}

@@ -26,6 +26,16 @@ export interface PointCloudOptions {
   /** Voxels with density at or below this are dropped. */
   threshold: number
   /**
+   * Per-voxel mask, parallel to the data. Voxels where this exceeds
+   * `maskThreshold` are excluded.
+   *
+   * Used to take the injection site out of a projection cloud: the site is in
+   * the projection volume too, saturated, and leaving it in makes the place the
+   * tracer started look like its densest target.
+   */
+  mask?: Float32Array | Uint16Array | Uint8Array | null
+  maskThreshold?: number
+  /**
    * Hard cap on emitted points.
    *
    * When a threshold survives more voxels than this, the densest are kept —
@@ -38,6 +48,8 @@ export interface PointCloudOptions {
 export const DEFAULT_POINT_CLOUD_OPTIONS: PointCloudOptions = {
   threshold: 0.05,
   maxPoints: 150_000,
+  mask: null,
+  maskThreshold: 0.5,
 }
 
 export interface ProjectionPointCloud {
@@ -54,6 +66,8 @@ export interface ProjectionPointCloud {
   readonly voxelsAboveThreshold: number
   /** True when `maxPoints` forced the densest voxels to be kept. */
   readonly capped: boolean
+  /** Voxels excluded by the mask despite passing the threshold. */
+  readonly maskedOut: number
 }
 
 /**
@@ -69,16 +83,32 @@ export function buildProjectionPointCloud(
 ): ProjectionPointCloud {
   const threshold = Math.max(0, options.threshold)
   const maxPoints = Math.max(1, Math.floor(options.maxPoints))
+  const mask = options.mask ?? null
+  const maskThreshold = options.maskThreshold ?? 0.5
 
   const [n0, n1, n2] = space.shape
   const resolution = space.resolutionUm
 
+  const excluded = (index: number) =>
+    mask !== null && (mask[index] ?? 0) > maskThreshold
+
   // First pass: count survivors and find the peak, so the second pass can
   // allocate exactly and the UI can report a meaningful maximum.
+  //
+  // The peak excludes MASKED voxels but not below-threshold ones. Masked is
+  // right because a saturated injection site would otherwise set the colour
+  // scale and render every real projection nearly black. Below-threshold must
+  // stay in, because the peak is what tells a user whose threshold excluded
+  // everything how far down they need to go.
   let above = 0
+  let maskedOut = 0
   let maxDensity = 0
   for (let i = 0; i < data.length; i++) {
     const value = data[i]!
+    if (excluded(i)) {
+      if (value > threshold) maskedOut++
+      continue
+    }
     if (value > maxDensity) maxDensity = value
     if (value > threshold) above++
   }
@@ -92,6 +122,7 @@ export function buildProjectionPointCloud(
       threshold,
       voxelsAboveThreshold: 0,
       capped: false,
+      maskedOut,
     }
   }
 
@@ -103,7 +134,13 @@ export function buildProjectionPointCloud(
   let capped = false
   if (above > maxPoints) {
     capped = true
-    effectiveThreshold = findThresholdFor(data, maxPoints, threshold, maxDensity)
+    effectiveThreshold = findThresholdFor(
+      data,
+      maxPoints,
+      threshold,
+      maxDensity,
+      excluded,
+    )
   }
 
   const positions: number[] = []
@@ -116,6 +153,7 @@ export function buildProjectionPointCloud(
         if (index < 0) continue
         const value = data[index]!
         if (value <= effectiveThreshold) continue
+        if (excluded(index)) continue
 
         // Voxel centre, not corner: a point at the corner sits half a voxel off
         // the tissue it represents, which at 100 µm is 50 µm of drift.
@@ -141,6 +179,7 @@ export function buildProjectionPointCloud(
     threshold,
     voxelsAboveThreshold: above,
     capped,
+    maskedOut,
   }
 }
 
@@ -156,6 +195,7 @@ function findThresholdFor(
   budget: number,
   low: number,
   high: number,
+  excluded: (index: number) => boolean,
 ): number {
   let lo = low
   let hi = high
@@ -164,7 +204,7 @@ function findThresholdFor(
     const mid = (lo + hi) / 2
     let count = 0
     for (let i = 0; i < data.length; i++) {
-      if (data[i]! > mid) {
+      if (data[i]! > mid && !excluded(i)) {
         count++
         if (count > budget) break
       }

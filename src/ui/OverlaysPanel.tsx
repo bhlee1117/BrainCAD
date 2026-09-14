@@ -28,6 +28,7 @@ import {
 import {
   experimentCitation,
   experimentUrl,
+  injectionVolumeUrl,
   projectionVolumeUrl,
   searchExperiments,
   type ConnectivityExperiment,
@@ -35,6 +36,7 @@ import {
 import {
   CONNECTIVITY_CAVEATS,
   overlayColorFor,
+  type InjectionSite,
   type ProjectionOverlay,
 } from '../overlays/model.ts'
 import {
@@ -43,6 +45,7 @@ import {
   densityColors,
   positionsToWorld,
 } from '../overlays/pointCloud.ts'
+import { voxelToStereotaxic } from '../atlas/coords.ts'
 import { atlasToWorldMatrix } from '../scene/world.ts'
 import { useAppStore } from '../state/store.ts'
 
@@ -145,30 +148,86 @@ export function OverlaysPanel({
     setBusy(`Loading experiment ${experiment.id}…`)
 
     try {
-      const response = await fetch(projectionVolumeUrl(experiment.id, 100))
-      if (!response.ok) throw new Error(`Volume download failed: HTTP ${response.status}`)
+      // Both volumes, in parallel. The injection volume is under 10 KB, so
+      // separating the site from the projections costs essentially nothing.
+      const [projectionResponse, injectionResponse] = await Promise.all([
+        fetch(projectionVolumeUrl(experiment.id, 100)),
+        fetch(injectionVolumeUrl(experiment.id, 100)),
+      ])
+      if (!projectionResponse.ok) {
+        throw new Error(`Volume download failed: HTTP ${projectionResponse.status}`)
+      }
 
-      const nrrd = await parseNrrdAsync(await response.arrayBuffer())
-
-      // The connectivity grid is the same CCF space as the annotation volume,
-      // at its own resolution — so the shared axis convention applies directly.
+      const nrrd = await parseNrrdAsync(await projectionResponse.arrayBuffer())
       const space = makeVolumeSpace(nrrd.shape, nrrd.spacing[0], 'asr')
       const density =
         nrrd.data instanceof Float32Array
           ? nrrd.data
           : Float32Array.from(nrrd.data as ArrayLike<number>)
 
+      // The injection volume is optional: without it the projection cloud still
+      // renders, it just cannot separate the site.
+      let injectionFraction: Float32Array | null = null
+      if (injectionResponse.ok) {
+        try {
+          const injectionNrrd = await parseNrrdAsync(await injectionResponse.arrayBuffer())
+          injectionFraction =
+            injectionNrrd.data instanceof Float32Array
+              ? injectionNrrd.data
+              : Float32Array.from(injectionNrrd.data as ArrayLike<number>)
+        } catch {
+          injectionFraction = null
+        }
+      }
+
+      const matrix = atlasToWorldMatrix(profile)
+
       const cloud = buildProjectionPointCloud(density, space, {
         ...DEFAULT_POINT_CLOUD_OPTIONS,
         threshold,
+        mask: injectionFraction,
       })
 
       if (cloud.pointCount === 0) {
         setError(
-          `Nothing above threshold ${threshold.toFixed(2)} — the peak density in this ` +
-            `experiment is ${cloud.maxDensity.toFixed(3)}. Lower the threshold and retry.`,
+          `Nothing above threshold ${threshold.toFixed(2)} outside the injection site — ` +
+            `the peak projection density here is ${cloud.maxDensity.toFixed(3)}. ` +
+            `Lower the threshold and retry.`,
         )
         return
+      }
+
+      // The injection site as its own cloud, from the fraction volume.
+      let injectionCloud = null
+      let injectionWorld: Float32Array | null = null
+      if (injectionFraction) {
+        injectionCloud = buildProjectionPointCloud(injectionFraction, space, {
+          threshold: 0.5,
+          maxPoints: 40_000,
+          mask: null,
+        })
+        injectionWorld = positionsToWorld(injectionCloud.positionsUm, matrix)
+      }
+
+      // The API reports the injection centre in CCF micrometres, in the same
+      // axis order as the volume, so it converts through the active profile
+      // exactly like any other coordinate.
+      let centre: InjectionSite['centre'] = null
+      if (experiment.injectionCoordinatesUm) {
+        const [a, b, c] = experiment.injectionCoordinatesUm
+        centre = voxelToStereotaxic(profile, {
+          i0: a / profile.space.resolutionUm,
+          i1: b / profile.space.resolutionUm,
+          i2: c / profile.space.resolutionUm,
+        })
+      }
+
+      const injection: InjectionSite = {
+        centre,
+        volumeMm3: experiment.injectionVolumeMm3,
+        structures: experiment.injectionStructures,
+        cloud: injectionCloud,
+        worldPositions: injectionWorld,
       }
 
       const color = overlayColorFor(overlays.length)
@@ -184,6 +243,9 @@ export function OverlaysPanel({
         opacity: 0.85,
         threshold,
         experimentId: experiment.id,
+        injection,
+        excludeInjection: true,
+        showInjection: true,
         provenance: {
           evidence: 'measured',
           citation: experimentCitation(experiment),
@@ -193,7 +255,7 @@ export function OverlaysPanel({
           caveats: CONNECTIVITY_CAVEATS,
         },
         cloud,
-        worldPositions: positionsToWorld(cloud.positionsUm, atlasToWorldMatrix(profile)),
+        worldPositions: positionsToWorld(cloud.positionsUm, matrix),
         colors: densityColors(cloud, color),
       }
 
@@ -470,6 +532,79 @@ export function OverlaysPanel({
               <b>
                 {overlay.threshold.toFixed(2)} / {overlay.cloud.maxDensity.toFixed(2)}
               </b>
+            </div>
+
+            <div className="injection">
+              <div className="injection__head">
+                <span className="injection__dot" />
+                Injection site
+              </div>
+
+              {overlay.injection.centre ? (
+                <div className="row">
+                  <span>Centre</span>
+                  <b>
+                    AP {overlay.injection.centre.ap.toFixed(2)} · ML{' '}
+                    {overlay.injection.centre.ml.toFixed(2)} · DV{' '}
+                    {overlay.injection.centre.dv.toFixed(2)}
+                  </b>
+                </div>
+              ) : (
+                <div className="row">
+                  <span>Centre</span>
+                  <b>not reported</b>
+                </div>
+              )}
+
+              {overlay.injection.volumeMm3 !== null && (
+                <div className="row">
+                  <span>Volume</span>
+                  <b>{overlay.injection.volumeMm3.toFixed(2)} mm³</b>
+                </div>
+              )}
+
+              {overlay.injection.structures.length > 0 && (
+                <div className="injection__structures">
+                  <span>Spanned </span>
+                  {overlay.injection.structures.join(', ')}
+                  {overlay.injection.structures.length > 1 && (
+                    <span>
+                      {' '}
+                      — the injection was not confined to the named region, so the
+                      projections are not attributable to it alone.
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {overlay.injection.centre && (
+                <p className="hint" style={{ marginTop: 5 }}>
+                  ML sign follows the coordinate profile, whose left/right handedness is
+                  flagged as unverified — the hemisphere shown may be mirrored. Checked
+                  against 283 experiments, Allen injects both hemispheres, so the data
+                  cannot settle it either.
+                </p>
+              )}
+
+              {overlay.cloud.maskedOut > 0 && (
+                <p className="hint" style={{ marginTop: 6 }}>
+                  {overlay.cloud.maskedOut.toLocaleString()} saturated injection-site voxels
+                  are excluded from the projection cloud and drawn in white. Projection
+                  density includes the site, where it reaches 1.0 — leaving it in would make
+                  the source look like the strongest target.
+                </p>
+              )}
+
+              <label className="check" style={{ marginTop: 6 }}>
+                <input
+                  type="checkbox"
+                  checked={overlay.showInjection}
+                  onChange={(event) =>
+                    updateOverlay(overlay.id, { showInjection: event.target.checked })
+                  }
+                />
+                Show injection site
+              </label>
             </div>
 
             {overlay.cloud.capped && (

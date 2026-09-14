@@ -44,6 +44,9 @@ export interface SheetInput {
     readonly experimentId: number
     readonly threshold: number
     readonly pointCount: number
+    /** Injection site: where the tracer went in. */
+    readonly injectionSummary: string | null
+    readonly injectionStructures: readonly string[]
     readonly evidence: string
     readonly citation: string
     readonly url: string | null
@@ -222,6 +225,15 @@ function overlaySection(input: SheetInput): string {
         <strong>${escapeHtml(overlay.name)}</strong>
         <span class="evidence">${escapeHtml(overlay.evidence)}</span>
         <div class="overlay__meta">${overlay.pointCount.toLocaleString()} points above density ${overlay.threshold.toFixed(2)} · ${overlay.resolutionUm} µm grid</div>
+        ${
+          overlay.injectionSummary
+            ? `<div class="overlay__meta"><b>Injection:</b> ${escapeHtml(overlay.injectionSummary)}${
+                overlay.injectionStructures.length > 1
+                  ? ` — spanned ${escapeHtml(overlay.injectionStructures.join(', '))}, so projections are not attributable to the named region alone`
+                  : ''
+              }</div>`
+            : ''
+        }
         <div class="overlay__cite">${escapeHtml(overlay.citation)}${
           overlay.url ? ` — ${escapeHtml(overlay.url)}` : ''
         }</div>

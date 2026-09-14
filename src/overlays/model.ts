@@ -42,6 +42,19 @@ export interface OverlayProvenance {
   readonly caveats: readonly string[]
 }
 
+/** Where the tracer went in, and what it hit. */
+export interface InjectionSite {
+  /** Centre in stereotaxic millimetres, via the active coordinate profile. */
+  readonly centre: { ap: number; ml: number; dv: number } | null
+  /** Reported injection volume, mm³. */
+  readonly volumeMm3: number | null
+  /** Every structure the injection touched, primary first. */
+  readonly structures: readonly string[]
+  /** Cloud of injection-site voxels, drawn distinctly from projections. */
+  readonly cloud: ProjectionPointCloud | null
+  readonly worldPositions: Float32Array | null
+}
+
 export interface ProjectionOverlay {
   readonly id: string
   readonly kind: OverlayKind
@@ -54,6 +67,12 @@ export interface ProjectionOverlay {
   /** The threshold used to build the current cloud. */
   threshold: number
   readonly experimentId: number
+  /** Where the virus was injected — never the same question as where it went. */
+  readonly injection: InjectionSite
+  /** Whether injection-site voxels are excluded from the projection cloud. */
+  excludeInjection: boolean
+  /** Whether the injection site is drawn. */
+  showInjection: boolean
   readonly provenance: OverlayProvenance
   /** Derived render data; not serialised. */
   readonly cloud: ProjectionPointCloud
@@ -84,6 +103,8 @@ export function overlayColorFor(index: number): string {
  */
 export const CONNECTIVITY_CAVEATS: readonly string[] = [
   'Measured from a single injection in a single animal — not a prediction for your animal.',
+  'Projection density includes the injection site, where it saturates; the site is ' +
+    'excluded from the projection cloud and drawn separately.',
   'Projection density is signal detected by the Allen pipeline, not a synapse count.',
   'Absence of points means below the displayed threshold, not absence of projection.',
   'Registered to CCFv3, so it inherits the same averaged-brain caveats as the atlas.',
