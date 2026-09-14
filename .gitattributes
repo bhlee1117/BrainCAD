@@ -1,2 +1,13 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Atlas assets are binary and must never be line-ending normalised. Git's
+# heuristics happen to classify these correctly today, but a single misdetected
+# byte pattern would silently corrupt a mesh or the annotation volume in a way
+# that only shows up as scrambled anatomy — so the classification is stated
+# explicitly rather than left to detection.
+*.msh binary
+*.nrrd binary
+*.stl binary
+*.obj -text
+*.glb binary

@@ -26,9 +26,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           # Local dev is pinned to Node 18 (see .nvmrc) because that is what is
-          # installed on the dev machine; CI uses the current LTS. Vite 5
-          # supports both, and the build output is identical.
-          node-version: 20
+          # installed on the dev machine; CI uses a current LTS. Vite 5 supports
+          # both, and the build output is identical. Node 20 is deprecated on
+          # GitHub runners, which is why this is 22.
+          node-version: 22
           cache: npm
 
       - run: npm ci
