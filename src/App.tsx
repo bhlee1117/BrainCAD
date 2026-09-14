@@ -21,6 +21,7 @@ import {
 import { CollisionPanel } from './ui/CollisionPanel.tsx'
 import { ExportPanel } from './ui/ExportPanel.tsx'
 import { MeasurePanel } from './ui/MeasurePanel.tsx'
+import { MobileSheet } from './ui/MobileSheet.tsx'
 import { OpticsPanel } from './ui/OpticsPanel.tsx'
 import { ObjectProperties } from './ui/ObjectProperties.tsx'
 import { ObjectsPanel } from './ui/ObjectsPanel.tsx'
@@ -39,8 +40,32 @@ const TABS: readonly { id: Tab; enabled: boolean; title: string }[] = [
   { id: 'EXPORT', enabled: true, title: 'Project file and planning sheet' },
 ]
 
+/**
+ * Whether the compact rig layout should be used.
+ *
+ * A media query rather than a user-agent check, and read live, so rotating a
+ * tablet or resizing a window moves between layouts instead of stranding the
+ * user in whichever one happened to load first.
+ */
+function useCompactLayout(): boolean {
+  const [compact, setCompact] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 900px)').matches,
+  )
+
+  useEffect(() => {
+    const query = window.matchMedia('(max-width: 900px)')
+    const update = (event: MediaQueryListEvent) => setCompact(event.matches)
+    query.addEventListener('change', update)
+    setCompact(query.matches)
+    return () => query.removeEventListener('change', update)
+  }, [])
+
+  return compact
+}
+
 export function App() {
   const [tab, setTab] = useState<Tab>('PLAN')
+  const compact = useCompactLayout()
   const atlas = useAtlas()
   const profile = useProfile()
   const target = useSelectedTarget()
@@ -100,7 +125,8 @@ export function App() {
         </nav>
       </header>
 
-      <div className="main">
+      <div className={compact ? 'main main--compact' : 'main'}>
+        {!compact && (
         <aside className="panel panel--left">
           {atlas && tab === 'ATLAS' ? (
             <AtlasPanel atlas={atlas} />
@@ -116,6 +142,7 @@ export function App() {
             <ScenePanel />
           )}
         </aside>
+        )}
 
         <div style={{ display: 'grid', gridTemplateRows: '1fr auto', minWidth: 0 }}>
           <div style={{ position: 'relative', minHeight: 0 }}>
@@ -149,11 +176,16 @@ export function App() {
             )}
           </div>
 
-          {atlas && target && (
+          {atlas && target && !compact && (
             <SlicePanel atlas={atlas} profile={profile} coord={target.coord} />
           )}
         </div>
 
+        {compact && atlas && (
+          <MobileSheet atlas={atlas} profile={profile} target={target} />
+        )}
+
+        {!compact && (
         <aside className="panel panel--right">
           {/* The properties panel follows the selection rather than the tab:
               selecting an object in the 3D view should show its properties
@@ -170,6 +202,7 @@ export function App() {
             </>
           )}
         </aside>
+        )}
       </div>
 
       <footer className="notice">

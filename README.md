@@ -4,11 +4,13 @@
 
 > Put the atlas and the experimental rig into the same 3D space.
 
+**Live: https://bhlee1117.github.io/BrainCAD/**
+
 A browser-based planning workspace for mouse neuroscience experiments. BrainCAD
-places the mouse brain atlas, stereotaxic targets, and (from M2 onward)
-pipettes, cannulas, prisms, objectives and custom hardware into one manipulable
-3D scene, so you can answer: *can I reach this location with this object, at
-this angle, without colliding with anything?*
+places the mouse brain atlas, stereotaxic targets, pipettes, cannulas, prisms,
+objectives and custom hardware into one manipulable 3D scene, so you can answer:
+*can I reach this location with this object, at this angle, without colliding
+with anything?*
 
 > **BrainCAD is a research planning tool.** Verify coordinates, skull levelling,
 > object dimensions and surgical access experimentally before use. CCFv3 is an
@@ -23,9 +25,9 @@ this angle, without colliding with anything?*
 | **M0** | Asset pipeline, coordinate core, landmark validation | ✅ done |
 | **M1** | Atlas viewer, AP/ML/DV entry, region lookup, slice views | ✅ done |
 | **M2** | Primitives, STL/OBJ/GLB import, pivot/anchor, gizmos | ✅ done |
-| M3 | Mesh collision, clearance, two-point measurement | planned |
-| M4 | Project save/load, planning-sheet export | planned |
-| M5 | Mobile bottom-sheet layout, polish | planned |
+| **M3** | Mesh collision, clearance, two-point measurement | ✅ done |
+| **M4** | Project save/load, planning-sheet export, angle sweep | ✅ done |
+| **M5** | Mobile bottom-sheet layout, polish | ✅ done |
 
 ## Quick start
 
@@ -120,6 +122,30 @@ The 3D gizmo and the numeric fields are two views of that same state. Dragging
 hands back a quaternion, which `quaternionToOrientation` converts into the AP
 tilt / ML tilt / roll a manipulator actually speaks — round-tripped in tests, so
 dragging and typing can never disagree.
+
+### Collision: the box test prunes, it does not measure
+
+Clearance runs on `three-mesh-bvh`: `intersectsGeometry` for the boolean,
+`closestPointToGeometry` for the separation. A bounding-box test rejects distant
+pairs first — but a box encloses its mesh, so the box gap *under-estimates* true
+surface clearance. Reporting it as the clearance would put a quietly wrong
+number in front of the user, so pairs beyond the exact-query window report a
+labelled lower bound (`> 5 mm`) and close pairs are always measured properly.
+
+Attaching `boundsTree` to both operands and passing `maxThreshold` took a
+representative query from **1109 ms to 78 ms**; a loose perf test guards it,
+because this runs during a drag.
+
+Two behaviours are pinned by tests rather than left implicit:
+
+- **Containment is not intersection.** An object floating entirely inside a
+  closed mesh, touching nothing, reads as clear. That is correct for anatomy
+  checks — an implant *enters* through the surface — but would matter for a
+  fully-enclosed exclusion volume.
+- **Insertion instruments opt out of anatomy by default.** A cannula crosses the
+  brain surface by design; flagging that as a collision marks every correctly
+  placed injection red and buries the clearances that matter. Objectives and
+  imported hardware default the other way.
 
 ### Mesh format
 
