@@ -18,6 +18,7 @@ import {
   useSelectedObject,
   useSelectedTarget,
 } from './state/store.ts'
+import { useUndoShortcuts } from './state/useUndoShortcuts.ts'
 import { CollisionPanel } from './ui/CollisionPanel.tsx'
 import { ExportPanel } from './ui/ExportPanel.tsx'
 import { MeasurePanel } from './ui/MeasurePanel.tsx'
@@ -95,6 +96,8 @@ export function App() {
   const profile = useProfile()
   const target = useSelectedTarget()
   const selectedObject = useSelectedObject()
+  useUndoShortcuts()
+
   const atlasStatus = useAppStore((s) => s.atlasStatus)
   const setAtlasStatus = useAppStore((s) => s.setAtlasStatus)
 

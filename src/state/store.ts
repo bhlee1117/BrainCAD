@@ -8,6 +8,12 @@
 
 import { create } from 'zustand'
 
+import {
+  documentSnapshot,
+  recordHistory,
+  type HistoryEntry,
+} from './history.ts'
+
 import type { LoadedAtlas } from '../atlas/load.ts'
 import type { Stereotaxic } from '../atlas/coords.ts'
 import type { CoordinateProfile } from '../atlas/profile.ts'
@@ -19,15 +25,12 @@ import type { ObjectKind, PrimitiveParams } from '../objects/primitives.ts'
 import type { CollisionSettings, SceneCollisionReport } from '../collision/check.ts'
 import { DEFAULT_COLLISION_SETTINGS } from '../collision/check.ts'
 import type { Measurement } from '../measure/measure.ts'
-import type { Overlay, OverlayPatch } from '../overlays/model.ts'
+import type { Selection, Target } from './model.ts'
 
-export interface Target {
-  readonly id: string
-  name: string
-  coord: Stereotaxic
-  notes: string
-  visible: boolean
-}
+// Re-exported so existing importers keep working; the types live in model.ts
+// so the history module can name them without importing the store.
+export type { Selection, Target }
+import type { Overlay, OverlayPatch } from '../overlays/model.ts'
 
 export type AtlasStatus =
   | { kind: 'idle' }
@@ -55,11 +58,6 @@ export interface SliceState {
  * Targets and objects share one selection, because the right-hand panel shows
  * whichever is selected and only one thing can be edited at a time.
  */
-export type Selection =
-  | { kind: 'target'; id: string }
-  | { kind: 'object'; id: string }
-  | null
-
 export interface AppState {
   atlasStatus: AtlasStatus
   profileId: string
@@ -119,7 +117,23 @@ export interface AppState {
   addOverlay: (overlay: Overlay) => void
   updateOverlay: (id: string, patch: OverlayPatch) => void
   removeOverlay: (id: string) => void
+
+  /** States to step back to, oldest first. */
+  past: readonly HistoryEntry[]
+  /** States undone and available again, most recently undone last. */
+  future: readonly HistoryEntry[]
+  undo: () => void
+  redo: () => void
 }
+
+/**
+ * Whether the next store change should be recorded as an edit.
+ *
+ * Cleared by undo and redo just before they write, so the subscriber below
+ * ignores the one change they cause. Module-level rather than store state
+ * because it must not itself be part of a snapshot.
+ */
+let recording = true
 
 let targetCounter = 0
 function nextTargetId(): string {
@@ -172,6 +186,40 @@ export const useAppStore = create<AppState>((set, get) => {
     overlays: [],
     measuring: null,
     pendingA: null,
+
+    past: [],
+    future: [],
+
+    /**
+     * Step back one edit.
+     *
+     * The current document moves onto `future` so redo can return to it. The
+     * `recording` flag is what stops the subscriber below from treating this
+     * very change as a new edit and immediately re-recording it.
+     */
+    undo: () =>
+      set((state) => {
+        const entry = state.past[state.past.length - 1]
+        if (!entry) return {}
+        recording = false
+        return {
+          ...entry.snapshot,
+          past: state.past.slice(0, -1),
+          future: [...state.future, { snapshot: documentSnapshot(state), at: Date.now() }],
+        } as Partial<AppState>
+      }),
+
+    redo: () =>
+      set((state) => {
+        const entry = state.future[state.future.length - 1]
+        if (!entry) return {}
+        recording = false
+        return {
+          ...entry.snapshot,
+          past: [...state.past, { snapshot: documentSnapshot(state), at: Date.now() }],
+          future: state.future.slice(0, -1),
+        } as Partial<AppState>
+      }),
 
     setAtlasStatus: (atlasStatus) => set({ atlasStatus }),
     setProfileId: (profileId) => set({ profileId }),
@@ -376,4 +424,41 @@ export function useSelectedObject(): SceneObject | null {
       ? (s.objects.find((o) => o.id === s.selection!.id) ?? null)
       : null,
   )
+}
+
+/**
+ * Record edits into the undo history.
+ *
+ * A subscriber rather than a change to every action: there are twenty-odd
+ * mutating actions, and a rule applied in one place cannot be forgotten when
+ * the twenty-first is added.
+ *
+ * Redo is cleared on any new edit — once the plan diverges, the states that
+ * were undone are no longer reachable, and offering them would reapply an edit
+ * to a document it was never made against.
+ */
+useAppStore.subscribe((state, previous) => {
+  if (!recording) {
+    recording = true
+    return
+  }
+
+  const before = documentSnapshot(previous)
+  const after = documentSnapshot(state)
+  const past = recordHistory(state.past, before, after, Date.now())
+  if (past === state.past) return
+
+  useAppStore.setState({ past, future: [] })
+  // setState above is itself a change; skip recording it.
+  recording = true
+})
+
+/** Whether there is anything to step back to. */
+export function useCanUndo(): boolean {
+  return useAppStore((s) => s.past.length > 0)
+}
+
+/** Whether an undone edit is available again. */
+export function useCanRedo(): boolean {
+  return useAppStore((s) => s.future.length > 0)
 }
