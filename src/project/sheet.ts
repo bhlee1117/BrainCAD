@@ -29,6 +29,13 @@ export interface SheetInput {
   readonly collision: SceneCollisionReport | null
   /** Data URL of a 3D view capture, when one was taken. */
   readonly screenshot: string | null
+  /** Simulated views down each objective's own axis. */
+  readonly objectiveViews: readonly {
+    readonly name: string
+    readonly dataUrl: string
+    readonly fieldOfViewMm: number
+    readonly workingDistanceMm: number
+  }[]
   /** Region acronym at each target, keyed by target id. */
   readonly targetRegions: Readonly<Record<string, string>>
 }
@@ -152,6 +159,37 @@ function measurementRows(input: SheetInput): string {
     .join('')
 }
 
+/**
+ * Simulated views down each objective's optical axis.
+ *
+ * Captioned with the caveat it needs: this shows *geometric occlusion* — what
+ * physically blocks the light path — and is not an optical simulation. It says
+ * nothing about scattering, aberration or depth of field.
+ */
+function objectiveViewSection(input: SheetInput): string {
+  if (input.objectiveViews.length === 0) return ''
+
+  const figures = input.objectiveViews
+    .map(
+      (view) => `<figure class="objview">
+        <img src="${view.dataUrl}" alt="Simulated view through ${escapeHtml(view.name)}">
+        <figcaption>
+          <strong>${escapeHtml(view.name)}</strong><br>
+          ${view.fieldOfViewMm.toFixed(2)} mm field · ${view.workingDistanceMm.toFixed(1)} mm working distance
+        </figcaption>
+      </figure>`,
+    )
+    .join('')
+
+  return `<h2>View through the objective</h2>
+    <div class="objviews">${figures}</div>
+    <p class="caveat">
+      Geometric occlusion only — what physically blocks the light path, rendered orthographically
+      down the optical axis from the front element. Not an optical simulation: it does not model
+      scattering, aberration, depth of field or the effect of any intervening optic.
+    </p>`
+}
+
 /** Render the planning sheet as a standalone HTML document. */
 export function renderPlanningSheet(input: SheetInput): string {
   const { project } = input
@@ -196,6 +234,11 @@ export function renderPlanningSheet(input: SheetInput): string {
   }
   .caveats { margin: 6px 0 0; padding-left: 18px; color: #5d6b7a; font-size: 12px; }
   img.capture { width: 100%; border: 1px solid #dfe5ea; border-radius: 6px; margin-top: 8px; }
+  .objviews { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 8px; }
+  .objview { margin: 0; width: 220px; }
+  .objview img { width: 220px; height: 220px; border-radius: 50%; background: #000; display: block; }
+  .objview figcaption { font-size: 11px; color: #5d6b7a; margin-top: 6px; line-height: 1.4; }
+  .caveat { font-size: 11px; color: #5d6b7a; margin-top: 10px; }
   footer { margin-top: 30px; padding-top: 12px; border-top: 1px solid #dfe5ea; color: #8b97a6; font-size: 11px; }
   @media print { body { padding: 0; } .callout, .notice { break-inside: avoid; } }
 </style>
@@ -250,6 +293,8 @@ ${collisionSection(input)}
   </tr></thead>
   <tbody>${measurementRows(input)}</tbody>
 </table>
+
+${objectiveViewSection(input)}
 
 ${input.screenshot ? `<h2>Scene</h2><img class="capture" src="${input.screenshot}" alt="3D scene capture">` : ''}
 

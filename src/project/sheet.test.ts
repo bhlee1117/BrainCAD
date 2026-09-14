@@ -91,6 +91,7 @@ function sheetInput(overrides: Partial<SheetInput> = {}): SheetInput {
     ],
     collision: checkScene([], DEFAULT_COLLISION_SETTINGS),
     screenshot: null,
+    objectiveViews: [],
     targetRegions: { 'target-1': 'CA1' },
     ...overrides,
   }
@@ -201,6 +202,49 @@ describe('planning sheet', () => {
 
   it('omits the scene section entirely when there is no screenshot', () => {
     expect(renderPlanningSheet(sheetInput())).not.toContain('class="capture"')
+  })
+
+  it('omits the objective-view section when there are no objectives', () => {
+    expect(renderPlanningSheet(sheetInput())).not.toContain('View through the objective')
+  })
+
+  it('renders a view for each objective, with its field and working distance', () => {
+    const html = renderPlanningSheet(
+      sheetInput({
+        objectiveViews: [
+          {
+            name: '16x Nikon',
+            dataUrl: 'data:image/png;base64,AAAA',
+            fieldOfViewMm: 0.85,
+            workingDistanceMm: 3,
+          },
+        ],
+      }),
+    )
+    expect(html).toContain('View through the objective')
+    expect(html).toContain('16x Nikon')
+    expect(html).toContain('0.85 mm field')
+    expect(html).toContain('3.0 mm working distance')
+    expect(html).toContain('data:image/png;base64,AAAA')
+  })
+
+  it('states plainly that the objective view is not an optical simulation', () => {
+    // The image looks like a micrograph. Without this it would be read as one.
+    const html = renderPlanningSheet(
+      sheetInput({
+        objectiveViews: [
+          {
+            name: 'Objective',
+            dataUrl: 'data:image/png;base64,AAAA',
+            fieldOfViewMm: 1,
+            workingDistanceMm: 3,
+          },
+        ],
+      }),
+    )
+    expect(html).toContain('Geometric occlusion only')
+    expect(html).toContain('Not an optical simulation')
+    expect(html).toMatch(/scattering, aberration, depth of field/)
   })
 })
 

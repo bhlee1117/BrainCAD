@@ -10,6 +10,8 @@ import type { CoordinateProfile } from '../atlas/profile.ts'
 import { restoreProject, serialiseProject } from '../project/project.ts'
 import { parseProject, projectFilename } from '../project/schema.ts'
 import { renderPlanningSheet, sheetFilename } from '../project/sheet.ts'
+import { renderObjectiveView } from '../optics/objectiveView.ts'
+import { getSceneHandle } from '../scene/handle.ts'
 import { useAppStore } from '../state/store.ts'
 
 /** Trigger a browser download of text content. */
@@ -57,6 +59,7 @@ export function ExportPanel({
   const [notes, setNotes] = useState('')
   const [created] = useState(() => new Date().toISOString())
   const [includeScreenshot, setIncludeScreenshot] = useState(true)
+  const [includeObjectiveViews, setIncludeObjectiveViews] = useState(true)
   const [status, setStatus] = useState<{
     kind: 'ok' | 'error' | 'warn'
     lines: string[]
@@ -92,12 +95,32 @@ export function ExportPanel({
         id === UNLABELLED ? '—' : (atlas.index.byId.get(id)?.acronym ?? '—')
     }
 
+    // Simulated view down each objective's axis, rendered from the live scene.
+    const objectiveViews: {
+      name: string
+      dataUrl: string
+      fieldOfViewMm: number
+      workingDistanceMm: number
+    }[] = []
+
+    if (includeObjectiveViews) {
+      const handle = getSceneHandle()
+      if (handle) {
+        for (const object of store.objects) {
+          if (object.kind !== 'objective' || !object.visible) continue
+          const view = renderObjectiveView(handle.gl, handle.scene, object)
+          if (view) objectiveViews.push({ name: object.name, ...view })
+        }
+      }
+    }
+
     const html = renderPlanningSheet({
       project,
       objects: store.objects,
       measurements: store.measurements,
       collision: store.collisionReport,
       screenshot: includeScreenshot ? captureCanvas() : null,
+      objectiveViews,
       targetRegions,
     })
 
@@ -106,7 +129,9 @@ export function ExportPanel({
       kind: 'ok',
       lines: [
         `Exported ${sheetFilename(name)}`,
-        'Open it in a browser and print to PDF if you need one.',
+        objectiveViews.length
+          ? `Included ${objectiveViews.length} objective view(s).`
+          : 'Open it in a browser and print to PDF if you need one.',
       ],
     })
   }
@@ -210,6 +235,14 @@ export function ExportPanel({
             onChange={(event) => setIncludeScreenshot(event.target.checked)}
           />
           Include 3D view capture
+        </label>
+        <label className="check">
+          <input
+            type="checkbox"
+            checked={includeObjectiveViews}
+            onChange={(event) => setIncludeObjectiveViews(event.target.checked)}
+          />
+          Include view through each objective
         </label>
         <button className="btn btn--primary" onClick={exportSheet}>
           Export planning sheet

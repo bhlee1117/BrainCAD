@@ -23,6 +23,7 @@ import { SceneObjects } from './SceneObjects.tsx'
 import { Measurements, useMeasurementClick } from './Measurements.tsx'
 import { useCollision, type AnatomyMesh } from '../collision/useCollision.ts'
 import { useAppStore, type Target } from '../state/store.ts'
+import { setSceneHandle } from './handle.ts'
 import { atlasToWorldMatrix, stereotaxicToWorld } from './world.ts'
 
 /** Whole-brain root structure id in the Allen ontology. */
@@ -258,6 +259,22 @@ function AxisTriad() {
   )
 }
 
+/**
+ * Publishes the live renderer and scene so the export panel can render an
+ * extra view of exactly what is on screen.
+ */
+function SceneHandlePublisher() {
+  const gl = useThree((state) => state.gl)
+  const scene = useThree((state) => state.scene)
+
+  useEffect(() => {
+    setSceneHandle({ gl, scene })
+    return () => setSceneHandle(null)
+  }, [gl, scene])
+
+  return null
+}
+
 /** Drives the camera to a standard view when one is requested. */
 function ViewDriver({ view }: { view: { name: StandardView; nonce: number } | null }) {
   const { camera } = useThree()
@@ -379,6 +396,7 @@ function Scene({
         ))}
       </group>
 
+      <SceneHandlePublisher />
       <ViewDriver view={view} />
       <OrbitControls
         makeDefault

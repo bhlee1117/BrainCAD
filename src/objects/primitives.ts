@@ -234,6 +234,14 @@ export interface ObjectiveParams {
   barrelLengthMm: number
   /** Extra clearance shell added around the body, mm. */
   safetyMarginMm: number
+  /**
+   * Diameter of the imaged field at the focal plane, mm.
+   *
+   * Not derivable from the other parameters without magnification and the
+   * tube-lens focal length, so it is entered directly. Typical two-photon
+   * fields are 0.5-1.5 mm.
+   */
+  fieldOfViewMm: number
 }
 
 export const DEFAULT_OBJECTIVE: ObjectiveParams = {
@@ -243,6 +251,7 @@ export const DEFAULT_OBJECTIVE: ObjectiveParams = {
   noseLengthMm: 12,
   barrelLengthMm: 40,
   safetyMarginMm: 0.5,
+  fieldOfViewMm: 1.0,
 }
 
 /**

@@ -50,6 +50,7 @@ const PARAM_LABELS: Record<string, string> = {
   noseLengthMm: 'Nose length',
   barrelLengthMm: 'Barrel length',
   safetyMarginMm: 'Safety margin',
+  fieldOfViewMm: 'Field of view',
 }
 
 function NumberField({
