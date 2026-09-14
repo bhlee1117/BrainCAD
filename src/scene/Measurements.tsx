@@ -16,7 +16,7 @@ import {
   resolveSnap,
   type SnapCandidate,
 } from '../measure/measure.ts'
-import { effectivePivot, resolveGeometry } from '../objects/model.ts'
+import { disposeIfDerived, effectivePivot, resolveGeometry } from '../objects/model.ts'
 import { localToWorld, solvePlacement } from '../objects/placement.ts'
 import { useAppStore } from '../state/store.ts'
 import { stereotaxicToWorld, worldToStereotaxic } from './world.ts'
@@ -60,7 +60,7 @@ export function useSnapCandidates(): SnapCandidate[] {
         })
       }
 
-      if (object.kind !== 'custom') built.geometry.dispose()
+      disposeIfDerived(object, built.geometry)
     }
 
     return candidates

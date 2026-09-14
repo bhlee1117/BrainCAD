@@ -36,7 +36,7 @@ function obstacle(
 
 function objective() {
   const object = makeObject('obj-1', 'objective', { ap: 0, ml: 0, dv: 0 })
-  const built = buildPrimitive(defaultParamsFor('objective'))
+  const built = buildPrimitive(defaultParamsFor('objective')!)
   const bvh = buildBvh(built.geometry)!
   return { object, built, bvh }
 }

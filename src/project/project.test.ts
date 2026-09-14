@@ -11,6 +11,12 @@ import { describe, expect, it } from 'vitest'
 
 import { ALLEN_CCFV3_50UM, PERENS_STEREOTAXIC_MRI } from '../atlas/profile.ts'
 import { DEFAULT_COLLISION_SETTINGS } from '../collision/check.ts'
+import {
+  MICROPRISM,
+  OBJECTIVE_N16XLWD,
+  builtinSource,
+  builtinSpec,
+} from '../objects/builtins.ts'
 import { makeObject } from '../objects/model.ts'
 import type { LoadedAtlas } from '../atlas/load.ts'
 import {
@@ -203,12 +209,48 @@ describe('validation', () => {
       scale: 1,
       origin: 'file',
       triangleCount: 2048,
+      builtinId: null,
     }
     const file = serialiseProject(snapshot({ objects: [custom] }))
     const result = parseProject(JSON.stringify(file))
 
     expect(result.ok).toBe(true)
     expect(result.warnings.join(' ')).toContain('headplate.stl')
+  })
+
+  it('does not warn about a built-in model, which it can rebuild', () => {
+    // The warning exists because a user's STL lives on their disk and cannot
+    // be recovered from the file. A bundled model ships with the app, so
+    // recording which one is enough — and warning anyway would train the user
+    // to dismiss the message that matters.
+    const prism = makeObject('object-2', 'prism', { ap: 0, ml: 0, dv: 0 })
+    prism.source = builtinSource(MICROPRISM, 590)
+
+    const file = serialiseProject(snapshot({ objects: [prism] }))
+    const result = parseProject(JSON.stringify(file))
+
+    expect(result.ok).toBe(true)
+    expect(result.warnings.join(' ')).not.toContain('Re-import')
+    expect(result.project!.objects[0]!.source!.builtinId).toBe(MICROPRISM.id)
+  })
+
+  it('round-trips a built-in model reference', () => {
+    const objective = makeObject('object-3', 'objective', { ap: 0, ml: 0, dv: 0 })
+    objective.source = builtinSource(OBJECTIVE_N16XLWD, 11818)
+    objective.spec = builtinSpec(OBJECTIVE_N16XLWD)
+
+    const file = serialiseProject(snapshot({ objects: [objective] }))
+    const reopened = parseProject(JSON.stringify(file))
+    const restored = restoreProject(reopened.project!, fakeAtlas())
+
+    // The mesh is fetched separately, but everything needed to fetch it — and
+    // the optics the mesh cannot carry — has to survive the file.
+    expect(restored.objects[0]!.source!.builtinId).toBe(OBJECTIVE_N16XLWD.id)
+    expect(restored.objects[0]!.kind).toBe('objective')
+    expect(
+      (restored.objects[0]!.spec!.params as { workingDistanceMm: number })
+        .workingDistanceMm,
+    ).toBe(3.0)
   })
 
   it('warns when a plan uses a convention-based bregma', () => {

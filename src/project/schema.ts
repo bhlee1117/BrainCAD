@@ -49,11 +49,14 @@ const customSource = z.object({
   scale: z.number().finite(),
   origin: z.enum(['file', 'center', 'base']),
   triangleCount: z.number().int().nonnegative(),
+  // Absent in files written before built-in models existed; those can only
+  // have been user imports, which is exactly what null means.
+  builtinId: z.string().nullable().default(null),
 })
 
 const sceneObject = z.object({
   id: z.string().min(1),
-  kind: z.enum(['pipette', 'cannula', 'prism', 'objective', 'custom']),
+  kind: z.enum(['pipette', 'cannula', 'prism', 'objective', 'headbar', 'custom']),
   name: z.string(),
   spec: primitiveParams.nullable().default(null),
   source: customSource.nullable().default(null),
@@ -65,9 +68,10 @@ const sceneObject = z.object({
   opacity: z.number().min(0).max(1),
   visible: z.boolean(),
   collision: z.boolean(),
-  // Older files predate this flag; default to checking, which is the
-  // conservative reading for anything whose intent is unknown.
-  anatomyCollision: z.boolean().default(true),
+  // Older files predate this flag. They default to off, matching what the
+  // app now does everywhere else — anatomy is not a collision partner unless
+  // an object is explicitly opted in.
+  anatomyCollision: z.boolean().default(false),
   notes: z.string().default(''),
 })
 
@@ -204,7 +208,11 @@ export function parseProject(text: string): ParseResult {
 
   // Imported geometry lives outside the file, so a reopened project cannot
   // rebuild it. Saying so is better than rendering an object that is not there.
-  const missingGeometry = project.objects.filter((o) => o.kind === 'custom')
+  // Built-in models are the exception: they ship with the app, so recording
+  // which one was used is enough to restore the mesh exactly.
+  const missingGeometry = project.objects.filter(
+    (o) => o.kind === 'custom' && !o.source?.builtinId,
+  )
   if (missingGeometry.length > 0) {
     warnings.push(
       `${missingGeometry.length} imported object(s) reference files that are not stored in ` +

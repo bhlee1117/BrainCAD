@@ -15,6 +15,7 @@ import { Vector3, type Group, type Object3D } from 'three'
 import { worldToStereotaxic } from './world.ts'
 import {
   effectivePivot,
+  isMeshBacked,
   resolveGeometry,
   type SceneObject,
 } from '../objects/model.ts'
@@ -86,10 +87,11 @@ function ObjectView({ object, selected }: { object: SceneObject; selected: boole
   const built = useMemo(() => resolveGeometry(object), [object])
 
   // Rebuilt primitives own their geometry; release it when params change.
+  // Mesh geometry belongs to the registry and must outlive this component.
   useEffect(() => {
-    if (!built || object.kind === 'custom') return
+    if (!built || isMeshBacked(object)) return
     return () => built.geometry.dispose()
-  }, [built, object.kind])
+  }, [built, object])
 
   const placement = useMemo(() => {
     if (!built) return null
@@ -164,9 +166,9 @@ function ObjectGizmo({ object }: { object: SceneObject }) {
   const built = useMemo(() => resolveGeometry(object), [object])
 
   useEffect(() => {
-    if (!built || object.kind === 'custom') return
+    if (!built || isMeshBacked(object)) return
     return () => built.geometry.dispose()
-  }, [built, object.kind])
+  }, [built, object])
 
   const anchorWorld = useMemo(() => {
     if (!built) return new Vector3()

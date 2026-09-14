@@ -27,6 +27,7 @@ import { useAppStore, type Target } from '../state/store.ts'
 import { Helper } from './Helper.tsx'
 import { ANATOMY_FLAG } from './Helper.tsx'
 import { setSceneHandle } from './handle.ts'
+import { sectionPlanes } from './section.ts'
 import { atlasToWorldMatrix, stereotaxicToWorld } from './world.ts'
 
 /** Whole-brain root structure id in the Allen ontology. */
@@ -273,11 +274,37 @@ function AxisTriad() {
 function SceneHandlePublisher() {
   const gl = useThree((state) => state.gl)
   const scene = useThree((state) => state.scene)
+  const camera = useThree((state) => state.camera)
 
   useEffect(() => {
-    setSceneHandle({ gl, scene })
+    setSceneHandle({ gl, scene, camera })
     return () => setSceneHandle(null)
-  }, [gl, scene])
+  }, [gl, scene, camera])
+
+  return null
+}
+
+/**
+ * Applies the section planes to the renderer.
+ *
+ * Set globally on the renderer rather than per material: every material in the
+ * scene must be cut by the same plane or the section would slice the anatomy
+ * and leave the hardware whole, which reads as a rendering bug rather than as
+ * a section. Setting it here also means the offscreen captures, which render
+ * through this same renderer, come out sectioned exactly as the screen is.
+ */
+function SectionPlanes() {
+  const gl = useThree((state) => state.gl)
+  const invalidate = useThree((state) => state.invalidate)
+  const section = useAppStore((s) => s.section)
+
+  useEffect(() => {
+    gl.clippingPlanes = sectionPlanes(section)
+    invalidate()
+    return () => {
+      gl.clippingPlanes = []
+    }
+  }, [gl, invalidate, section])
 
   return null
 }
@@ -412,6 +439,7 @@ function Scene({
       </group>
 
       <SceneHandlePublisher />
+      <SectionPlanes />
       <ViewDriver view={view} />
       <OrbitControls
         makeDefault

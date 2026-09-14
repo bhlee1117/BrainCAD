@@ -23,6 +23,13 @@ import {
   registerCustomGeometry,
   type SceneObject,
 } from '../objects/model.ts'
+import {
+  BUILTIN_MODELS,
+  builtinSource,
+  builtinSpec,
+  loadBuiltinModel,
+  type BuiltinModel,
+} from '../objects/builtins.ts'
 import type { ObjectKind } from '../objects/primitives.ts'
 import { useAppStore } from '../state/store.ts'
 
@@ -34,6 +41,110 @@ const LIBRARY: { kind: ObjectKind; label: string; hint: string }[] = [
 ]
 
 const UNITS: SourceUnit[] = ['mm', 'um', 'cm', 'm', 'in']
+
+/**
+ * The bundled hardware meshes.
+ *
+ * Placed rather than imported: the geometry ships with the app and its anchor,
+ * pivot and axis are declared in `builtins.ts`, so there is nothing for the
+ * user to confirm — no unit to guess, no origin to choose. The one thing worth
+ * showing is what the part actually is, and what about it is not modelled.
+ */
+function BuiltinLibrary() {
+  const addObject = useAppStore((s) => s.addObject)
+  const updateObject = useAppStore((s) => s.updateObject)
+  const removeObject = useAppStore((s) => s.removeObject)
+  const targets = useAppStore((s) => s.targets)
+  const selectedTargetId = useAppStore((s) => s.selectedTargetId)
+
+  const [busy, setBusy] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [shown, setShown] = useState<string | null>(null)
+
+  async function place(model: BuiltinModel) {
+    setError(null)
+    setBusy(model.id)
+
+    const target =
+      targets.find((t) => t.id === selectedTargetId)?.coord ?? { ap: 0, ml: 0, dv: -2 }
+    // Created before the fetch resolves so the object appears immediately;
+    // `resolveGeometry` returns null until the mesh lands, which the viewport
+    // already handles by drawing nothing.
+    const id = addObject(model.kind, target, model.label)
+
+    try {
+      const { built, triangleCount } = await loadBuiltinModel(model)
+      registerCustomGeometry(id, built)
+      updateObject(id, {
+        source: builtinSource(model, triangleCount),
+        // Re-assigning the spec is what actually re-renders: the store holds
+        // the object, the geometry registry does not, so something on the
+        // object must change for the viewport to resolve the new mesh.
+        spec: builtinSpec(model),
+      })
+    } catch (cause) {
+      // A half-placed object with no geometry is worse than none: it occupies
+      // the scene tree and the planning sheet while drawing nothing.
+      removeObject(id)
+      setError(cause instanceof Error ? cause.message : String(cause))
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  return (
+    <div className="section">
+      <h2>Hardware models</h2>
+      <div className="library">
+        {BUILTIN_MODELS.map((model) => (
+          <button
+            key={model.id}
+            className="lib"
+            disabled={busy !== null}
+            onClick={() => void place(model)}
+            title={model.provenance}
+          >
+            <span className="lib__swatch" style={{ background: KIND_COLOR[model.kind] }} />
+            <span className="lib__label">
+              {model.label}
+              {busy === model.id && ' …'}
+            </span>
+            <span className="lib__hint">{model.hint}</span>
+          </button>
+        ))}
+      </div>
+
+      {error && <div className="warn-box">{error}</div>}
+
+      <div className="field" style={{ marginTop: 8 }}>
+        <label htmlFor="builtin-about">About</label>
+        <select
+          id="builtin-about"
+          value={shown ?? ''}
+          onChange={(event) => setShown(event.target.value || null)}
+        >
+          <option value="">Choose a model…</option>
+          {BUILTIN_MODELS.map((model) => (
+            <option key={model.id} value={model.id}>
+              {model.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {shown && (
+        <div className="provenance">
+          {BUILTIN_MODELS.find((m) => m.id === shown)?.provenance}
+          <ul style={{ margin: '6px 0 0', paddingLeft: 16 }}>
+            {BUILTIN_MODELS.find((m) => m.id === shown)?.caveats.map((caveat) => (
+              <li key={caveat}>{caveat}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  )
+}
 
 /** Import flow for a user-supplied STL / OBJ / GLB. */
 function ImportPanel() {
@@ -93,6 +204,7 @@ function ImportPanel() {
         scale: options.scale,
         origin: options.origin,
         triangleCount: pending.imported.triangleCount,
+        builtinId: null,
       },
     })
 
@@ -269,6 +381,8 @@ export function ObjectsPanel() {
           ))}
         </div>
       </div>
+
+      <BuiltinLibrary />
 
       <ImportPanel />
 

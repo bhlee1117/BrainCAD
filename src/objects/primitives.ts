@@ -21,7 +21,20 @@ import {
 } from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 
-export type ObjectKind = 'pipette' | 'cannula' | 'prism' | 'objective' | 'custom'
+/**
+ * The kinds of thing that can be placed.
+ *
+ * `headbar` has no parametric builder and never will: a headplate's shape is
+ * its lab's own CAD, not a handful of dimensions, so it exists only as mesh
+ * geometry. `custom` is user-imported geometry of no declared kind.
+ */
+export type ObjectKind =
+  | 'pipette'
+  | 'cannula'
+  | 'prism'
+  | 'objective'
+  | 'headbar'
+  | 'custom'
 
 export interface BuiltPrimitive {
   readonly geometry: BufferGeometry
@@ -324,7 +337,21 @@ export function buildPrimitive(spec: PrimitiveParams): BuiltPrimitive {
   }
 }
 
-export function defaultParamsFor(kind: Exclude<ObjectKind, 'custom'>): PrimitiveParams {
+/** Kinds that can be described by numbers alone. */
+export type ParametricKind = PrimitiveParams['kind']
+
+export function isParametricKind(kind: ObjectKind): kind is ParametricKind {
+  return kind === 'pipette' || kind === 'cannula' || kind === 'prism' || kind === 'objective'
+}
+
+/**
+ * Starting parameters for a kind, or null for the kinds that have none.
+ *
+ * Null rather than a throw: `headbar` and `custom` are legitimate kinds whose
+ * geometry simply comes from somewhere else, and a caller building an object
+ * of either should get an object without a spec, not an exception.
+ */
+export function defaultParamsFor(kind: ObjectKind): PrimitiveParams | null {
   switch (kind) {
     case 'pipette':
       return { kind: 'pipette', params: { ...DEFAULT_PIPETTE } }
@@ -334,6 +361,9 @@ export function defaultParamsFor(kind: Exclude<ObjectKind, 'custom'>): Primitive
       return { kind: 'prism', params: { ...DEFAULT_PRISM } }
     case 'objective':
       return { kind: 'objective', params: { ...DEFAULT_OBJECTIVE } }
+    case 'headbar':
+    case 'custom':
+      return null
   }
 }
 

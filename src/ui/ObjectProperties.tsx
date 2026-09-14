@@ -13,14 +13,17 @@ import { UNLABELLED } from '../atlas/annotation.ts'
 import type { Stereotaxic } from '../atlas/coords.ts'
 import type { LoadedAtlas } from '../atlas/load.ts'
 import type { CoordinateProfile } from '../atlas/profile.ts'
+import { builtinModel } from '../objects/builtins.ts'
 import {
   KIND_LABEL,
   effectivePivot,
+  isMeshBacked,
   pivotDiffersFromAnchor,
   resolveGeometry,
   type PivotMode,
   type SceneObject,
 } from '../objects/model.ts'
+import type { BuiltPrimitive } from '../objects/primitives.ts'
 import {
   angleFromVerticalDeg,
   localToWorld,
@@ -52,6 +55,20 @@ const PARAM_LABELS: Record<string, string> = {
   barrelLengthMm: 'Barrel length',
   safetyMarginMm: 'Safety margin',
   fieldOfViewMm: 'Field of view',
+}
+
+/**
+ * A mesh's overall size, in the axes the rest of the panel speaks.
+ *
+ * An object's local frame is aligned with the world when it is unrotated, so
+ * local X/Y/Z read as ML/DV/AP — which is how the extent is labelled, rather
+ * than as anonymous X/Y/Z the user would have to map themselves.
+ */
+function describeBounds(built: BuiltPrimitive): string {
+  const box = built.geometry.boundingBox
+  if (!box) return '—'
+  const size = box.getSize(new Vector3())
+  return `${size.x.toFixed(2)} × ${size.y.toFixed(2)} × ${size.z.toFixed(2)} mm`
 }
 
 /** A labelled, unit-suffixed row wrapping the shared numeric input. */
@@ -93,6 +110,21 @@ export function ObjectProperties({
   const setGizmoMode = useAppStore((s) => s.setGizmoMode)
 
   const built = resolveGeometry(object)
+  const meshBacked = isMeshBacked(object)
+  const model = object.source?.builtinId ? builtinModel(object.source.builtinId) : null
+
+  // Read off the spec rather than the model so a value the user has changed is
+  // the one shown. Only the optics survive on a mesh-backed object; everything
+  // else the spec carries describes a solid that is no longer being drawn.
+  const params = object.spec?.params as Record<string, number> | undefined
+  const workingDistanceMm =
+    object.kind === 'objective' && typeof params?.workingDistanceMm === 'number'
+      ? params.workingDistanceMm
+      : null
+  const fieldOfViewMm =
+    object.kind === 'objective' && typeof params?.fieldOfViewMm === 'number'
+      ? params.fieldOfViewMm
+      : null
 
   const setTarget = (patch: Partial<Stereotaxic>) =>
     updateObject(object.id, { target: { ...object.target, ...patch } })
@@ -134,9 +166,15 @@ export function ObjectProperties({
         </div>
         {object.source && (
           <div className="provenance" style={{ marginTop: 4 }}>
-            {object.source.filename} · {object.source.triangleCount.toLocaleString()} tris ·
-            imported as {object.source.unit === 'um' ? 'µm' : object.source.unit}
-            {object.source.scale !== 1 && ` × ${object.source.scale}`}
+            {object.source.filename} · {object.source.triangleCount.toLocaleString()} tris ·{' '}
+            {object.source.builtinId ? (
+              'built-in model'
+            ) : (
+              <>
+                imported as {object.source.unit === 'um' ? 'µm' : object.source.unit}
+                {object.source.scale !== 1 && ` × ${object.source.scale}`}
+              </>
+            )}
           </div>
         )}
       </div>
@@ -287,7 +325,7 @@ export function ObjectProperties({
         </div>
       )}
 
-      {object.spec && (
+      {object.spec && !meshBacked && (
         <div className="section">
           <h2>Dimensions</h2>
           {Object.entries(object.spec.params).map(([key, value]) => (
@@ -299,6 +337,48 @@ export function ObjectProperties({
               onChange={(next) => updateObjectParams(object.id, { [key]: next })}
             />
           ))}
+        </div>
+      )}
+
+      {/*
+        A mesh-backed object's dimensions are the mesh's. Showing the parametric
+        fields here would offer edits that silently do nothing — the geometry
+        comes from the file, not from the numbers — so the solid is reported
+        rather than offered for editing. The exception is the field of view,
+        which is a property of the scan path rather than of the part, and is
+        the one number a user genuinely has to set for themselves.
+      */}
+      {meshBacked && built && (
+        <div className="section">
+          <h2>Dimensions</h2>
+          <div className="row">
+            <span>Extent (ML/DV/AP)</span>
+            <b>{describeBounds(built)}</b>
+          </div>
+          {workingDistanceMm !== null && (
+            <div className="row">
+              <span>Working distance</span>
+              <b>{workingDistanceMm.toFixed(2)} mm</b>
+            </div>
+          )}
+          {fieldOfViewMm !== null && (
+            <LabelledNumber
+              label={PARAM_LABELS.fieldOfViewMm!}
+              value={fieldOfViewMm}
+              step={0.05}
+              onChange={(next) => updateObjectParams(object.id, { fieldOfViewMm: next })}
+            />
+          )}
+          <p className="hint">
+            Fixed by the mesh. {model?.provenance}
+          </p>
+          {model && model.caveats.length > 0 && (
+            <ul className="hint" style={{ paddingLeft: 16, margin: '4px 0 0' }}>
+              {model.caveats.map((caveat) => (
+                <li key={caveat}>{caveat}</li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
 
@@ -348,8 +428,8 @@ export function ObjectProperties({
         </label>
         <p className="hint" style={{ marginTop: 2 }}>
           {object.anatomyCollision
-            ? 'This object is expected to stay outside the brain.'
-            : 'Insertion instruments cross the brain surface by design, so anatomy is not treated as a collision for this object.'}
+            ? 'Also flagged when this object touches the atlas surface. The atlas is an averaged brain, so treat that as a rough guide, not a measurement.'
+            : 'Checked against other objects only. The atlas surface is not treated as a collision partner.'}
         </p>
       </div>
     </>

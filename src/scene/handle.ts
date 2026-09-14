@@ -10,11 +10,18 @@
  * not components that need to re-render when it changes.
  */
 
-import type { Scene, WebGLRenderer } from 'three'
+import type { Camera, Scene, WebGLRenderer } from 'three'
 
 interface SceneHandle {
   gl: WebGLRenderer
   scene: Scene
+  /**
+   * The live camera.
+   *
+   * Included so a capture can reproduce the framing the user chose. The fixed
+   * overview and objective views build their own cameras and ignore this one.
+   */
+  camera: Camera
 }
 
 let handle: SceneHandle | null = null

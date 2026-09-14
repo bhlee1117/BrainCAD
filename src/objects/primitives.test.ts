@@ -21,9 +21,11 @@ import {
   buildPrimitive,
   buildPrism,
   defaultParamsFor,
+  isParametricKind,
   prismImagingFace,
   triangleCount,
   type ObjectKind,
+  type ParametricKind,
 } from './primitives.ts'
 
 function bounds(geometry: Parameters<typeof triangleCount>[0]) {
@@ -178,10 +180,12 @@ describe('objective', () => {
 })
 
 describe('dispatch', () => {
-  const kinds: Exclude<ObjectKind, 'custom'>[] = ['pipette', 'cannula', 'prism', 'objective']
+  const kinds: ParametricKind[] = ['pipette', 'cannula', 'prism', 'objective']
 
   it.each(kinds)('builds %s from its defaults', (kind) => {
-    const built = buildPrimitive(defaultParamsFor(kind))
+    const params = defaultParamsFor(kind)
+    expect(params).not.toBeNull()
+    const built = buildPrimitive(params!)
     expect(triangleCount(built.geometry)).toBeGreaterThan(0)
     expect(built.lengthMm).toBeGreaterThan(0)
     expect(built.axis.length()).toBeCloseTo(1, 9)
@@ -190,11 +194,21 @@ describe('dispatch', () => {
   it.each(kinds)('gives %s independent default params', (kind) => {
     // Defaults are copied, so editing one object cannot mutate the shared
     // template and silently change every future object of that kind.
-    const a = defaultParamsFor(kind)
-    const b = defaultParamsFor(kind)
+    const a = defaultParamsFor(kind)!
+    const b = defaultParamsFor(kind)!
     expect(a.params).not.toBe(b.params)
     const mutable = a.params as unknown as Record<string, number>
     mutable[Object.keys(mutable)[0]!] = 999
     expect(b.params).not.toEqual(a.params)
   })
+
+  it.each(['headbar', 'custom'] as ObjectKind[])(
+    'has no parametric description of %s',
+    (kind) => {
+      // These kinds exist only as mesh geometry. Returning null rather than
+      // throwing is what lets `makeObject` build one without a special case.
+      expect(defaultParamsFor(kind)).toBeNull()
+      expect(isParametricKind(kind)).toBe(false)
+    },
+  )
 })

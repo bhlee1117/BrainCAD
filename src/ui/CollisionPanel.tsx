@@ -93,8 +93,8 @@ export function CollisionPanel({ stale }: { stale: boolean }) {
 
           {participating === 0 && (
             <p className="hint" style={{ marginTop: 4 }}>
-              No objects are participating yet. Add hardware in OBJECTS to check clearance
-              against the brain.
+              No objects are participating yet. Add hardware in OBJECTS to check
+              clearance between parts.
             </p>
           )}
 

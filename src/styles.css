@@ -1546,3 +1546,25 @@ input[type='range'] {
   margin-right: 5px;
   vertical-align: baseline;
 }
+
+/* One section plane's controls. Indented under its own checkbox so the three
+   axes read as three independent cuts rather than one long column of fields. */
+.section-plane {
+  margin-bottom: 4px;
+}
+
+.section-plane > .field,
+.section-plane > input[type='range'] {
+  margin-left: 20px;
+}
+
+.section-plane > input[type='range'] {
+  /* Overrides the flex sizing that suits a range sharing a row with a label. */
+  display: block;
+  width: calc(100% - 20px);
+  margin-bottom: 6px;
+}
+
+.section-plane:last-of-type {
+  margin-bottom: 8px;
+}

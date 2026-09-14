@@ -25,6 +25,12 @@ import type { ObjectKind, PrimitiveParams } from '../objects/primitives.ts'
 import type { CollisionSettings, SceneCollisionReport } from '../collision/check.ts'
 import { DEFAULT_COLLISION_SETTINGS } from '../collision/check.ts'
 import type { Measurement } from '../measure/measure.ts'
+import {
+  DEFAULT_SECTION,
+  type SectionAxis,
+  type SectionPlaneState,
+  type SectionState,
+} from '../scene/section.ts'
 import type { Selection, Target } from './model.ts'
 
 // Re-exported so existing importers keep working; the types live in model.ts
@@ -69,6 +75,14 @@ export interface AppState {
   gizmoMode: 'translate' | 'rotate'
   anatomy: AnatomyVisibility
   slices: SliceState
+  /**
+   * Section planes cutting the 3D view open.
+   *
+   * View state, like `slices` and unlike anything in the document snapshot:
+   * it changes what is drawn, never what is planned, and is deliberately
+   * outside undo for the reason history.ts gives.
+   */
+  section: SectionState
 
   collisionEnabled: boolean
   collisionSettings: CollisionSettings
@@ -102,6 +116,8 @@ export interface AppState {
   setAnatomy: (patch: Partial<AnatomyVisibility>) => void
   toggleStructure: (id: number) => void
   setSlices: (patch: Partial<SliceState>) => void
+  setSectionPlane: (axis: SectionAxis, patch: Partial<SectionPlaneState>) => void
+  clearSection: () => void
 
   setCollisionEnabled: (enabled: boolean) => void
   setCollisionSettings: (patch: Partial<CollisionSettings>) => void
@@ -149,6 +165,22 @@ function nextObjectId(): string {
   return `object-${objectCounter}`
 }
 
+/**
+ * Advance the id counter past every id in a restored plan.
+ *
+ * Object ids are also the keys of the mesh-geometry registry, so an id handed
+ * out twice does not merely confuse the scene tree — the second object would
+ * be drawn with the first one's imported STL. A freshly opened project starts
+ * at `object-1` again, so without this the very next object added after
+ * opening a plan collides with one already in it.
+ */
+export function adoptObjectIds(objects: readonly { id: string }[]): void {
+  for (const object of objects) {
+    const match = /^object-(\d+)$/.exec(object.id)
+    if (match) objectCounter = Math.max(objectCounter, Number(match[1]))
+  }
+}
+
 /** A dorsal CA1 coordinate, so the app opens on something anatomically real. */
 const INITIAL_TARGET_COORD: Stereotaxic = { ap: -2.0, ml: 1.5, dv: -1.35 }
 
@@ -177,6 +209,13 @@ export const useAppStore = create<AppState>((set, get) => {
       visibleStructureIds: [],
     },
     slices: { visible: true, followTarget: true },
+    // Cloned, not shared: patches replace one axis at a time and a shared
+    // default would accumulate them across reloads of the module.
+    section: {
+      ml: { ...DEFAULT_SECTION.ml },
+      dv: { ...DEFAULT_SECTION.dv },
+      ap: { ...DEFAULT_SECTION.ap },
+    },
 
     collisionEnabled: true,
     collisionSettings: { ...DEFAULT_COLLISION_SETTINGS },
@@ -395,6 +434,20 @@ export const useAppStore = create<AppState>((set, get) => {
       }),
 
     setSlices: (patch) => set((state) => ({ slices: { ...state.slices, ...patch } })),
+
+    setSectionPlane: (axis, patch) =>
+      set((state) => ({
+        section: { ...state.section, [axis]: { ...state.section[axis], ...patch } },
+      })),
+
+    clearSection: () =>
+      set({
+        section: {
+          ml: { ...DEFAULT_SECTION.ml },
+          dv: { ...DEFAULT_SECTION.dv },
+          ap: { ...DEFAULT_SECTION.ap },
+        },
+      }),
   }
 
   // `get` is part of the zustand signature; referenced here to keep it in scope

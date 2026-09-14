@@ -23,7 +23,12 @@ import {
 } from 'three'
 
 import { HELPER_FLAG } from '../scene/Helper.tsx'
-import { effectivePivot, resolveGeometry, type SceneObject } from '../objects/model.ts'
+import {
+  disposeIfDerived,
+  effectivePivot,
+  resolveGeometry,
+  type SceneObject,
+} from '../objects/model.ts'
 import { localToWorld, solvePlacement, worldAxis } from '../objects/placement.ts'
 import type { ObjectiveParams } from '../objects/primitives.ts'
 
@@ -75,7 +80,7 @@ export function objectiveViewGeometry(
 
   const params = objective.spec?.params as ObjectiveParams | undefined
   if (!params) {
-    if (objective.kind !== 'custom') built.geometry.dispose()
+    disposeIfDerived(objective, built.geometry)
     return null
   }
 
@@ -89,7 +94,7 @@ export function objectiveViewGeometry(
   const focal = localToWorld(built.anchor, placement, pivot)
   const axis = worldAxis(built.axis, objective.orientation).normalize()
 
-  if (objective.kind !== 'custom') built.geometry.dispose()
+  disposeIfDerived(objective, built.geometry)
 
   return {
     // The front element sits one working distance back along the axis.
