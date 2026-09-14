@@ -1180,3 +1180,40 @@ input[type='range'] {
   color: var(--text-faint);
   font-size: 10px;
 }
+
+/* ---------- Projection overlays ---------- */
+
+.overlay-card {
+  padding: 10px;
+  margin-bottom: 10px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.overlay-card__head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 8px;
+}
+
+.overlay-card__dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.overlay-card__name {
+  flex: 1;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.badge--measured {
+  background: #15321f;
+  color: var(--ok);
+}

@@ -121,6 +121,17 @@ export function ExportPanel({
       collision: store.collisionReport,
       screenshot: includeScreenshot ? captureCanvas() : null,
       objectiveViews,
+      overlays: store.overlays.map((o) => ({
+        name: o.name,
+        experimentId: o.experimentId,
+        threshold: o.threshold,
+        pointCount: o.cloud.pointCount,
+        evidence: o.provenance.evidence,
+        citation: o.provenance.citation,
+        url: o.provenance.url,
+        resolutionUm: o.provenance.resolutionUm,
+        caveats: o.provenance.caveats,
+      })),
       targetRegions,
     })
 

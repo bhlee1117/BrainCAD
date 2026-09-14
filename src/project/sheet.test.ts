@@ -92,6 +92,7 @@ function sheetInput(overrides: Partial<SheetInput> = {}): SheetInput {
     collision: checkScene([], DEFAULT_COLLISION_SETTINGS),
     screenshot: null,
     objectiveViews: [],
+    overlays: [],
     targetRegions: { 'target-1': 'CA1' },
     ...overrides,
   }
@@ -245,6 +246,42 @@ describe('planning sheet', () => {
     expect(html).toContain('Geometric occlusion only')
     expect(html).toContain('Not an optical simulation')
     expect(html).toMatch(/scattering, aberration, depth of field/)
+  })
+})
+
+describe('overlay provenance on the sheet', () => {
+  const overlay = {
+    name: 'VISp → projections',
+    experimentId: 180296424,
+    threshold: 0.05,
+    pointCount: 45365,
+    evidence: 'measured',
+    citation: 'Allen Mouse Brain Connectivity Atlas, experiment 180296424. Oh et al. (2014).',
+    url: 'https://connectivity.brain-map.org/projection/experiment/180296424',
+    resolutionUm: 100,
+    caveats: ['Measured from a single injection in a single animal.'],
+  }
+
+  it('omits the section when no overlay is loaded', () => {
+    expect(renderPlanningSheet(sheetInput())).not.toContain('Data overlays')
+  })
+
+  it('names the experiment, threshold and point count', () => {
+    const html = renderPlanningSheet(sheetInput({ overlays: [overlay] }))
+    expect(html).toContain('Data overlays')
+    expect(html).toContain('VISp → projections')
+    expect(html).toContain('45,365 points above density 0.05')
+    expect(html).toContain('100 µm grid')
+  })
+
+  it('carries the citation, the source link and every caveat', () => {
+    // A spray of points over a target reads as a prediction unless the sheet
+    // says otherwise, so none of this may be dropped in the export.
+    const html = renderPlanningSheet(sheetInput({ overlays: [overlay] }))
+    expect(html).toContain('Oh et al. (2014)')
+    expect(html).toContain('connectivity.brain-map.org')
+    expect(html).toContain('single injection in a single animal')
+    expect(html).toContain('measured')
   })
 })
 

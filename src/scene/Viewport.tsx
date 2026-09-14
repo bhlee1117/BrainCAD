@@ -21,6 +21,7 @@ import { colorComponents } from '../atlas/ontology.ts'
 import type { CoordinateProfile } from '../atlas/profile.ts'
 import { SceneObjects } from './SceneObjects.tsx'
 import { Measurements, useMeasurementClick } from './Measurements.tsx'
+import { Overlays } from './Overlays.tsx'
 import { useCollision, type AnatomyMesh } from '../collision/useCollision.ts'
 import { useAppStore, type Target } from '../state/store.ts'
 import { setSceneHandle } from './handle.ts'
@@ -370,6 +371,8 @@ function Scene({
         <AxisTriad />
 
         <SceneObjects />
+
+        <Overlays />
 
         <Measurements />
 

@@ -28,6 +28,7 @@ with anything?*
 | **M3** | Mesh collision, clearance, two-point measurement | ✅ done |
 | **M4** | Project save/load, planning-sheet export, angle sweep | ✅ done |
 | **M5** | Mobile bottom-sheet layout, polish | ✅ done |
+| **+** | Objective view render, axon projection overlays | ✅ done |
 
 ## Quick start
 
@@ -146,6 +147,37 @@ Two behaviours are pinned by tests rather than left implicit:
   brain surface by design; flagging that as a collision marks every correctly
   placed injection red and buries the clearances that matter. Objectives and
   imported hardware default the other way.
+
+### Axon projection overlays
+
+Connectivity data loads straight from the Allen Mouse Brain Connectivity Atlas
+with no proxy: both the query endpoint and the grid download serve HTTPS with
+`Access-Control-Allow-Origin: *`, so BrainCAD stays a static site.
+
+It needs no registration step at all. A projection-density volume is NRRD at
+100 µm with shape 132 × 80 × 114 — `13.2 × 8.0 × 11.4 mm`, *identical* to the
+annotation volume's extent at exactly half the linear resolution. The same
+parser, coordinate profile and world transform apply unchanged.
+
+Thresholded voxels become a point cloud (one draw call, per-vertex colour on a
+single-hue density ramp). Three choices worth noting:
+
+- **Capping keeps the densest voxels, never a random subsample** — thinning
+  uniformly would erase a faint tract while barely touching a dense one.
+- **Points sit at voxel centres**, because a corner is 50 µm off the tissue it
+  represents.
+- **The threshold is always displayed**, since absence of points means "below
+  the cut", not "no projection".
+
+`src/overlays/real-projection.test.ts` validates against a committed real volume:
+it maps the densest projection voxel back through the coordinate profile and
+asserts the annotation volume reports grey matter there. A cloud registered half
+a millimetre off would still look like a plausible spray of axons.
+
+Per blueprint §13, every overlay carries evidence class, citation, source link,
+registration space and resolution — and those travel into the planning sheet.
+Connectivity data is *measured*, but measured from one injection in one animal;
+it is not a prediction for yours, and the interface keeps saying so.
 
 ### Mesh format
 

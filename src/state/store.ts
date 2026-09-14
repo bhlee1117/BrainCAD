@@ -19,6 +19,7 @@ import type { ObjectKind, PrimitiveParams } from '../objects/primitives.ts'
 import type { CollisionSettings, SceneCollisionReport } from '../collision/check.ts'
 import { DEFAULT_COLLISION_SETTINGS } from '../collision/check.ts'
 import type { Measurement } from '../measure/measure.ts'
+import type { ProjectionOverlay } from '../overlays/model.ts'
 
 export interface Target {
   readonly id: string
@@ -77,6 +78,8 @@ export interface AppState {
   collisionReport: SceneCollisionReport | null
 
   measurements: Measurement[]
+  /** Loaded data overlays, drawn over the anatomy. */
+  overlays: ProjectionOverlay[]
   /** Which endpoint the next click in measure mode sets, or null when idle. */
   measuring: 'a' | 'b' | null
   /** Endpoint A while a measurement is being placed. */
@@ -112,6 +115,10 @@ export interface AppState {
   addMeasurement: (b: Measurement['b']) => void
   updateMeasurement: (id: string, patch: Partial<Omit<Measurement, 'id'>>) => void
   removeMeasurement: (id: string) => void
+
+  addOverlay: (overlay: ProjectionOverlay) => void
+  updateOverlay: (id: string, patch: Partial<Omit<ProjectionOverlay, 'id'>>) => void
+  removeOverlay: (id: string) => void
 }
 
 let targetCounter = 0
@@ -162,6 +169,7 @@ export const useAppStore = create<AppState>((set, get) => {
     collisionReport: null,
 
     measurements: [],
+    overlays: [],
     measuring: null,
     pendingA: null,
 
@@ -312,6 +320,16 @@ export const useAppStore = create<AppState>((set, get) => {
 
     removeMeasurement: (id) =>
       set((state) => ({ measurements: state.measurements.filter((m) => m.id !== id) })),
+
+    addOverlay: (overlay) => set((state) => ({ overlays: [...state.overlays, overlay] })),
+
+    updateOverlay: (id, patch) =>
+      set((state) => ({
+        overlays: state.overlays.map((o) => (o.id === id ? { ...o, ...patch } : o)),
+      })),
+
+    removeOverlay: (id) =>
+      set((state) => ({ overlays: state.overlays.filter((o) => o.id !== id) })),
 
     setAnatomy: (patch) => set((state) => ({ anatomy: { ...state.anatomy, ...patch } })),
 

@@ -36,6 +36,18 @@ export interface SheetInput {
     readonly fieldOfViewMm: number
     readonly workingDistanceMm: number
   }[]
+  /** Data overlays shown with the plan. */
+  readonly overlays: readonly {
+    readonly name: string
+    readonly experimentId: number
+    readonly threshold: number
+    readonly pointCount: number
+    readonly evidence: string
+    readonly citation: string
+    readonly url: string | null
+    readonly resolutionUm: number
+    readonly caveats: readonly string[]
+  }[]
   /** Region acronym at each target, keyed by target id. */
   readonly targetRegions: Readonly<Record<string, string>>
 }
@@ -190,6 +202,33 @@ function objectiveViewSection(input: SheetInput): string {
     </p>`
 }
 
+/**
+ * Overlay provenance.
+ *
+ * Given its own section, above the scene capture, because a reader looking at a
+ * spray of projection points over a target needs to know before anything else
+ * that it is one animal's measurement and not a prediction for theirs.
+ */
+function overlaySection(input: SheetInput): string {
+  if (input.overlays.length === 0) return ''
+
+  const blocks = input.overlays
+    .map(
+      (overlay) => `<div class="overlay">
+        <strong>${escapeHtml(overlay.name)}</strong>
+        <span class="evidence">${escapeHtml(overlay.evidence)}</span>
+        <div class="overlay__meta">${overlay.pointCount.toLocaleString()} points above density ${overlay.threshold.toFixed(2)} · ${overlay.resolutionUm} µm grid</div>
+        <div class="overlay__cite">${escapeHtml(overlay.citation)}${
+          overlay.url ? ` — ${escapeHtml(overlay.url)}` : ''
+        }</div>
+        <ul>${overlay.caveats.map((c) => `<li>${escapeHtml(c)}</li>`).join('')}</ul>
+      </div>`,
+    )
+    .join('')
+
+  return `<h2>Data overlays</h2>${blocks}`
+}
+
 /** Render the planning sheet as a standalone HTML document. */
 export function renderPlanningSheet(input: SheetInput): string {
   const { project } = input
@@ -239,6 +278,11 @@ export function renderPlanningSheet(input: SheetInput): string {
   .objview img { width: 220px; height: 220px; border-radius: 50%; background: #000; display: block; }
   .objview figcaption { font-size: 11px; color: #5d6b7a; margin-top: 6px; line-height: 1.4; }
   .caveat { font-size: 11px; color: #5d6b7a; margin-top: 10px; }
+  .overlay { border-left: 3px solid #c0392b; background: #fdf3f1; padding: 10px 13px; border-radius: 0 6px 6px 0; margin-bottom: 10px; }
+  .overlay .evidence { display: inline-block; margin-left: 8px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; background: #e8eef3; color: #33424f; padding: 1px 7px; border-radius: 100px; }
+  .overlay__meta { font-size: 11px; color: #5d6b7a; margin-top: 3px; }
+  .overlay__cite { font-size: 11px; margin-top: 5px; }
+  .overlay ul { margin: 6px 0 0; padding-left: 18px; font-size: 11px; color: #5d6b7a; }
   footer { margin-top: 30px; padding-top: 12px; border-top: 1px solid #dfe5ea; color: #8b97a6; font-size: 11px; }
   @media print { body { padding: 0; } .callout, .notice { break-inside: avoid; } }
 </style>
@@ -293,6 +337,8 @@ ${collisionSection(input)}
   </tr></thead>
   <tbody>${measurementRows(input)}</tbody>
 </table>
+
+${overlaySection(input)}
 
 ${objectiveViewSection(input)}
 

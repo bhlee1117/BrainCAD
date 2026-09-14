@@ -25,16 +25,18 @@ import { MobileSheet } from './ui/MobileSheet.tsx'
 import { OpticsPanel } from './ui/OpticsPanel.tsx'
 import { ObjectProperties } from './ui/ObjectProperties.tsx'
 import { ObjectsPanel } from './ui/ObjectsPanel.tsx'
+import { OverlaysPanel } from './ui/OverlaysPanel.tsx'
 import { PlanPanel } from './ui/PlanPanel.tsx'
 import { AtlasPanel, ProfilePanel, ScenePanel } from './ui/SidePanels.tsx'
 import { SlicePanel } from './ui/SlicePanel.tsx'
 
-type Tab = 'PLAN' | 'OBJECTS' | 'ATLAS' | 'MEASURE' | 'OPTICS' | 'EXPORT'
+type Tab = 'PLAN' | 'OBJECTS' | 'ATLAS' | 'OVERLAYS' | 'MEASURE' | 'OPTICS' | 'EXPORT'
 
 const TABS: readonly { id: Tab; enabled: boolean; title: string }[] = [
   { id: 'PLAN', enabled: true, title: 'Target and trajectory planning' },
   { id: 'OBJECTS', enabled: true, title: 'Hardware primitives and custom geometry' },
   { id: 'ATLAS', enabled: true, title: 'Atlas browsing and region meshes' },
+  { id: 'OVERLAYS', enabled: true, title: 'Axon projection data from the Allen Connectivity Atlas' },
   { id: 'MEASURE', enabled: true, title: 'Two-point distance measurement' },
   { id: 'OPTICS', enabled: true, title: 'Objective approach-angle sweep' },
   { id: 'EXPORT', enabled: true, title: 'Project file and planning sheet' },
@@ -132,6 +134,8 @@ export function App() {
             <AtlasPanel atlas={atlas} />
           ) : tab === 'OBJECTS' ? (
             <ObjectsPanel />
+          ) : tab === 'OVERLAYS' && atlas ? (
+            <OverlaysPanel atlas={atlas} profile={profile} />
           ) : tab === 'MEASURE' ? (
             <MeasurePanel />
           ) : tab === 'OPTICS' ? (
