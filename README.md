@@ -30,6 +30,7 @@ with anything?*
 | **M5** | Mobile bottom-sheet layout, polish | ✅ done |
 | **+** | Objective view render, axon projection overlays | ✅ done |
 | **+** | Built-in hardware models, section planes, viewport capture | ✅ done |
+| **+** | Back-trace: what projects to the target, driven from the number pad | ✅ done |
 
 ## Quick start
 
@@ -247,6 +248,80 @@ interactive context has no `preserveDrawingBuffer` and the drawing buffer is
 already cleared by the time a button handler runs. Any active section is written
 into the capture's caption, since a sectioned view otherwise looks exactly like
 an intact preparation that happens to be transparent.
+
+### Back-tracing: what projects *to* the target
+
+Every other connectivity view runs forwards — pick a source, see where its
+axons go. Planning a recording or a prism asks the opposite question: *this* is
+the coordinate I can reach, so what talks to it? The BACKTRACE tab answers it,
+and pairs it with six number-pad keys so the target can be walked around while
+the answer updates.
+
+       7   8↑D  9↗P          8 dorsal   2 ventral
+       4←M  5   6→L          4 medial   6 lateral
+       1↙A  2↓V  3           1 anterior 9 posterior
+
+Dorsal and ventral run up and down the pad, anterior and posterior along its
+diagonal, so the hand learns the mapping from the key positions. Shift is ×10.
+The legend doubles as buttons, because a phone has no number pad.
+
+**Medial and lateral are relative to the midline, not to the sign of ML.** At
+ML −1.5, "lateral" is *more* negative. Keys defined as plain ±ML would reverse
+their meaning between hemispheres — correct on the right, backwards on the
+left — which is the sort of thing noticed only after a plan has been built on
+it. Medial travel stops at the midline rather than crossing it.
+
+#### It is anterograde data read backwards, and the UI says so
+
+There is no retrograde dataset at the Allen Institute to query; the corpus is
+entirely anterograde. `mouse_connectivity_target_spatial` inverts it — of the
+~2500 injections, which deposit signal at this voxel? — and reports their
+injection sites. That is a sound way to ask "what projects here" and it differs
+from real retrograde tracing in ways that change the reading, so all of them
+are on screen: it is limited to where Allen injected, signal is bulk density so
+fibres of passage count the same as terminals, and an experiment injected *at*
+the target saturates near 1.0.
+
+That last one is not hypothetical. At dorsal CA1 the top row is a CA1 injection
+at density 0.9999 — the tracer sitting on the seed, not a projection to it.
+Those rows are **flagged, not dropped**, because dropping them would also cost
+the target its CA3 input: a CA3 injection large enough to label Schaffer
+collaterals spills across the boundary too, and no rule separates the two. The
+flag is computed from the sphere-equivalent radius of Allen's reported
+injection volume, doubled because injections run long along the pipette track.
+The user can see the overlap and judge it; the software cannot.
+
+#### Validated against anatomy, not against itself
+
+The seed point is the part that can be silently wrong: a swapped axis searches
+a different part of the brain and returns a well-formed, confident list of the
+wrong regions. `real-retrograde.test.ts` runs against a recorded real response
+for dorsal CA1 and asserts the seed the app computes is the one the fixture was
+fetched with, then that the answer is textbook hippocampal afferents — CA3
+(Schaffer collaterals), DG, subiculum, NDB (the septohippocampal input) and
+ENTl (the temporoammonic path). The last two are the discriminating check:
+they sit nowhere near the hippocampus, so they could only appear together if
+the seed is right.
+
+Moving the target re-runs it, and the result follows the anatomy: nudging from
+CA1 down to DV −3.35 lands in **PO**, and the sources become **RT** and
+**SSp-bfd** — the thalamic reticular nucleus and the barrel field, which is
+what projects to posterior thalamus.
+
+#### The routes are drawn, and they are interpolations
+
+Each row carries Allen's polyline from the seed voxel back to the injection
+site, which is what makes a *visible* back-trace possible — one `LineSegments`
+for the whole trace, coloured per structure from the Allen ontology, shaded by
+the density sampled along each segment. It is a route through a density field,
+not a traced axon; the MouseLight overlay is the thing to reach for when an
+individual arbor matters.
+
+The search is slow — 5–15 seconds for a hippocampal seed — so the elapsed time
+is shown rather than a spinner that is indistinguishable from a hang, and raw
+responses are cached by seed point so stepping back over a coordinate is
+instant. A dropped connection retries instead of surfacing a bare
+`TypeError: Failed to fetch`.
 
 ### Mesh format
 

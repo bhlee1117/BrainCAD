@@ -19,6 +19,7 @@ import { atlasUrl, type LoadedAtlas } from '../atlas/load.ts'
 import { loadAtlasMesh } from '../atlas/mesh.ts'
 import { colorComponents } from '../atlas/ontology.ts'
 import type { CoordinateProfile } from '../atlas/profile.ts'
+import { BackTrace } from './BackTrace.tsx'
 import { SceneObjects } from './SceneObjects.tsx'
 import { Measurements, useMeasurementClick } from './Measurements.tsx'
 import { Overlays } from './Overlays.tsx'
@@ -408,6 +409,8 @@ function Scene({
         <SceneObjects />
 
         <Overlays />
+
+        <BackTrace />
 
         <Helper>
           <Measurements />

@@ -25,6 +25,8 @@ import type { ObjectKind, PrimitiveParams } from '../objects/primitives.ts'
 import type { CollisionSettings, SceneCollisionReport } from '../collision/check.ts'
 import { DEFAULT_COLLISION_SETTINGS } from '../collision/check.ts'
 import type { Measurement } from '../measure/measure.ts'
+import type { RetrogradeSource } from '../overlays/retrograde.ts'
+import { DEFAULT_STEP_MM } from './nudge.ts'
 import {
   DEFAULT_SECTION,
   type SectionAxis,
@@ -83,6 +85,10 @@ export interface AppState {
    * outside undo for the reason history.ts gives.
    */
   section: SectionState
+  /** How far one number-pad nudge moves the target, in millimetres. */
+  nudgeStepMm: number
+  /** The back-trace of what projects to the selected target. */
+  backtrace: BacktraceState
 
   collisionEnabled: boolean
   collisionSettings: CollisionSettings
@@ -118,6 +124,10 @@ export interface AppState {
   setSlices: (patch: Partial<SliceState>) => void
   setSectionPlane: (axis: SectionAxis, patch: Partial<SectionPlaneState>) => void
   clearSection: () => void
+  setNudgeStepMm: (stepMm: number) => void
+
+  setBacktrace: (patch: Partial<BacktraceState>) => void
+  clearBacktrace: () => void
 
   setCollisionEnabled: (enabled: boolean) => void
   setCollisionSettings: (patch: Partial<CollisionSettings>) => void
@@ -181,6 +191,44 @@ export function adoptObjectIds(objects: readonly { id: string }[]): void {
   }
 }
 
+/**
+ * The back-trace panel's state.
+ *
+ * Derived from a target and an API call, so deliberately outside the document
+ * snapshot: it is a view of the plan, like the collision report, and undo
+ * should step back through target moves rather than through query results.
+ */
+export interface BacktraceState {
+  readonly status: 'idle' | 'loading' | 'ready' | 'error'
+  readonly message: string
+  /** Experiments reaching the target, strongest first. */
+  readonly sources: readonly RetrogradeSource[]
+  /** The coordinate the current result was fetched for. */
+  readonly tracedCoord: Stereotaxic | null
+  /** Re-trace automatically when the target moves. */
+  readonly follow: boolean
+  /** Draw the back-traced routes in the 3D view. */
+  readonly showPaths: boolean
+  /** Include rows whose injection covers the target. */
+  readonly includeOverlapping: boolean
+  /** How many source structures to draw and list. */
+  readonly topStructures: number
+  /** Structure abbreviation the user has isolated, or null for all. */
+  readonly focusAbbrev: string | null
+}
+
+const INITIAL_BACKTRACE: BacktraceState = {
+  status: 'idle',
+  message: '',
+  sources: [],
+  tracedCoord: null,
+  follow: true,
+  showPaths: true,
+  includeOverlapping: true,
+  topStructures: 8,
+  focusAbbrev: null,
+}
+
 /** A dorsal CA1 coordinate, so the app opens on something anatomically real. */
 const INITIAL_TARGET_COORD: Stereotaxic = { ap: -2.0, ml: 1.5, dv: -1.35 }
 
@@ -216,6 +264,8 @@ export const useAppStore = create<AppState>((set, get) => {
       dv: { ...DEFAULT_SECTION.dv },
       ap: { ...DEFAULT_SECTION.ap },
     },
+    nudgeStepMm: DEFAULT_STEP_MM,
+    backtrace: { ...INITIAL_BACKTRACE },
 
     collisionEnabled: true,
     collisionSettings: { ...DEFAULT_COLLISION_SETTINGS },
@@ -448,6 +498,16 @@ export const useAppStore = create<AppState>((set, get) => {
           ap: { ...DEFAULT_SECTION.ap },
         },
       }),
+
+    setNudgeStepMm: (nudgeStepMm) =>
+      // Clamped rather than validated: the field is a number input and a
+      // zero or negative step would turn six keys into dead ones.
+      set({ nudgeStepMm: Math.max(0.01, Math.min(5, nudgeStepMm)) }),
+
+    setBacktrace: (patch) =>
+      set((state) => ({ backtrace: { ...state.backtrace, ...patch } })),
+
+    clearBacktrace: () => set({ backtrace: { ...INITIAL_BACKTRACE } }),
   }
 
   // `get` is part of the zustand signature; referenced here to keep it in scope

@@ -1568,3 +1568,142 @@ input[type='range'] {
 .section-plane:last-of-type {
   margin-bottom: 8px;
 }
+
+/* ---------------------------------------------------------------- backtrace */
+
+/* The number-pad legend. Two columns, because the six directions pair up as
+   three opposed axes and reading them as pairs is how they are remembered. */
+.pad {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 8px;
+  margin: 8px 0 2px;
+}
+
+/* Legend and control in one, so the directions are reachable without a pad. */
+.pad__key {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 4px;
+  font-size: 11px;
+  font-family: inherit;
+  text-align: left;
+  color: var(--text-dim);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.pad__key:hover {
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.pad__key:active kbd {
+  border-bottom-width: 1px;
+  transform: translateY(1px);
+}
+
+.pad__key kbd {
+  min-width: 18px;
+  padding: 1px 0;
+  text-align: center;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  font: inherit;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* One source structure in the retrograde matrix. */
+.mrow {
+  padding: 5px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.mrow[aria-current='true'] {
+  background: var(--accent-dim);
+  margin: 0 -8px;
+  padding: 5px 8px;
+  border-radius: 4px;
+}
+
+.mrow__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.mrow__abbrev {
+  min-width: 46px;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.mrow__value {
+  min-width: 42px;
+  text-align: right;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dim);
+}
+
+.mrow__meta {
+  margin-left: 15px;
+  font-size: 10.5px;
+  color: var(--text-faint);
+  line-height: 1.5;
+}
+
+.mrow__experiments {
+  margin: 4px 0 2px 15px;
+}
+
+.mrow__exp {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10.5px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+  padding: 1px 0;
+}
+
+.mrow__exp a {
+  color: var(--accent);
+  min-width: 68px;
+}
+
+/* The shared tag is laid out for the collision panel's grid; inside these flex
+   rows it needs its own box so it still reads as a tag rather than as text. */
+.mrow__meta .pair__tag,
+.mrow__exp .pair__tag {
+  grid-column: auto;
+  margin-left: 6px;
+  padding: 0 4px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+/* Density bar. Fills the row so the column can be scanned vertically. */
+.bar {
+  flex: 1;
+  height: 7px;
+  min-width: 40px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.bar__fill {
+  height: 100%;
+  border-radius: 2px;
+}

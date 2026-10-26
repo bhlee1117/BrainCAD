@@ -18,6 +18,7 @@ import {
   useSelectedObject,
   useSelectedTarget,
 } from './state/store.ts'
+import { useTargetNudge } from './state/useTargetNudge.ts'
 import { useUndoShortcuts } from './state/useUndoShortcuts.ts'
 import { CollisionPanel } from './ui/CollisionPanel.tsx'
 import { ExportPanel } from './ui/ExportPanel.tsx'
@@ -28,6 +29,7 @@ import { ObjectProperties } from './ui/ObjectProperties.tsx'
 import { ObjectsPanel } from './ui/ObjectsPanel.tsx'
 import { OverlaysPanel } from './ui/OverlaysPanel.tsx'
 import { PlanPanel } from './ui/PlanPanel.tsx'
+import { BackTracePanel } from './ui/BackTracePanel.tsx'
 import { AtlasPanel, ProfilePanel, ScenePanel } from './ui/SidePanels.tsx'
 import { SlicePanel } from './ui/SlicePanel.tsx'
 
@@ -36,6 +38,7 @@ type Tab =
   | 'OBJECTS'
   | 'ATLAS'
   | 'OVERLAYS'
+  | 'BACKTRACE'
   | 'SLICES'
   | 'MEASURE'
   | 'OPTICS'
@@ -52,6 +55,11 @@ const TABS: readonly {
   { id: 'OBJECTS', enabled: true, title: 'Hardware primitives and custom geometry' },
   { id: 'ATLAS', enabled: true, title: 'Atlas browsing and region meshes' },
   { id: 'OVERLAYS', enabled: true, title: 'Axon projection data from the Allen Connectivity Atlas' },
+  {
+    id: 'BACKTRACE',
+    enabled: true,
+    title: 'What projects to the target, traced back from it',
+  },
   // The desktop keeps the slice strip permanently under the 3D view, so this
   // tab would be a second way to see what is already on screen. On a phone
   // there is no room for the strip and the slices were simply unavailable.
@@ -97,6 +105,7 @@ export function App() {
   const target = useSelectedTarget()
   const selectedObject = useSelectedObject()
   useUndoShortcuts()
+  useTargetNudge()
 
   const atlasStatus = useAppStore((s) => s.atlasStatus)
   const setAtlasStatus = useAppStore((s) => s.setAtlasStatus)
@@ -155,6 +164,8 @@ export function App() {
       <ObjectsPanel />
     ) : tab === 'OVERLAYS' && atlas ? (
       <OverlaysPanel atlas={atlas} profile={profile} />
+    ) : tab === 'BACKTRACE' && atlas ? (
+      <BackTracePanel atlas={atlas} profile={profile} />
     ) : tab === 'MEASURE' ? (
       <MeasurePanel />
     ) : tab === 'OPTICS' ? (
