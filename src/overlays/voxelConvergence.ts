@@ -9,8 +9,9 @@
  *
  * This is the same question asked of the raw 100 µm projection volumes, so it
  * owes nothing to the parcellation and can disagree with it. Built by
- * `scripts/fetch-voxel-convergence.mjs` over all 2,331 experiments and bundled
- * as a 4.6 MB blob (2 MB over the wire).
+ * `scripts/fetch-voxel-convergence.mjs` over all 2,826 experiments of the
+ * corpus in `scripts/corpus.mjs` — the same set the structure matrix uses —
+ * and bundled as a 4.6 MB blob (2 MB over the wire).
  *
  * Three things about it are not true of the structure map and change how it
  * should be read:
@@ -26,7 +27,7 @@
  *    just convergence of *passage* rather than of termination. The structure
  *    map hid this inside one "fiber tracts" block.
  *  - **The distribution is nothing like the structure map's.** Counts run to
- *    1,772 with a median of 52, so a scale set by the maximum puts almost
+ *    1,988 with a median of 57, so a scale set by the maximum puts almost
  *    every voxel at the bottom of the ramp. The range is taken from a
  *    percentile instead.
  */
@@ -36,6 +37,10 @@ import { connectivityUrl, type ConvergenceMetric } from './convergence.ts'
 export interface VoxelConvergenceHeader {
   readonly generatedAt: string
   readonly experiments: number
+  /** Allen product ids the corpus was drawn from. */
+  readonly products: readonly number[]
+  /** What that set is and what it leaves out. */
+  readonly corpus: string
   readonly sizes: readonly [number, number, number]
   readonly resolutionUm: number
   readonly densityThreshold: number
@@ -63,8 +68,9 @@ export const MEAN_SCALE = 65535
  * Where the colour ramp tops out, as a percentile of non-empty voxels.
  *
  * The 99th, not the maximum: the brightest voxels are four times the 99th
- * percentile and sit in a handful of dense tracts, so scaling to them renders
- * the rest of the brain as one dark mass. Clipping loses the ranking *within*
+ * percentile — 1,988 against 495 — and sit in a handful of dense tracts, so
+ * scaling to them renders the rest of the brain as one dark mass. Clipping
+ * loses the ranking *within*
  * that top percent and keeps it everywhere else, which is the better trade for
  * a map read by eye.
  */
@@ -198,7 +204,8 @@ export function voxelIndexFor(
 /** Caveats carried wherever the voxel map is shown. */
 export const VOXEL_CAVEATS: readonly string[] = [
   'Right is ipsilateral to the injection: every experiment is mirrored so its injection ' +
-    'lies on the right, so the left half is the contralateral answer.',
+    'lies on the right, so the left half is the contralateral answer. 534 of 2,826 ' +
+    'experiments were mirrored; the rest were already injected on the right.',
   'White matter is genuinely bright — a tract carries the axons of many sources. That is ' +
     'convergence of passage, not of termination.',
   'The scale tops out at the 99th percentile; a few voxels in dense tracts run four ' +

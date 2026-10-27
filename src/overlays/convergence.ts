@@ -9,8 +9,11 @@
  * the colours.
  *
  * The matrix is built at build time by `scripts/fetch-connectivity-matrix.mjs`
- * — 293 queries against the Allen API, bundled as one small asset — because
- * doing it at runtime would mean the user waiting through all 293.
+ * — 586 queries against the Allen API, bundled as one small asset — because
+ * doing it at runtime would mean the user waiting through all of them. Its
+ * corpus is the explicit product list in `scripts/corpus.mjs`, 2,810
+ * experiments, shared with the voxel map so the two grains of the map describe
+ * the same animals.
  *
  * ## It counts sources, not experiments
  *
@@ -24,10 +27,9 @@
  *
  * Still anterograde data, so "projects into" means bulk signal detected in the
  * target and counts fibres of passage the same as terminals. Still limited to
- * the 293 summary structures and to regions Allen injected: a region absent
- * from the matrix may simply never have been a source. And the matrix is
- * bilateral — hemisphere 3 — so a lateralised projection is pooled with its
- * weaker mirror.
+ * the 293 summary structures and to regions Allen injected: 213 of the 293
+ * appear as a source at all, and a region absent from the matrix may simply
+ * never have been one.
  */
 
 import {
@@ -64,6 +66,10 @@ export interface ConvergenceMatrix {
   readonly structureSet: string
   /** Densities below this were dropped before the file was written. */
   readonly fetchFloor: number
+  /** Allen product ids the corpus was drawn from — the same set the voxel map uses. */
+  readonly products: readonly number[]
+  readonly experiments: number
+  readonly corpus: string
   readonly note: string
   readonly convergence: Readonly<Record<string, ConvergenceEntry>>
 }
@@ -214,7 +220,7 @@ export function sectionSides(
  * Named for what it does and no more. An earlier version called the two
  * directions ipsi and contra, on the reasoning that Allen injects the right
  * hemisphere so a target there is reached from its own side. That holds for
- * the hub map's corpus, 98% right, and not for the wider one the back-trace
+ * the hub map's corpus, 81% right, and not for the wider one the back-trace
  * searches: of 116 experiments reaching an MOs target at ML −0.90, 75 were
  * injected on the left. Whether a *source* is ipsilateral is a fact about
  * that source, and `sourceSide` reads it off directly.
@@ -318,12 +324,13 @@ export const CONVERGENCE_CAVEATS: readonly string[] = [
   'A property of the Allen connectome, not of your target — moving the target does not ' +
     'change this map. The target is drawn only as a reference mark.',
   'Right is ipsilateral to the injection and left is contralateral: every experiment is ' +
-    'read relative to its own injection, which Allen places on the right 98% of the time.',
+    'read relative to its own injection, which Allen places on the right for 81% of ' +
+    'the 2,810 experiments here.',
   'Anterograde data, so "projects into" is bulk signal detected in the region and counts ' +
     'fibres passing through the same as terminals.',
   'One value per source region, its strongest experiment — counting experiments would ' +
     'rank how often Allen injected somewhere rather than the anatomy.',
-  'Limited to the 293 summary structures, and to regions Allen injected.',
-  'Bilateral: left and right are pooled, so a lateralised projection is averaged with ' +
-    'its weaker mirror.',
+  'Limited to the 293 summary structures, and to the 213 of them Allen injected.',
+  'Allen products 5, 6, 35, 36, 42, 44 and 45 — the anterograde survey of the normal ' +
+    'adult mouse. The Alzheimer, aged-cohort and retina studies are left out.',
 ]

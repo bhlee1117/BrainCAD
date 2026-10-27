@@ -49,9 +49,15 @@
  *
  * Injection voxels. `projection_density` includes the injection site, where it
  * saturates near 1.0 against a projection's typical 0.01 — so without masking,
- * the map's brightest features would be the ~2300 places tracer was put, which
+ * the map's brightest features would be the ~2900 places tracer was put, which
  * is the one thing it is not trying to show. Each experiment's own
  * `injection_fraction` volume, 7 KB, is downloaded alongside for the mask.
+ *
+ * ## Which experiments
+ *
+ * The product list in `corpus.mjs`, shared with the structure-level matrix so
+ * the two maps describe the same animals. See that file for what is in it and
+ * what is deliberately left out.
  *
  *   node scripts/fetch-voxel-convergence.mjs --sample 300
  *   node scripts/fetch-voxel-convergence.mjs            # all experiments
@@ -61,6 +67,8 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { gunzipSync } from 'node:zlib'
+
+import { CORPUS_CRITERIA, CORPUS_NOTE, PRODUCTS } from './corpus.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(HERE, '..')
@@ -203,12 +211,8 @@ function stratify(experiments, limit) {
 }
 
 async function main() {
-  process.stdout.write('Listing experiments… ')
-  const rows = await query(
-    'model::SectionDataSet,rma::criteria,[failed$eqfalse],products[id$eq5],' +
-      'rma::include,specimen(stereotaxic_injections(primary_injection_structure)),' +
-      "rma::options[num_rows$eq'all']",
-  )
+  process.stdout.write(`Listing experiments in products ${PRODUCTS.join(', ')}… `)
+  const rows = await query(CORPUS_CRITERIA)
 
   const all = []
   for (const row of rows) {
@@ -338,6 +342,8 @@ async function main() {
       generatedAt: new Date().toISOString(),
       experiments: chosen.length - failed,
       sampled: SAMPLE || null,
+      products: PRODUCTS,
+      corpus: CORPUS_NOTE,
       sizes,
       resolutionUm: 100,
       densityThreshold: DENSITY_THRESHOLD,

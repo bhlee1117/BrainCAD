@@ -49,6 +49,9 @@ const MATRIX: ConvergenceMatrix = {
   source: 'test',
   structureSet: 'test',
   fetchFloor: 0.002,
+  products: [5],
+  experiments: 3,
+  corpus: 'test',
   note: 'test',
   convergence: {
     1: {

@@ -388,7 +388,7 @@ export function BackTracePanel({
         <p className="hint" style={{ marginTop: 2 }}>
           Mirrors ML and keeps AP and DV, so the two answers are of one place rather than
           two. It does <i>not</i> pick ipsilateral or contralateral input — a target has
-          both, and which dominates varies: 80% ipsilateral at dorsal CA1 ML +1.5, 65% at
+          both, and which dominates varies: 80% ipsilateral at dorsal CA1 ML +1.5, 63% at
           MOs ML −0.90, 45% at CA1 ML −1.5. Use the source filter below for that.
         </p>
       </div>
@@ -561,7 +561,7 @@ export function BackTracePanel({
               </div>
               {backtrace.heatGrain === 'voxels' && (
                 <p className="hint" style={{ marginTop: 0 }}>
-                  Accumulated from the raw projection grids of all 2,331 experiments, so
+                  Accumulated from the raw projection grids of all 2,826 experiments, so
                   it owes nothing to the region boundaries and can disagree with them.
                   The pixels are larger — 100 µm against the atlas&rsquo;s 50 — and each
                   one is a measurement at that place rather than an average over the

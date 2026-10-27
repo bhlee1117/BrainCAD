@@ -524,8 +524,8 @@ describe('sourceSide', () => {
 
   it('is read off the pair, not off where Allen usually injects', () => {
     // The error this replaced: inferring the side from the corpus. True of the
-    // hub map's experiments, 98% right, and not of the ones this search
-    // covers — a left-hemisphere target can be fed mostly from its own side.
+    // hub map's experiments in aggregate, 81% right, and not of any one
+    // target — a left-hemisphere target can be fed mostly from its own side.
     const [parsed] = parseRetrogradeResponse(
       PROFILE,
       { ap: 0.7, ml: -0.9, dv: -0.85 },

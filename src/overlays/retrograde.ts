@@ -85,8 +85,9 @@ export interface RetrogradeSource {
    * A fact about this pair, not a property of the target: one target has both
    * ipsilateral and contralateral sources, and which it has more of varies by
    * region. At dorsal CA1 ML +1.5, 80% of the experiments reaching it were
-   * injected on the same side; at MOs ML −0.90, 65% were. Null when either
-   * point sits on the midline, where "same side" has no meaning.
+   * injected on the same side; at MOs ML −0.90, 63% were; at CA1 ML −1.5, 45%.
+   * Null when either point sits on the midline, where "same side" has no
+   * meaning.
    */
   readonly side: Side | null
   /** Allen's route from the target back to the injection site. */
@@ -98,10 +99,10 @@ export interface RetrogradeSource {
  *
  * The comparison the panel's filter is built from, and the only honest way to
  * say "ipsilateral" about a back-trace. An earlier build inferred it from
- * where Allen *usually* injects — which is true of the hub map's corpus, 98%
- * right, and not of the corpus this search covers: of 116 experiments reaching
- * one MOs target, 71 came from outside that corpus and most of those were
- * injected on the left.
+ * where Allen *usually* injects — true of the corpus as a whole, 81% right,
+ * and not of any particular target: of the 112 experiments reaching one MOs
+ * target at ML −0.90, 71 were injected on the left, so the side a reader was
+ * being told about was the aggregate's rather than this target's.
  */
 export function sourceSide(
   injectionCentre: Stereotaxic | null,

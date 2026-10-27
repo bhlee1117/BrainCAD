@@ -16,6 +16,9 @@
  * and the map would show the Allen Institute's sampling effort rather than
  * anatomy.
  *
+ * The corpus is the explicit product list in `corpus.mjs`, shared with the
+ * voxel map so the two grains of the same map describe the same animals.
+ *
  * ## Ipsilateral and contralateral are kept apart
  *
  * Allen reports each structure's incoming density per hemisphere (1 left,
@@ -26,9 +29,10 @@
  * the other.
  *
  * So both hemispheres are fetched, and each experiment's own injection side
- * decides which is ipsilateral. Allen injects the right hemisphere in 98% of
- * cases, so without that step "left" would mostly mean "contralateral" and
- * occasionally not.
+ * decides which is ipsilateral. Allen injects the right hemisphere in the large
+ * majority of cases, so without that step "left" would mostly mean
+ * "contralateral" and occasionally not — the script prints the exact share it
+ * measured, and writes it into the asset.
  *
  * Self-projection is excluded, and so is anything on the same root-to-leaf
  * path. An injection into CA3 "projecting into" CA3 is the injection site at
@@ -43,6 +47,14 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+
+import {
+  CORPUS_CRITERIA,
+  CORPUS_NOTE,
+  PRODUCTS,
+  fetchInjectionHemispheres,
+  summaryAncestor,
+} from './corpus.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(HERE, '..')
@@ -67,9 +79,6 @@ const PRECISION = 5
 
 /** Allen's 293-region summary set — the level connectivity is reported at. */
 const SUMMARY_SET = 'Mouse Connectivity - Summary'
-
-/** Midline in CCF micrometres: half of the 11.4 mm ML extent. */
-const MIDLINE_UM = 5700
 
 /** Be a good citizen: the service is shared and intermittently flaky. */
 const PAUSE_MS = 120
@@ -97,46 +106,62 @@ async function query(criteria, { retries = RETRIES } = {}) {
 }
 
 /**
- * Every experiment in the corpus, mapped to the structure it was injected into.
+ * Every experiment in the corpus, mapped to its source structure and side.
  *
- * Built by asking the same service the app's forward search uses, once per
- * summary structure, rather than by listing SectionDataSets. That is slower by
- * 293 cheap queries and it is the right trade: it makes the hub map's corpus
- * *the same corpus* the OVERLAYS tab and the back-trace already work from.
+ * Three queries: the corpus listing, and the two that say which hemisphere
+ * each needle went into. The previous version spent 293 — one
+ * `service::mouse_connectivity_injection_structure` call per summary structure
+ * — which was a quarter of an hour and, worse, left the corpus defined by
+ * whatever that undocumented service happened to return. It returns products
+ * 5, 35, 36, 44 and 45 but not 6 or 42, so the matrix and the voxel map were
+ * built from overlapping but different sets of animals while both captions
+ * said "the Allen connectome".
  *
- * It matters more than it sounds. The raw unionize table also carries rows
- * from the Alzheimer, aged-cohort, retina and target-defined studies — for
- * CA1, two thirds of all rows — and pooling those into "the mouse connectome"
- * would silently mix separate experiments with different animals and aims.
+ * Experiments whose primary injection structure is missing, or falls outside
+ * the summary set entirely, are dropped: there is no source to attribute them
+ * to, and guessing one would put another region's experiments on a hub.
  */
-async function fetchCorpus(structures) {
-  const source = new Map()
-  let done = 0
+async function fetchCorpus(summaryIds, pathById) {
+  process.stdout.write('Listing the corpus… ')
+  const rows = await query(CORPUS_CRITERIA)
+  console.log(`${rows.length} experiments across products ${PRODUCTS.join(', ')}`)
 
-  for (const structure of structures) {
-    const rows = await query(
-      `service::mouse_connectivity_injection_structure` +
-        `[injection_structures$eq${structure.id}][primary_structure_only$eqtrue]`,
-    )
-    for (const row of rows) {
-      if (typeof row?.id !== 'number') continue
-      // The third component is ML in CCF micrometres, measured from the
-      // animal's left, so the midline is half the volume's ML extent.
-      const ml = row['injection-coordinates']?.[2]
-      source.set(row.id, {
-        structure: structure.id,
-        hemisphere: typeof ml === 'number' && ml > MIDLINE_UM ? 2 : 1,
-      })
+  process.stdout.write('Reading injection hemispheres… ')
+  const hemispheres = await fetchInjectionHemispheres(query)
+  console.log(`${hemispheres.size} with injection signal`)
+
+  const source = new Map()
+  let unsourced = 0
+  let unsided = 0
+
+  for (const row of rows) {
+    if (typeof row?.id !== 'number') continue
+
+    const primary = row.specimen?.stereotaxic_injections?.[0]?.primary_injection_structure
+    const structure =
+      typeof primary?.id === 'number'
+        ? summaryAncestor(pathById, summaryIds, primary.id)
+        : null
+    if (structure === null) {
+      unsourced += 1
+      continue
     }
-    done += 1
-    process.stdout.write(
-      `\r  [${done}/${structures.length}] ${structure.acronym.padEnd(10)} ` +
-        `${source.size} experiments   `,
-    )
-    await sleep(PAUSE_MS)
+
+    // No injection unionize row means no grid data at all for that experiment,
+    // so it cannot contribute a projection row either.
+    const hemisphere = hemispheres.get(row.id)
+    if (hemisphere === undefined) {
+      unsided += 1
+      continue
+    }
+
+    source.set(row.id, { structure, hemisphere })
   }
 
-  console.log()
+  console.log(
+    `  ${unsourced} dropped without a summary-set source, ` +
+      `${unsided} without injection data`,
+  )
   return source
 }
 
@@ -159,13 +184,14 @@ async function main() {
   )
   console.log(`${summary.length} structures`)
 
-  console.log('Mapping experiments to their injection structure…')
-  const sourceOfExperiment = await fetchCorpus(summary)
+  const summaryIds = new Set(summary.map((s) => s.id))
+  const sourceOfExperiment = await fetchCorpus(summaryIds, pathById)
   const right = [...sourceOfExperiment.values()].filter((e) => e.hemisphere === 2).length
   console.log(
     `  ${sourceOfExperiment.size} experiments from ` +
       `${new Set([...sourceOfExperiment.values()].map((e) => e.structure)).size} ` +
-      `source structures; ${right} injected on the right`,
+      `source structures; ${right} injected on the right ` +
+      `(${((100 * right) / sourceOfExperiment.size).toFixed(0)}%)`,
   )
 
   console.log('Fetching incoming projections…')
@@ -247,15 +273,15 @@ async function main() {
         '(is_injection=false, hemisphere=both). Oh et al. (2014), Nature 508:207-214.',
       structureSet: SUMMARY_SET,
       fetchFloor: FETCH_FLOOR,
-      corpus:
-        'Experiments reachable through service::mouse_connectivity_injection_structure ' +
-        'with primary_structure_only — the same corpus the rest of BrainCAD works from. ' +
-        'Rows from the Alzheimer, aged-cohort, retina and target-defined studies are ' +
-        'left out rather than pooled into one connectome.',
+      products: PRODUCTS,
+      experiments: sourceOfExperiment.size,
+      corpus: CORPUS_NOTE,
       layout: '[sourceStructureId, ipsilateralDensity, contralateralDensity]',
       hemisphere:
-        'Ipsilateral and contralateral are relative to each experiment own injection, ' +
-        'which Allen places in the right hemisphere 98% of the time.',
+        "Ipsilateral and contralateral are relative to each experiment's own injection, " +
+        `which Allen places in the right hemisphere for ${right} of ` +
+        `${sourceOfExperiment.size} experiments here ` +
+        `(${((100 * right) / sourceOfExperiment.size).toFixed(0)}%).`,
       note:
         'Per target structure, the strongest projection density reaching it from each ' +
         'other structure, split by side. One value per source, not per experiment, so ' +

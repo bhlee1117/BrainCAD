@@ -357,8 +357,9 @@ different questions:
 
 The convergence matrix is built at build time by
 `scripts/fetch-connectivity-matrix.mjs` (`npm run connectivity:fetch`) and
-bundled: 586 queries against the Allen API once, rather than 586 queries the
-user waits through. It stores, per target structure, the strongest projection
+bundled: 589 queries against the Allen API once — two hemispheres for each of
+the 293 summary structures, plus three to define the corpus — rather than 589
+queries the user waits through. It stores, per target structure, the strongest projection
 density reaching it from each *other* structure — one value per source, not per
 experiment, because counting experiments ranks how often the Allen Institute
 injected somewhere rather than the anatomy. Self-projection and same-lineage
@@ -377,14 +378,26 @@ region identically on both halves and made the map symmetric by construction
 rather than by anatomy. It is not a small difference: a single CA3 experiment
 deposits 0.089 in one CA1 and 0.216 in the other. Both hemispheres are fetched
 and each experiment's own injection side decides which is ipsilateral, which
-matters because Allen injects the right hemisphere in 98% of cases. Right is ipsilateral in both grains, and the sections say so on themselves
+matters because Allen injects the right hemisphere in 81% of this corpus. Right is ipsilateral in both grains, and the sections say so on themselves
 rather than only in the caption: coronal and horizontal carry `ipsi` and
 `contra` under their two halves, and a sagittal section — which is one
 hemisphere, not two — is named by the one it was taken in, or `midline` when it
 sits on it. The median
-structure receives contralaterally from 0.58× as many regions as ipsilaterally,
+structure receives contralaterally from 0.56× as many regions as ipsilaterally,
 and the spread is the interesting part: the midline thalamic nuclei come out
-near 0.95, zona incerta at 0.53.
+near 0.9 (PVT 0.88, CM 0.90, RE 0.85), zona incerta at 0.43 and VPM at 0.14.
+
+Which side each needle went into is read from Allen's own injection unionize
+rows — an experiment with a `root` row under hemisphere 2 and none under 1 was
+injected on the right, and a needle that straddled the midline goes to whichever
+side holds more tracer. That replaced taking the sign of the reported injection
+coordinate, which needed 293 extra queries and is worse where the two differ:
+over 742 experiments they agreed on 691, and every one of the 51 disagreements
+was an injection within 0.4 mm of the midline, exactly where one reported
+coordinate is least able to say which side the tracer went. The two grains are
+built by completely different routes — unionize volumes here, the weighted
+centroid of the downloaded `injection_fraction` grid in the voxel map — and
+land on the same 81%.
 
 #### Underneath the parcellation: the voxel grain
 
@@ -392,7 +405,7 @@ The structure matrix's grain is also its ceiling. A dense input zone in one
 corner of a region, a cluster straddling an annotation boundary, a gradient
 across a nucleus — all averaged away before BrainCAD saw the number. So the
 same question is also asked of the raw 100 µm `projection_density` grids, all
-2,331 of them, accumulated per voxel by `npm run voxel:fetch` into a 4.6 MB
+2,826 of them, accumulated per voxel by `npm run voxel:fetch` into a 4.6 MB
 blob (2 MB over the wire).
 
 It is worth being clear that **the pixels get bigger**: 100 µm against the
@@ -420,9 +433,9 @@ Two things the voxel map shows that the structure map hid, both real:
   left contralateral throughout — the side Allen already injects, so the
   aggregate agrees with the raw anatomy and with the panel's ipsi button.
 
-The scale needs a percentile rather than a maximum: counts run to 1,772 against
-a median of 52, so scaling to the brightest voxels renders the rest of the brain
-as one dark mass.
+The scale needs a percentile rather than a maximum: counts run to 1,988 against
+a median of 57 and a 99th percentile of 495, so scaling to the brightest voxels
+renders the rest of the brain as one dark mass.
 
 Both grains paint through **one per-pixel path**. The slice renderer used to
 take a structure-id colour table, which stopped being expressible the moment a
@@ -430,13 +443,39 @@ structure's value depended on which half of the brain a pixel was in. Now every
 pixel asks which voxel it is — through the same flip rules the image was built
 with — and that voxel is looked up in whichever map is selected.
 
-**The corpus is the app's corpus.** The raw unionize table also carries rows
-from the Alzheimer, aged-cohort, retina and target-defined studies — for CA1,
-two thirds of all rows — and pooling those into "the mouse connectome" would mix
-separate experiments with different animals and aims. The script enumerates
-experiments through the same service the forward search uses, which costs 293
-extra cheap queries and buys the guarantee that every tab is talking about the
-same set of experiments.
+**Both grains share one corpus, and it is written down.** `scripts/corpus.mjs`
+names seven Allen products — 5, 6, 35, 36, 42, 44, 45, the anterograde
+wild-type and Cre-line survey of the normal adult mouse, 3,055 experiments of
+which 2,915 have usable grids. The Alzheimer and aged-cohort studies, the
+retina projections and the reference sets are left out: different animals
+asking different questions, and pooling them into one number called "the mouse
+connectome" would be a quiet lie rather than more data.
+
+It took a correction to get there. The voxel map listed product 5, while the
+matrix enumerated through `service::mouse_connectivity_injection_structure`,
+which turns out to also return products 35, 36, 44 and 45 but not 6 or 42 — two
+maps built from overlapping but different sets of animals, drawn side by side
+under one caption, with a 293-query build step as the price of the
+inconsistency. An explicit product list is checkable; "whatever that
+undocumented service returned that day" is not. Both assets now carry the list
+and the experiment count in their own headers, so a file can be asked what it
+was built from.
+
+The two end up at slightly different totals — 2,810 against 2,826 — and the
+difference is honest: the matrix needs a source to attribute each experiment
+to, so it drops the 109 whose primary injection structure is missing or falls
+outside the 293-region summary set, while the voxel map only needs a grid.
+
+The widening also closed a gap between this map and the back-trace beside it.
+The BACKTRACE tab's spatial search is not restricted to any product list, so a
+reader could see experiments in the sources list that the hub map had never
+counted. At an MOs target at ML −0.90 the spatial search returns 112
+experiments and only 43 of them were in product 5 — the rest sat in the
+Cre-defined and target-defined sets. All 112 are in the seven-product corpus.
+Across five targets spanning cortex, hippocampus, thalamus and striatum the
+overlap is now 99–100%, against 38–100% before. It is not a guarantee: Allen
+does not document what that service covers, so this is a measurement rather
+than a promise.
 
 Two things about the painting are worth stating:
 
@@ -483,12 +522,11 @@ sources by which side of the target they were injected on, read off the two ML
 signs. An earlier version instead offered buttons that moved the *target*,
 labelled ipsi and contra on the reasoning that Allen injects the right
 hemisphere so a target there is reached from its own side. That is true of the
-hub map's corpus, 98% right, and is not true of the wider one the spatial
-search covers: of 116 experiments reaching an MOs target at ML −0.90, 71 came
-from outside that corpus and 75 were injected on the left. The proportions do
-not generalise either — 80% ipsilateral at dorsal CA1 ML +1.5, 65% at MOs
-ML −0.90, 45% at CA1 ML −1.5 — so the labels were claiming something the data
-would not support. The target button is now just a hemisphere flip, and the
+hub map's corpus as a whole, 81% right, and it does not survive contact with a
+particular target: of the 112 experiments reaching an MOs target at ML −0.90,
+71 were injected on the left. The proportions do not generalise either — 80%
+ipsilateral at dorsal CA1 ML +1.5, 63% at MOs ML −0.90, 45% at CA1 ML −1.5 —
+so the labels were claiming something the data would not support. The target button is now just a hemisphere flip, and the
 two exclusions are counted separately in the summary, because "on the other
 side of the brain" is not the same statement as "below the top N".
 
