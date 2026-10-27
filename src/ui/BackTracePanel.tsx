@@ -588,9 +588,16 @@ export function BackTracePanel({
 
               {hubs.length > 0 && (
                 <>
-                  <h2 style={{ marginTop: 14 }}>Top hubs</h2>
+                  {/* Postsynaptic because the map is in-degree: these are the
+                      regions projections arrive *at*, so they sit downstream
+                      of the sources that reach them. The word overstates
+                      slightly — bulk anterograde signal counts a fibre passing
+                      through a region the same as one terminating in it — which
+                      is why that caveat sits directly under this list. */}
+                  <h2 style={{ marginTop: 14 }}>Top postsynaptic hubs</h2>
                   <div className="mrow__meta" style={{ marginBottom: 6, marginLeft: 0 }}>
-                    Across the whole connectome, not this target.
+                    Regions most projected <i>to</i>, across the whole connectome — not
+                    this target.
                   </div>
                   {hubs.slice(0, HUB_LIST_LENGTH).map((hub, rank) => (
                     <div key={hub.id} className="mrow__exp">

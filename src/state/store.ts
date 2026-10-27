@@ -221,7 +221,17 @@ export interface BacktraceState {
   /** Structure abbreviation the user has isolated, or null for all. */
   readonly focusAbbrev: string | null
 
-  /** Show the hub map at all. */
+  /**
+   * Show the hub map at all.
+   *
+   * On by default. It is the one thing in this tab that needs no target and no
+   * waiting — the matrix is bundled — so arriving at BACKTRACE with the
+   * sections already painted says what the tab is for, where an empty checkbox
+   * needs to be found first.
+   *
+   * The matrix is still only fetched once the tab is open, so a session that
+   * never visits BACKTRACE never downloads it.
+   */
   readonly showHeatmap: boolean
   /**
    * Where the hub map is drawn.
@@ -261,7 +271,7 @@ const INITIAL_BACKTRACE: BacktraceState = {
   includeOverlapping: true,
   topStructures: 8,
   focusAbbrev: null,
-  showHeatmap: false,
+  showHeatmap: true,
   heatSurface: 'sections',
   heatMode: 'regions',
   heatMetric: 'count',

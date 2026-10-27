@@ -84,6 +84,14 @@ export function useConvergenceMatrix(enabled: boolean): HubMatrixState {
 
     return () => {
       live = false
+      // Cleared here too, not only on failure. StrictMode mounts, unmounts and
+      // mounts again in development: without this the first run claimed the
+      // ref and had its result discarded by this very cleanup, and the second
+      // run saw the ref already claimed and did nothing — so a component that
+      // mounted with the map already enabled sat on "loading" forever, while
+      // one that enabled it later worked. The load itself is cached at module
+      // level, so running it again costs nothing.
+      started.current = false
     }
   }, [enabled])
 
