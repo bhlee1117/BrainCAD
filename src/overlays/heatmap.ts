@@ -66,10 +66,19 @@ export interface HeatmapOptions {
   stride?: number
   /** Hard cap on points, raising the stride until the cloud fits under it. */
   maxPoints?: number
+  /**
+   * Draw the ipsilateral half on the animal's left.
+   *
+   * The map is symmetrised by construction, so this only chooses which way
+   * round to show it; `ipsiOnLeftFor` sets it from the target so the painted
+   * brain and the routes crossing it agree about which half is which.
+   */
+  ipsiOnLeft?: boolean
 }
 
 export const DEFAULT_HEATMAP_OPTIONS: Required<HeatmapOptions> = {
   stride: 2,
+  ipsiOnLeft: false,
   // A quarter of a million points is one draw call and renders comfortably;
   // beyond it the gain is invisible because the points overlap anyway.
   maxPoints: 250_000,
@@ -112,7 +121,7 @@ export function buildRetrogradeHeatmap(
   sided: SidedStrengths,
   options: HeatmapOptions = {},
 ): RetrogradeHeatmap {
-  const { stride: requestedStride, maxPoints } = {
+  const { stride: requestedStride, maxPoints, ipsiOnLeft } = {
     ...DEFAULT_HEATMAP_OPTIONS,
     ...options,
   }
@@ -154,7 +163,7 @@ export function buildRetrogradeHeatmap(
           const label = volume.labelAtVoxel(i0, i1, i2)
           if (label === UNLABELLED) continue
 
-          const side = voxelSide(space, { i0, i1, i2 })
+          const side = voxelSide(space, { i0, i1, i2 }, ipsiOnLeft)
           const cache = resolved[side]
           let strength = cache.get(label)
           if (strength === undefined) {

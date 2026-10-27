@@ -15,11 +15,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import type { LoadedAtlas } from '../atlas/load.ts'
+import type { VolumeSpace } from '../atlas/space.ts'
 import type { BacktraceState } from '../state/store.ts'
 import {
   convergenceStrengths,
   formatConvergence,
   loadConvergenceMatrix,
+  reflectVoxel,
   voxelSide,
   type ConvergenceMatrix,
   type Side,
@@ -122,13 +124,14 @@ export function useHubHeatmap(
   matrix: ConvergenceMatrix | null,
   metric: BacktraceState['heatMetric'],
   threshold: number,
+  ipsiOnLeft: boolean,
 ): RetrogradeHeatmap | null {
   return useMemo(() => {
     if (!atlas || !matrix) return null
     const sided = convergenceStrengths(matrix, metric, threshold)
     if (sided.ipsi.size === 0 && sided.contra.size === 0) return null
-    return buildRetrogradeHeatmap(atlas.volume, atlas.index, sided)
-  }, [atlas, matrix, metric, threshold])
+    return buildRetrogradeHeatmap(atlas.volume, atlas.index, sided, { ipsiOnLeft })
+  }, [atlas, matrix, metric, threshold, ipsiOnLeft])
 }
 
 export interface SectionPaint {
@@ -150,6 +153,7 @@ export function useSectionHubPaint(
   matrix: ConvergenceMatrix | null,
   metric: BacktraceState['heatMetric'],
   threshold: number,
+  ipsiOnLeft: boolean,
 ): SectionPaint | null {
   return useMemo(() => {
     if (!atlas || !matrix) return null
@@ -172,12 +176,13 @@ export function useSectionHubPaint(
       caption:
         `Sections coloured by convergence · structures · ${metric} · ` +
         `${formatConvergence(metric, min)} → ${formatConvergence(metric, max)} · ` +
-        `right is ipsilateral · grey is unmeasured · independent of the target`,
+        `${ipsiOnLeft ? 'left' : 'right'} is ipsilateral, the target's own side · ` +
+        `grey is unmeasured · the values are independent of the target`,
       paint: {
         valueAt: (voxel) => {
           const label = atlas.volume.labelAtVoxel(voxel.i0, voxel.i1, voxel.i2)
           if (label === UNLABELLED) return null
-          const side = voxelSide(atlas.space, voxel)
+          const side = voxelSide(atlas.space, voxel, ipsiOnLeft)
           let value = cache[side].get(label)
           if (value === undefined) {
             value = strengthForStructure(atlas.index, sided[side], label)
@@ -189,7 +194,7 @@ export function useSectionHubPaint(
         empty: [0.105, 0.1, 0.09],
       },
     }
-  }, [atlas, matrix, metric, threshold])
+  }, [atlas, matrix, metric, threshold, ipsiOnLeft])
 }
 
 export interface VoxelMapState {
@@ -255,9 +260,11 @@ export function useVoxelConvergence(enabled: boolean): VoxelMapState {
 export function useVoxelPaint(
   map: VoxelConvergence | null,
   metric: BacktraceState['heatMetric'],
+  space: VolumeSpace | null,
+  ipsiOnLeft: boolean,
 ): { paint: VoxelPaint; range: VoxelRange } | null {
   return useMemo(() => {
-    if (!map) return null
+    if (!map || !space) return null
 
     const values = valuesFor(map, metric)
     const range = voxelRange(values)
@@ -267,7 +274,10 @@ export function useVoxelPaint(
       range,
       paint: {
         valueAt: (voxel) => {
-          const index = voxelIndexFor(map, voxel)
+          // Reflected at the annotation grain rather than by keeping a second
+          // copy of the blob: the map is symmetrised by construction, so the
+          // mirrored read *is* the other way round of the same answer.
+          const index = voxelIndexFor(map, ipsiOnLeft ? reflectVoxel(space, voxel) : voxel)
           if (index < 0) return null
           const raw = values[index]!
           return raw > 0 ? raw : null
@@ -278,7 +288,7 @@ export function useVoxelPaint(
         empty: [0.105, 0.1, 0.09],
       },
     }
-  }, [map, metric])
+  }, [map, metric, space, ipsiOnLeft])
 }
 
 /**

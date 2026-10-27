@@ -39,7 +39,7 @@ import {
   useVoxelConvergence,
   useVoxelPaint,
 } from './overlays/useHubMap.ts'
-import { formatConvergence } from './overlays/convergence.ts'
+import { formatConvergence, ipsiOnLeftFor } from './overlays/convergence.ts'
 import { decode } from './overlays/voxelConvergence.ts'
 import { BackTracePanel } from './ui/BackTracePanel.tsx'
 import { AtlasPanel, ProfilePanel, ScenePanel } from './ui/SidePanels.tsx'
@@ -129,11 +129,18 @@ export function App() {
   const hubMapOn = tab === 'BACKTRACE' && backtrace.showHeatmap
   const showHeatmap = hubMapOn && backtrace.heatSurface === 'brain' && !compact
   const convergence = useConvergenceMatrix(hubMapOn)
+
+  // Which way round the symmetrised hub map is drawn. Following the target is
+  // what stops the sections labelling the target's own hemisphere `CONTRA`
+  // while the routes beside them draw its ipsilateral sources on that side.
+  const ipsiOnLeft = ipsiOnLeftFor(target?.coord ?? { ml: 0 })
+
   const heatmap = useHubHeatmap(
     atlas,
     showHeatmap ? convergence.matrix : null,
     backtrace.heatMetric,
     backtrace.connectionThreshold,
+    ipsiOnLeft,
   )
   const routeSources = useHeatmapSources(backtrace)
 
@@ -144,12 +151,18 @@ export function App() {
   const voxelOn = sectionsOn && backtrace.heatGrain === 'voxels'
 
   const voxels = useVoxelConvergence(voxelOn)
-  const voxelPaint = useVoxelPaint(voxelOn ? voxels.map : null, backtrace.heatMetric)
+  const voxelPaint = useVoxelPaint(
+    voxelOn ? voxels.map : null,
+    backtrace.heatMetric,
+    atlas?.space ?? null,
+    ipsiOnLeft,
+  )
   const structurePaint = useSectionHubPaint(
     atlas,
     sectionsOn && !voxelOn ? convergence.matrix : null,
     backtrace.heatMetric,
     backtrace.connectionThreshold,
+    ipsiOnLeft,
   )
 
   const sectionHub = voxelOn
@@ -159,7 +172,8 @@ export function App() {
           `Sections coloured by convergence · voxels (100 µm) · ` +
           `${backtrace.heatMetric} · up to ` +
           `${formatConvergence(backtrace.heatMetric, decode(backtrace.heatMetric, voxelPaint.range.max))}` +
-          ` at the 99th percentile · right is ipsilateral · ` +
+          ` at the 99th percentile · ${ipsiOnLeft ? 'left' : 'right'} is ipsilateral, ` +
+          `the target's own side · ` +
           `${voxels.map?.header.experiments ?? 0} experiments`,
       }
     : structurePaint

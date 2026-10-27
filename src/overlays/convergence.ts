@@ -88,21 +88,39 @@ export type ConvergenceMetric = 'count' | 'mean'
 /**
  * Which half of the brain a value describes.
  *
- * Every experiment is read relative to its own injection, and the maps are
- * drawn with the injected side on the right — the same convention the voxel
- * map and the target buttons use, so nothing on screen contradicts anything
- * else about which half is which.
+ * Every experiment is read relative to its own injection, so the stored map
+ * has no left and right of its own — only an injected side and the other one.
+ * `ipsiOnLeft` below decides which way round it is drawn.
  */
 export type Side = 'ipsi' | 'contra'
 
 /**
- * The side a voxel falls on.
+ * Whether the map should be drawn with its ipsilateral half on the left.
  *
- * Right is ipsilateral, and the choice is not arbitrary even though the
- * mirroring could have gone either way. Allen injects the right hemisphere, so
- * a target there is reached from its own side — which is what makes the ipsi
- * button send the target right. An earlier build normalised onto the left and
- * then had the maps and that button putting opposite words on the same pixel.
+ * The assets are built with every experiment mirrored onto one hemisphere, so
+ * "ipsi" is a property of the aggregate and not of any particular place. Drawn
+ * with a fixed side — the right, as it was — the sections said `IPSI` over the
+ * half that Allen happened to inject, which is a statement about the Allen
+ * Institute's method rather than about the plan on screen. Put a target in the
+ * other half and the view contradicted itself: the sections labelled the
+ * target's own hemisphere `CONTRA`, while the back-trace beside them correctly
+ * drew its ipsilateral sources on the target's side.
+ *
+ * So the map follows the target instead. The half holding the target is always
+ * the ipsilateral one, which is what the word means for a reader planning an
+ * injection there, and the 3D routes and the section labels finally describe
+ * the same geometry. Reflecting an aggregate that was symmetrised by
+ * construction costs nothing and loses nothing.
+ *
+ * Exactly on the midline there is no target hemisphere to follow, and the
+ * stored orientation is kept rather than flipped on the sign of a zero.
+ */
+export function ipsiOnLeftFor(target: { ml: number }): boolean {
+  return target.ml < 0
+}
+
+/**
+ * The side a voxel falls on.
  *
  * The midline is the ML axis's own midpoint rather than a constant, because
  * the two bundled coordinate profiles do not put it in quite the same place.
@@ -110,6 +128,7 @@ export type Side = 'ipsi' | 'contra'
 export function voxelSide(
   space: VolumeSpace,
   voxel: { i0: number; i1: number; i2: number },
+  ipsiOnLeft = false,
 ): Side {
   const mlAxis = arrayAxisFor(space, 'ML')
   const index = [voxel.i0, voxel.i1, voxel.i2][mlAxis]!
@@ -117,7 +136,28 @@ export function voxelSide(
   const left = indexIncreasesPositively(space.axes[mlAxis]!)
     ? index < midpoint
     : index >= midpoint
-  return left ? 'contra' : 'ipsi'
+  return left === ipsiOnLeft ? 'ipsi' : 'contra'
+}
+
+/**
+ * The same voxel in the other hemisphere.
+ *
+ * How the voxel grain follows the target: the stored blob holds one
+ * orientation, and a target in the left hemisphere reads it through this
+ * reflection rather than through a second copy of the data.
+ *
+ * Reflecting the annotation voxel and then halving gives the same grid voxel
+ * as halving and then reflecting — `(N-1-i) >> 1` equals `N/2-1-(i >> 1)` for
+ * every i — so this composes with `voxelIndexFor` without a special case.
+ */
+export function reflectVoxel(
+  space: VolumeSpace,
+  voxel: { i0: number; i1: number; i2: number },
+): { i0: number; i1: number; i2: number } {
+  const mlAxis = arrayAxisFor(space, 'ML')
+  const indices = [voxel.i0, voxel.i1, voxel.i2]
+  indices[mlAxis] = space.shape[mlAxis]! - 1 - indices[mlAxis]!
+  return { i0: indices[0]!, i1: indices[1]!, i2: indices[2]! }
 }
 
 export const CONVERGENCE_METRIC_LABEL: Record<ConvergenceMetric, string> = {
@@ -188,26 +228,32 @@ export interface SectionSides {
  *
  * The caption can say "left is ipsilateral" and still leave a reader counting
  * across the image to work out which half they are looking at — and a sagittal
- * section has no halves at all: it is one hemisphere, and which one depends on
- * where the slice was taken.
+ * section has no halves at all: it is one hemisphere.
+ *
+ * Named relative to the target, which is the only reading that agrees with the
+ * rest of the screen. The sagittal slice passes through the target, so it is
+ * the target's own hemisphere and is therefore always the ipsilateral one; a
+ * target exactly on the midline is in neither, and saying so is better than
+ * rounding to one.
  *
  * Read off the *display* convention rather than the volume's storage order.
- * `extractSlice` always puts +ML to the right whatever the array does, so the
- * animal's right — ipsilateral, by the mirroring the data was built with — is
- * always the right of the image.
+ * `extractSlice` always puts +ML to the right whatever the array does, so a
+ * target at positive ML is in the right of the image.
  */
 export function sectionSides(
   axis: AnatomicalAxis,
   coord: { ml: number },
 ): SectionSides {
-  if (axis === 'ML') {
-    // Sagittal: one hemisphere, named by where the slice sits. Exactly on the
-    // midline it is neither, and saying so is better than rounding to one.
-    const whole: Side | null = coord.ml > 0 ? 'ipsi' : coord.ml < 0 ? 'contra' : null
-    return { left: null, right: null, whole }
+  if (coord.ml === 0) {
+    // No target hemisphere to be relative to.
+    return { left: null, right: null, whole: null }
   }
 
-  return { left: 'contra', right: 'ipsi', whole: null }
+  if (axis === 'ML') return { left: null, right: null, whole: 'ipsi' }
+
+  return ipsiOnLeftFor(coord)
+    ? { left: 'ipsi', right: 'contra', whole: null }
+    : { left: 'contra', right: 'ipsi', whole: null }
 }
 
 /**
@@ -323,9 +369,9 @@ export function formatConvergence(metric: ConvergenceMetric, value: number): str
 export const CONVERGENCE_CAVEATS: readonly string[] = [
   'A property of the Allen connectome, not of your target — moving the target does not ' +
     'change this map. The target is drawn only as a reference mark.',
-  'Right is ipsilateral to the injection and left is contralateral: every experiment is ' +
-    'read relative to its own injection, which Allen places on the right for 81% of ' +
-    'the 2,810 experiments here.',
+  "The target's own half is the ipsilateral one: every experiment is read relative to " +
+    'its own injection, so the map has no left and right of its own and is drawn the ' +
+    'way round that matches the target and the routes beside it.',
   'Anterograde data, so "projects into" is bulk signal detected in the region and counts ' +
     'fibres passing through the same as terminals.',
   'One value per source region, its strongest experiment — counting experiments would ' +

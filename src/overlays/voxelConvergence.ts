@@ -16,12 +16,13 @@
  * Three things about it are not true of the structure map and change how it
  * should be read:
  *
- *  - **Right is ipsilateral.** Every experiment is mirrored so its injection
- *    lies in the right hemisphere — the side Allen already injects, so the
- *    aggregate agrees with the raw anatomy and with the panel's ipsi button.
- *    Raw, the brightness on whichever side the needle went in is a fact about
- *    the method; mirrored, the two halves are the ipsilateral and
- *    contralateral parts of one answer.
+ *  - **The target's half is the ipsilateral one.** Every experiment is
+ *    mirrored so its injection lies on one side, which leaves the blob with an
+ *    ipsilateral half and a contralateral half and no left or right of its
+ *    own. Raw, the brightness on whichever side the needle went in is a fact
+ *    about the method; mirrored, the two halves are the ipsilateral and
+ *    contralateral parts of one answer, and `ipsiOnLeftFor` decides which way
+ *    round to draw them so they agree with the target.
  *  - **White matter lights up, correctly.** A tract carries the axons of many
  *    sources, so it genuinely has high convergence by this measure — it is
  *    just convergence of *passage* rather than of termination. The structure
@@ -203,9 +204,9 @@ export function voxelIndexFor(
 
 /** Caveats carried wherever the voxel map is shown. */
 export const VOXEL_CAVEATS: readonly string[] = [
-  'Right is ipsilateral to the injection: every experiment is mirrored so its injection ' +
-    'lies on the right, so the left half is the contralateral answer. 534 of 2,826 ' +
-    'experiments were mirrored; the rest were already injected on the right.',
+  "The target's own half is the ipsilateral one: every experiment is mirrored so its " +
+    'injection lies on one side, and the map is then drawn the way round that matches ' +
+    'the target. 534 of 2,826 experiments were mirrored when the blob was built.',
   'White matter is genuinely bright — a tract carries the axons of many sources. That is ' +
     'convergence of passage, not of termination.',
   'The scale tops out at the 99th percentile; a few voxels in dense tracts run four ' +

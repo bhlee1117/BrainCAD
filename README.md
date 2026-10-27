@@ -378,11 +378,36 @@ region identically on both halves and made the map symmetric by construction
 rather than by anatomy. It is not a small difference: a single CA3 experiment
 deposits 0.089 in one CA1 and 0.216 in the other. Both hemispheres are fetched
 and each experiment's own injection side decides which is ipsilateral, which
-matters because Allen injects the right hemisphere in 81% of this corpus. Right is ipsilateral in both grains, and the sections say so on themselves
-rather than only in the caption: coronal and horizontal carry `ipsi` and
-`contra` under their two halves, and a sagittal section — which is one
-hemisphere, not two — is named by the one it was taken in, or `midline` when it
-sits on it. The median
+matters because Allen injects the right hemisphere in 81% of this corpus.
+
+**The map follows the target.** Mirroring every experiment leaves an aggregate
+with an ipsilateral half and a contralateral half and no left or right of its
+own, so which way round to draw it is a choice. Drawn on a fixed side — the
+right, as it was — the sections put `IPSI` over the half Allen happened to
+inject, which is a statement about the Allen Institute's method and not about
+the plan on screen. Put a target in the other half and the view contradicted
+itself: the sections labelled the target's own hemisphere `CONTRA` while the
+back-trace beside them, correctly, drew that target's ipsilateral sources on
+exactly that side. Two frames, one screen, and the back-trace was the one being
+disbelieved. Now the half holding the target is always the ipsilateral one.
+
+The reflection costs nothing, because the thing being reflected was symmetrised
+by construction: the voxel grain reads the mirrored voxel out of the one stored
+blob, and the structure grain swaps which of the two columns it looks up. The
+sections say which is which on themselves rather than only in the caption —
+coronal and horizontal carry `ipsi` and `contra` under their halves, and a
+sagittal section is always the ipsilateral one, because the slice is taken at
+the target's own ML. A target exactly on the midline is in neither hemisphere
+and the labels say `midline` rather than rounding to a side.
+
+What this does *not* do is move sources. A source is ipsilateral or
+contralateral by where its needle went relative to the target, and for some
+projections that is nearly absolute: at a left visual-thalamic target, 165 of
+the 165 VIS experiments reaching it were injected on the left. Mirroring those
+onto the other half to make a picture look balanced would draw a projection
+that does not exist.
+
+The median
 structure receives contralaterally from 0.56× as many regions as ipsilaterally,
 and the spread is the interesting part: the midline thalamic nuclei come out
 near 0.9 (PVT 0.88, CM 0.90, RE 0.85), zona incerta at 0.43 and VPM at 0.14.
@@ -429,9 +454,9 @@ Two things the voxel map shows that the structure map hid, both real:
   tracts" block.
 - **Laterality, before it was corrected.** Accumulated raw, the map was
   brighter on whichever side the needle went in. Each experiment is now
-  mirrored so its injection lies on the **right**, making right ipsilateral and
-  left contralateral throughout — the side Allen already injects, so the
-  aggregate agrees with the raw anatomy and with the panel's ipsi button.
+  mirrored so its injection lies on one side, which turns the two halves into
+  the ipsilateral and contralateral parts of one answer; which half is drawn
+  where then follows the target, as above.
 
 The scale needs a percentile rather than a maximum: counts run to 1,988 against
 a median of 57 and a 99th percentile of 495, so scaling to the brightest voxels
