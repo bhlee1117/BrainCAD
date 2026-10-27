@@ -30,7 +30,12 @@
  * weaker mirror.
  */
 
-import { arrayAxisFor, indexIncreasesPositively, type VolumeSpace } from '../atlas/space.ts'
+import {
+  arrayAxisFor,
+  indexIncreasesPositively,
+  type AnatomicalAxis,
+  type VolumeSpace,
+} from '../atlas/space.ts'
 
 /** Resolve a path inside the bundled connectivity assets. */
 export function connectivityUrl(path: string): string {
@@ -153,6 +158,47 @@ export function clearConvergenceCache(): void {
  * Returns the same shape the retrograde heat map takes, so the second brain
  * paints a convergence map and a back-trace with one piece of code.
  */
+export interface SectionSides {
+  /** Hemisphere on the left of the image, or null if the section is one side. */
+  readonly left: Side | null
+  readonly right: Side | null
+  /** Set instead when the whole section lies in one hemisphere. */
+  readonly whole: Side | null
+}
+
+/**
+ * Which hemisphere each half of a section shows.
+ *
+ * The caption can say "left is ipsilateral" and still leave a reader counting
+ * across the image to work out which half they are looking at — and a sagittal
+ * section has no halves at all: it is one hemisphere, and which one depends on
+ * where the slice was taken.
+ *
+ * Read off the *display* convention rather than the volume's storage order.
+ * `extractSlice` always puts +ML to the right whatever the array does, so the
+ * animal's left — ipsilateral, by the mirroring the data was built with — is
+ * always the left of the image.
+ */
+export function sectionSides(
+  axis: AnatomicalAxis,
+  coord: { ml: number },
+): SectionSides {
+  if (axis === 'ML') {
+    // Sagittal: one hemisphere, named by where the slice sits. Exactly on the
+    // midline it is neither, and saying so is better than rounding to one.
+    const whole: Side | null = coord.ml < 0 ? 'ipsi' : coord.ml > 0 ? 'contra' : null
+    return { left: null, right: null, whole }
+  }
+
+  return { left: 'ipsi', right: 'contra', whole: null }
+}
+
+/** How a side reads on screen. */
+export const SIDE_LABEL: Record<Side, string> = {
+  ipsi: 'ipsi',
+  contra: 'contra',
+}
+
 export interface SidedStrengths {
   readonly ipsi: ReadonlyMap<number, number>
   readonly contra: ReadonlyMap<number, number>

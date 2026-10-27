@@ -377,7 +377,11 @@ region identically on both halves and made the map symmetric by construction
 rather than by anatomy. It is not a small difference: a single CA3 experiment
 deposits 0.089 in one CA1 and 0.216 in the other. Both hemispheres are fetched
 and each experiment's own injection side decides which is ipsilateral, which
-matters because Allen injects the right hemisphere in 98% of cases. Left is ipsilateral in both grains. The median
+matters because Allen injects the right hemisphere in 98% of cases. Left is ipsilateral in both grains, and the sections say so on themselves
+rather than only in the caption: coronal and horizontal carry `ipsi` and
+`contra` under their two halves, and a sagittal section — which is one
+hemisphere, not two — is named by the one it was taken in, or `midline` when it
+sits on it. The median
 structure receives contralaterally from 0.58× as many regions as ipsilaterally,
 and the spread is the interesting part: the midline thalamic nuclei come out
 near 0.95, zona incerta at 0.53.

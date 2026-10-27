@@ -20,7 +20,9 @@ import {
   convergenceStrengths,
   formatConvergence,
   loadConvergenceMatrix,
+  SIDE_LABEL,
   rankConvergence,
+  sectionSides,
   type ConvergenceMatrix,
   voxelSide,
   type ConvergenceMetric,
@@ -179,6 +181,49 @@ describe('independence from the target', () => {
 
   it('warns that it counts sources, not experiments', () => {
     expect(CONVERGENCE_CAVEATS.join(' ')).toMatch(/how often Allen injected/i)
+  })
+})
+
+describe('sectionSides', () => {
+  it('splits a coronal section into ipsi on the left', () => {
+    // `extractSlice` always puts +ML to the right whatever the array order is,
+    // so the animal's left — ipsilateral, by the mirroring the data was built
+    // with — is always the left of the image.
+    const sides = sectionSides('AP', { ml: 1.5 })
+    expect(sides.left).toBe('ipsi')
+    expect(sides.right).toBe('contra')
+    expect(sides.whole).toBeNull()
+  })
+
+  it('splits a horizontal section the same way', () => {
+    expect(sectionSides('DV', { ml: -2 }).left).toBe('ipsi')
+  })
+
+  it('does not depend on where a coronal slice was taken', () => {
+    // Both halves are on screen whatever the ML readout says, so the labels
+    // must not follow the crosshair.
+    for (const ml of [-4, 0, 4]) {
+      expect(sectionSides('AP', { ml }).left).toBe('ipsi')
+    }
+  })
+
+  it('names a sagittal section by the hemisphere it is in', () => {
+    // One hemisphere only, and which one is the whole question.
+    expect(sectionSides('ML', { ml: -1.5 }).whole).toBe('ipsi')
+    expect(sectionSides('ML', { ml: 1.5 }).whole).toBe('contra')
+    expect(sectionSides('ML', { ml: -1.5 }).left).toBeNull()
+  })
+
+  it('refuses to name a sagittal section on the midline', () => {
+    // Rounding to one side would be a quiet lie about which half the colours
+    // came from.
+    expect(sectionSides('ML', { ml: 0 }).whole).toBeNull()
+  })
+
+  it('labels both sides', () => {
+    expect(SIDE_LABEL.ipsi).toBeTruthy()
+    expect(SIDE_LABEL.contra).toBeTruthy()
+    expect(SIDE_LABEL.ipsi).not.toBe(SIDE_LABEL.contra)
   })
 })
 
