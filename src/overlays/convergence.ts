@@ -78,18 +78,21 @@ export type ConvergenceMetric = 'count' | 'mean'
  * Which half of the brain a value describes.
  *
  * Every experiment is read relative to its own injection, and the maps are
- * drawn with the injected side on the left — the same convention the voxel map
- * uses, so the two grains can be compared without re-learning the picture.
+ * drawn with the injected side on the right — the same convention the voxel
+ * map uses, so the two grains can be compared without re-learning the picture.
  */
 export type Side = 'ipsi' | 'contra'
 
 /**
  * The side a voxel falls on.
  *
- * Left is ipsilateral by convention, not by measurement: the data has been
- * arranged that way. The midline is the ML axis's own midpoint rather than a
- * constant, because the two bundled coordinate profiles do not put it in quite
- * the same place.
+ * Right is ipsilateral by convention, not by measurement: the data has been
+ * arranged that way. Right rather than left because that is where Allen puts
+ * 98% of its injections already and where BrainCAD's own +ML points, so the
+ * map agrees with both the raw volumes and the hemisphere a plan is usually
+ * in. The midline is the ML axis's own midpoint rather than a constant,
+ * because the two bundled coordinate profiles do not put it in quite the same
+ * place.
  */
 export function voxelSide(
   space: VolumeSpace,
@@ -101,7 +104,7 @@ export function voxelSide(
   const left = indexIncreasesPositively(space.axes[mlAxis]!)
     ? index < midpoint
     : index >= midpoint
-  return left ? 'ipsi' : 'contra'
+  return left ? 'contra' : 'ipsi'
 }
 
 export const CONVERGENCE_METRIC_LABEL: Record<ConvergenceMetric, string> = {
@@ -239,7 +242,7 @@ export function formatConvergence(metric: ConvergenceMetric, value: number): str
 export const CONVERGENCE_CAVEATS: readonly string[] = [
   'A property of the Allen connectome, not of your target — moving the target does not ' +
     'change this map. The target is drawn only as a reference mark.',
-  'Left is ipsilateral to the injection and right is contralateral: every experiment is ' +
+  'Right is ipsilateral to the injection and left is contralateral: every experiment is ' +
     'read relative to its own injection, which Allen places on the right 98% of the time.',
   'Anterograde data, so "projects into" is bulk signal detected in the region and counts ' +
     'fibres passing through the same as terminals.',

@@ -249,7 +249,10 @@ export interface BacktraceState {
    *
    * `structures` is the unionize matrix, one value per region. `voxels` is the
    * same question asked of the raw 100 µm projection grids, which owes nothing
-   * to the parcellation and can disagree with it.
+   * to the parcellation and can disagree with it — and is the default, because
+   * a map whose edges fall on structure boundaries looks like an answer about
+   * anatomy when it is an answer about the parcellation. It costs 2 MB,
+   * fetched once and only when the tab is open.
    */
   readonly heatGrain: 'structures' | 'voxels'
   /** What the convergence map measures. */
@@ -282,7 +285,7 @@ const INITIAL_BACKTRACE: BacktraceState = {
   showHeatmap: true,
   heatSurface: 'sections',
   heatMode: 'regions',
-  heatGrain: 'structures',
+  heatGrain: 'voxels',
   heatMetric: 'count',
   connectionThreshold: DEFAULT_CONNECTION_THRESHOLD,
   heatOpacity: 1,

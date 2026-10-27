@@ -377,7 +377,7 @@ region identically on both halves and made the map symmetric by construction
 rather than by anatomy. It is not a small difference: a single CA3 experiment
 deposits 0.089 in one CA1 and 0.216 in the other. Both hemispheres are fetched
 and each experiment's own injection side decides which is ipsilateral, which
-matters because Allen injects the right hemisphere in 98% of cases. The median
+matters because Allen injects the right hemisphere in 98% of cases. Right is ipsilateral in both grains. The median
 structure receives contralaterally from 0.58× as many regions as ipsilaterally,
 and the spread is the interesting part: the midline thalamic nuclei come out
 near 0.95, zona incerta at 0.53.
@@ -410,11 +410,11 @@ Two things the voxel map shows that the structure map hid, both real:
   genuinely has high convergence by this measure — convergence of *passage*
   rather than of termination. The structure map buried this inside one "fiber
   tracts" block.
-- **Laterality, before it was corrected.** Accumulated raw, the map was visibly
-  brighter on the right, which is where Allen puts the needle. Each experiment
-  is now mirrored so its injection lies on the left, making left ipsilateral and
-  right contralateral for every experiment — the same convention the structure
-  matrix uses.
+- **Laterality, before it was corrected.** Accumulated raw, the map was
+  brighter on whichever side the needle went in. Each experiment is now
+  mirrored so its injection lies on the **right** — where 98% of them already
+  are, and where BrainCAD's own +ML points — making right ipsilateral and left
+  contralateral throughout, the same convention the structure matrix uses.
 
 The scale needs a percentile rather than a maximum: counts run to 1,772 against
 a median of 52, so scaling to the brightest voxels renders the rest of the brain

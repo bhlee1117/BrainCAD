@@ -172,7 +172,7 @@ export function useSectionHubPaint(
       caption:
         `Sections coloured by convergence · structures · ${metric} · ` +
         `${formatConvergence(metric, min)} → ${formatConvergence(metric, max)} · ` +
-        `left is ipsilateral · grey is unmeasured · independent of the target`,
+        `right is ipsilateral · grey is unmeasured · independent of the target`,
       paint: {
         valueAt: (voxel) => {
           const label = atlas.volume.labelAtVoxel(voxel.i0, voxel.i1, voxel.i2)

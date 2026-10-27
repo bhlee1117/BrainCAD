@@ -11,6 +11,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { makeVolumeSpace } from '../atlas/space.ts'
+import { VOXEL_CAVEATS } from './voxelConvergence.ts'
 import {
   CONVERGENCE_CAVEATS,
   CONVERGENCE_METRIC_LABEL,
@@ -125,25 +126,32 @@ describe('convergenceStrengths', () => {
 describe('voxelSide', () => {
   const space = makeVolumeSpace([264, 160, 228], 50, 'asl')
 
-  it('calls the left half ipsilateral', () => {
+  it('calls the right half ipsilateral', () => {
     // By convention, not by measurement: the data is arranged that way, with
-    // every experiment read relative to its own injection.
-    expect(voxelSide(space, { i0: 100, i1: 80, i2: 10 })).toBe('ipsi')
-    expect(voxelSide(space, { i0: 100, i1: 80, i2: 220 })).toBe('contra')
+    // every experiment mirrored onto the side Allen already injects.
+    expect(voxelSide(space, { i0: 100, i1: 80, i2: 220 })).toBe('ipsi')
+    expect(voxelSide(space, { i0: 100, i1: 80, i2: 10 })).toBe('contra')
   })
 
   it('follows the ML direction of the volume rather than the index', () => {
     // An 'asr' volume counts ML from the right, so the same index is the
-    // other hemisphere. Hard-coding "low index is left" would silently swap
+    // other hemisphere. Hard-coding "high index is right" would silently swap
     // ipsi and contra for any atlas stored the other way round.
     const flipped = makeVolumeSpace([264, 160, 228], 50, 'asr')
-    expect(voxelSide(flipped, { i0: 100, i1: 80, i2: 10 })).toBe('contra')
-    expect(voxelSide(flipped, { i0: 100, i1: 80, i2: 220 })).toBe('ipsi')
+    expect(voxelSide(flipped, { i0: 100, i1: 80, i2: 220 })).toBe('contra')
+    expect(voxelSide(flipped, { i0: 100, i1: 80, i2: 10 })).toBe('ipsi')
   })
 
   it('splits at the ML axis midpoint', () => {
-    expect(voxelSide(space, { i0: 0, i1: 0, i2: 113 })).toBe('ipsi')
-    expect(voxelSide(space, { i0: 0, i1: 0, i2: 114 })).toBe('contra')
+    expect(voxelSide(space, { i0: 0, i1: 0, i2: 113 })).toBe('contra')
+    expect(voxelSide(space, { i0: 0, i1: 0, i2: 114 })).toBe('ipsi')
+  })
+
+  it('agrees with the bundled voxel map about which side is which', () => {
+    // The two grains are drawn side by side and compared by eye, so a
+    // disagreement here would be read as a difference in the data.
+    expect(CONVERGENCE_CAVEATS.join(' ')).toMatch(/right is ipsilateral/i)
+    expect(VOXEL_CAVEATS.join(' ')).toMatch(/right is ipsilateral/i)
   })
 })
 
@@ -157,10 +165,6 @@ describe('independence from the target', () => {
     const first = convergenceStrengths(MATRIX, 'count')
     const second = convergenceStrengths(MATRIX, 'count')
     expect([...first.ipsi.entries()]).toEqual([...second.ipsi.entries()])
-  })
-
-  it('says which side is which', () => {
-    expect(CONVERGENCE_CAVEATS.join(' ')).toMatch(/left is ipsilateral/i)
   })
 
   it('says so in the first caveat', () => {
