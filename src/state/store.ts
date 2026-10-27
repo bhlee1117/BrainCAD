@@ -26,10 +26,10 @@ import type { CollisionSettings, SceneCollisionReport } from '../collision/check
 import { DEFAULT_COLLISION_SETTINGS } from '../collision/check.ts'
 import type { Measurement } from '../measure/measure.ts'
 import {
-  DEFAULT_HEATMAP_METRIC,
-  type HeatmapMetric,
-  type HeatmapMode,
-} from '../overlays/heatmap.ts'
+  DEFAULT_CONNECTION_THRESHOLD,
+  type ConvergenceMetric,
+} from '../overlays/convergence.ts'
+import type { HeatmapMode } from '../overlays/heatmap.ts'
 import type { RetrogradeSource } from '../overlays/retrograde.ts'
 import { DEFAULT_STEP_MM } from './nudge.ts'
 import {
@@ -225,8 +225,10 @@ export interface BacktraceState {
   readonly showHeatmap: boolean
   /** Whether the second brain paints regions or draws the traced routes. */
   readonly heatMode: HeatmapMode
-  /** What the heat map measures. */
-  readonly heatMetric: HeatmapMetric
+  /** What the convergence map measures. */
+  readonly heatMetric: ConvergenceMetric
+  /** Minimum projection density for a source to count as projecting in. */
+  readonly connectionThreshold: number
   readonly heatOpacity: number
   /** Heat point size in world millimetres. */
   readonly heatPointSizeMm: number
@@ -252,7 +254,8 @@ const INITIAL_BACKTRACE: BacktraceState = {
   focusAbbrev: null,
   showHeatmap: false,
   heatMode: 'regions',
-  heatMetric: DEFAULT_HEATMAP_METRIC,
+  heatMetric: 'count',
+  connectionThreshold: DEFAULT_CONNECTION_THRESHOLD,
   heatOpacity: 1,
   heatPointSizeMm: 0.22,
   heatAllSources: true,

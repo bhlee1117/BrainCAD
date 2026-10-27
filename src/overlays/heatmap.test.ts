@@ -15,21 +15,15 @@ import { AnnotationVolume } from '../atlas/annotation.ts'
 import { buildIndex, type Structure } from '../atlas/ontology.ts'
 import { makeVolumeSpace } from '../atlas/space.ts'
 import {
-  DEFAULT_HEATMAP_METRIC,
   DEFAULT_HEATMAP_OPTIONS,
-  HEATMAP_METRIC_LABEL,
   HEATMAP_MODE_LABEL,
-  buildRouteHeat,
   buildRetrogradeHeatmap,
+  buildRouteHeat,
   heatColor,
   heatmapColors,
-  rankHubs,
-  strengthByStructure,
   strengthForStructure,
-  type HeatmapMetric,
   type HeatmapMode,
 } from './heatmap.ts'
-import type { RetrogradeMatrixRow, RetrogradeSource } from './retrograde.ts'
 
 /**
  * A miniature ontology: root › grey › {HPF › CA3 › CA3sp, TH › RT}.
@@ -55,6 +49,20 @@ const INDEX = buildIndex(STRUCTURES)
  * Laid out by hand so the expected point counts can be reasoned about rather
  * than read back out of the function under test.
  */
+/**
+ * Compare colours with tolerance.
+ *
+ * The buffers are Float32Array, so a stop written as 0.92 reads back as
+ * 0.9200000166893005 and an exact comparison fails on the storage format
+ * rather than on anything about the colour.
+ */
+function expectColor(actual: ArrayLike<number>, expected: readonly number[]) {
+  expect(actual.length).toBe(expected.length)
+  for (let i = 0; i < expected.length; i++) {
+    expect(actual[i]).toBeCloseTo(expected[i]!, 5)
+  }
+}
+
 function miniVolume(): AnnotationVolume {
   const space = makeVolumeSpace([4, 4, 4], 50, 'asl')
   const labels = new Uint32Array(4 * 4 * 4)
@@ -69,78 +77,6 @@ function miniVolume(): AnnotationVolume {
   }
   return new AnnotationVolume(space, labels)
 }
-
-function matrixRow(over: {
-  structureId: number
-  abbrev: string
-  densities: number[]
-}): RetrogradeMatrixRow {
-  const sources = over.densities.map(
-    (d) => ({ densityAtTarget: d, targetInsideInjection: false }) as RetrogradeSource,
-  )
-  return {
-    structureId: over.structureId,
-    abbrev: over.abbrev,
-    name: over.abbrev,
-    color: '#888888',
-    experimentCount: sources.length,
-    peakDensity: Math.max(...over.densities),
-    meanDensity: over.densities.reduce((a, b) => a + b, 0) / over.densities.length,
-    overlappingCount: 0,
-    sources,
-  }
-}
-
-describe('strengthByStructure', () => {
-  const matrix = [
-    matrixRow({ structureId: 382, abbrev: 'CA3', densities: [0.9, 0.1, 0.1] }),
-    matrixRow({ structureId: 262, abbrev: 'RT', densities: [0.4, 0.4] }),
-  ]
-
-  it('reads the max', () => {
-    const s = strengthByStructure(matrix, 'max')
-    expect(s.get(382)).toBeCloseTo(0.9, 6)
-    expect(s.get(262)).toBeCloseTo(0.4, 6)
-  })
-
-  it('reads the mean', () => {
-    const s = strengthByStructure(matrix, 'mean')
-    expect(s.get(382)).toBeCloseTo(0.3667, 3)
-    expect(s.get(262)).toBeCloseTo(0.4, 6)
-  })
-
-  it('reorders the ranking between the two', () => {
-    // Why both are offered. CA3's one strong experiment wins on max; RT, hit
-    // consistently by three, wins on mean. They are different claims about
-    // what a hub is, and neither is a summary of the other.
-    const rows = [
-      matrixRow({ structureId: 382, abbrev: 'CA3', densities: [0.9, 0.02, 0.02] }),
-      matrixRow({ structureId: 262, abbrev: 'RT', densities: [0.4, 0.4, 0.4] }),
-    ]
-    const byMax = strengthByStructure(rows, 'max')
-    const byMean = strengthByStructure(rows, 'mean')
-
-    expect(byMax.get(382)!).toBeGreaterThan(byMax.get(262)!)
-    expect(byMean.get(262)!).toBeGreaterThan(byMean.get(382)!)
-  })
-
-  it('defaults to mean, the steadier of the two', () => {
-    // Max rewards a lucky injection: one experiment placed dead centre
-    // outranks nine placed slightly off.
-    expect(DEFAULT_HEATMAP_METRIC).toBe('mean')
-  })
-
-  it('skips rows with no structure id', () => {
-    const s = strengthByStructure([matrixRow({ structureId: 0, abbrev: '—', densities: [1] })], 'max')
-    expect(s.size).toBe(0)
-  })
-
-  it('labels every metric for the panel', () => {
-    for (const metric of ['mean', 'max'] as HeatmapMetric[]) {
-      expect(HEATMAP_METRIC_LABEL[metric]).toBeTruthy()
-    }
-  })
-})
 
 describe('strengthForStructure', () => {
   it('matches a leaf voxel to the ancestor that was injected', () => {
@@ -265,16 +201,52 @@ describe('the heat ramp', () => {
     expect(heatColor(5)).toEqual(heatColor(1))
   })
 
-  it('normalises against the strongest value present', () => {
-    // A target whose best input is 0.08 would otherwise render entirely at the
-    // dark end, hiding the contrast the map exists to show.
-    const faint = buildRetrogradeHeatmap(miniVolume(), INDEX, new Map([[382, 0.08]]), {
+  it('stretches between the lowest and highest value present', () => {
+    // Normalising from zero was the first version and was wrong for counts:
+    // they run 1 to 115 with most regions between 60 and 110, so nearly the
+    // whole brain landed at the top of the ramp with nothing to stand out
+    // from. Stretched, the weakest region sits at the bottom stop.
+    const heatmap = buildRetrogradeHeatmap(
+      miniVolume(),
+      INDEX,
+      new Map([
+        [382, 110],
+        [262, 60],
+      ]),
+      { stride: 1 },
+    )
+    const colors = heatmapColors(heatmap)
+    const strongIndex = [...heatmap.strengths].indexOf(110)
+    const weakIndex = [...heatmap.strengths].indexOf(60)
+
+    expect(heatmap.minStrength).toBe(60)
+    expect(heatmap.maxStrength).toBe(110)
+    expectColor(colors.slice(strongIndex * 3, strongIndex * 3 + 3), heatColor(1))
+    expectColor(colors.slice(weakIndex * 3, weakIndex * 3 + 3), heatColor(0))
+  })
+
+  it('puts a single value at the top rather than dividing by zero', () => {
+    const flat = buildRetrogradeHeatmap(miniVolume(), INDEX, new Map([[382, 0.08]]), {
       stride: 1,
     })
-    const strong = buildRetrogradeHeatmap(miniVolume(), INDEX, new Map([[382, 0.9]]), {
-      stride: 1,
-    })
-    expect([...heatmapColors(faint)]).toEqual([...heatmapColors(strong)])
+    expectColor(heatmapColors(flat).slice(0, 3), heatColor(1))
+  })
+
+  it('does not care what scale the values are on', () => {
+    // The same shape of answer, in counts or in densities, paints the same.
+    const counts = buildRetrogradeHeatmap(
+      miniVolume(),
+      INDEX,
+      new Map([[382, 110], [262, 60]]),
+      { stride: 1 },
+    )
+    const densities = buildRetrogradeHeatmap(
+      miniVolume(),
+      INDEX,
+      new Map([[382, 0.11], [262, 0.06]]),
+      { stride: 1 },
+    )
+    expectColor(heatmapColors(counts), [...heatmapColors(densities)])
   })
 })
 
@@ -352,19 +324,5 @@ describe('buildRouteHeat', () => {
     for (const mode of ['regions', 'routes'] as HeatmapMode[]) {
       expect(HEATMAP_MODE_LABEL[mode]).toBeTruthy()
     }
-  })
-})
-
-describe('rankHubs', () => {
-  it('ranks painted structures by strength, naming them', () => {
-    const strengths = new Map([
-      [382, 0.9],
-      [262, 0.3],
-    ])
-    const heatmap = buildRetrogradeHeatmap(miniVolume(), INDEX, strengths, { stride: 1 })
-    const hubs = rankHubs(INDEX, strengths, heatmap)
-
-    expect(hubs.map((h) => h.acronym)).toEqual(['CA3', 'RT'])
-    expect(hubs[0]!.name).toBe('Field CA3')
   })
 })

@@ -24,10 +24,14 @@ import {
   type RetrogradeMatrixRow,
 } from '../overlays/retrograde.ts'
 import {
-  HEATMAP_METRIC_LABEL,
-  HEATMAP_MODE_LABEL,
-  type HeatmapMetric,
-} from '../overlays/heatmap.ts'
+  CONVERGENCE_CAVEATS,
+  CONVERGENCE_METRIC_LABEL,
+  formatConvergence,
+  rankConvergence,
+  type ConvergenceMetric,
+} from '../overlays/convergence.ts'
+import { useConvergenceMatrix } from '../overlays/useHubMap.ts'
+import { HEATMAP_MODE_LABEL } from '../overlays/heatmap.ts'
 import { COARSE_FACTOR, NUDGE_LEGEND, nudgeCoord } from '../state/nudge.ts'
 import { useAppStore } from '../state/store.ts'
 import { NumberField } from './NumberField.tsx'
@@ -50,6 +54,15 @@ const FOLLOW_DEBOUNCE_MS = 600
  * what actually has to keep up with it.
  */
 const MAX_TOP_STRUCTURES = 100
+
+/**
+ * How many hubs the list names.
+ *
+ * Long enough to look past the handful everyone already expects, short enough
+ * that the list is still read rather than scrolled. The map beside it is what
+ * covers the rest.
+ */
+const HUB_LIST_LENGTH = 15
 
 /**
  * How long the search typically takes, in seconds.
@@ -176,6 +189,10 @@ export function BackTracePanel({
   const setNudgeStepMm = useAppStore((s) => s.setNudgeStepMm)
   const updateTarget = useAppStore((s) => s.updateTarget)
 
+  // The same hook App uses, so the matrix is fetched once and shared through
+  // its module-level cache rather than downloaded twice.
+  const convergence = useConvergenceMatrix(backtrace.showHeatmap)
+
   const target = targets.find((t) => t.id === selectedTargetId) ?? null
   const coord = target?.coord ?? null
 
@@ -247,6 +264,17 @@ export function BackTracePanel({
     return atlas.index.byId.get(id)?.acronym ?? null
   })()
 
+  // Ranked from the same matrix the colours come from, so the list and the
+  // map can never disagree about which region is hottest.
+  const hubs =
+    convergence.matrix && backtrace.showHeatmap && backtrace.heatMode === 'regions'
+      ? rankConvergence(
+          convergence.matrix,
+          backtrace.heatMetric,
+          backtrace.connectionThreshold,
+        )
+      : []
+
   const shown = visibleSources(backtrace.sources, {
     includeOverlapping: backtrace.includeOverlapping,
     topStructures: backtrace.topStructures,
@@ -299,7 +327,7 @@ export function BackTracePanel({
             <button
               key={entry.key}
               className="pad__key"
-              title={`${entry.label} — number pad ${entry.key}`}
+              title={`${entry.label} — ${entry.key}`}
               onClick={(event) =>
                 updateTarget(target.id, {
                   coord: nudgeCoord(
@@ -316,9 +344,9 @@ export function BackTracePanel({
           ))}
         </div>
         <p className="hint">
-          Number-pad keys move the target, or tap above; hold Shift for ×{COARSE_FACTOR}.
-          Medial and lateral are relative to the midline, so they keep their meaning in
-          the left hemisphere. Keys are ignored while the caret is in a field.
+          WASD moves the target in the horizontal plane, Q and E take it down and up, or
+          tap above; hold Shift for ×{COARSE_FACTOR}. Left and right are the
+          animal&rsquo;s. Keys are ignored while the caret is in a field.
         </p>
       </div>
 
@@ -406,8 +434,13 @@ export function BackTracePanel({
         )}
       </div>
 
-      {backtrace.status === 'ready' && (
-        <div className="section">
+      {/*
+        Deliberately not behind a completed trace. The hub map is a property of
+        the connectome and needs no target at all — gating it on a back-trace
+        would make the one view that does not depend on the target the only one
+        you cannot open without waiting for the target's query to return.
+      */}
+      <div className="section">
           <h2>Hub map</h2>
 
           <label className="check">
@@ -429,48 +462,69 @@ export function BackTracePanel({
                     setBacktrace({ heatMode: event.target.checked ? 'routes' : 'regions' })
                   }
                 />
-                Draw traced routes instead of regions
+                Draw traced routes instead of the hub map
               </label>
               <p className="hint" style={{ marginTop: 0 }}>
-                {HEATMAP_MODE_LABEL[backtrace.heatMode]}. A compact nucleus with one
-                strong projection is a bright blob in one and a single thin line in the
-                other; a corridor every afferent funnels through is invisible in regions
-                and the brightest thing on screen in routes.
+                {HEATMAP_MODE_LABEL[backtrace.heatMode]}
               </p>
 
-              <div className="field">
-                <label htmlFor="heat-metric">Measure</label>
-                <select
-                  id="heat-metric"
-                  value={backtrace.heatMetric}
-                  onChange={(event) =>
-                    setBacktrace({ heatMetric: event.target.value as HeatmapMetric })
-                  }
-                >
-                  {(Object.keys(HEATMAP_METRIC_LABEL) as HeatmapMetric[]).map((metric) => (
-                    <option key={metric} value={metric}>
-                      {HEATMAP_METRIC_LABEL[metric]}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              {backtrace.heatMode === 'routes' && (
+              {backtrace.heatMode === 'regions' ? (
+                <>
+                  <div className="field">
+                    <label htmlFor="heat-metric">Measure</label>
+                    <select
+                      id="heat-metric"
+                      value={backtrace.heatMetric}
+                      onChange={(event) =>
+                        setBacktrace({
+                          heatMetric: event.target.value as ConvergenceMetric,
+                        })
+                      }
+                    >
+                      {(Object.keys(CONVERGENCE_METRIC_LABEL) as ConvergenceMetric[]).map(
+                        (metric) => (
+                          <option key={metric} value={metric}>
+                            {CONVERGENCE_METRIC_LABEL[metric]}
+                          </option>
+                        ),
+                      )}
+                    </select>
+                  </div>
+
+                  <div className="field">
+                    <label htmlFor="heat-threshold">Counts above</label>
+                    <NumberField
+                      id="heat-threshold"
+                      step={0.005}
+                      value={backtrace.connectionThreshold}
+                      onChange={(connectionThreshold) =>
+                        setBacktrace({
+                          connectionThreshold: Math.max(0, connectionThreshold),
+                        })
+                      }
+                    />
+                    <span className="unit">density</span>
+                  </div>
+                </>
+              ) : (
                 <p className="hint" style={{ marginTop: 0 }}>
                   Routes are coloured by their own experiment&rsquo;s strength at the
-                  target, so the measure above applies to the regions view only.
+                  target, so the hub-map measure does not apply here.
                 </p>
               )}
 
-              <label className="check">
-                <input
-                  type="checkbox"
-                  checked={backtrace.heatAllSources}
-                  onChange={(event) =>
-                    setBacktrace({ heatAllSources: event.target.checked })
-                  }
-                />
-                Paint every source, not just the listed top
-              </label>
+              {backtrace.heatMode === 'routes' && (
+                <label className="check">
+                  <input
+                    type="checkbox"
+                    checked={backtrace.heatAllSources}
+                    onChange={(event) =>
+                      setBacktrace({ heatAllSources: event.target.checked })
+                    }
+                  />
+                  Draw every route, not just the listed top
+                </label>
+              )}
 
               <div className="field">
                 <label htmlFor="heat-opacity">Opacity</label>
@@ -501,10 +555,53 @@ export function BackTracePanel({
                 Allen reports is the region an experiment was injected into, so edges fall
                 on structure boundaries because that is where the information changes.
               </p>
+
+              {backtrace.heatMode === 'regions' && hubs.length > 0 && (
+                <>
+                  <h2 style={{ marginTop: 14 }}>Top hubs</h2>
+                  <div className="mrow__meta" style={{ marginBottom: 6, marginLeft: 0 }}>
+                    Across the whole connectome, not this target.
+                  </div>
+                  {hubs.slice(0, HUB_LIST_LENGTH).map((hub, rank) => (
+                    <div key={hub.id} className="mrow__exp">
+                      <span style={{ minWidth: 20, textAlign: 'right' }}>{rank + 1}.</span>
+                      <span style={{ minWidth: 54, fontWeight: 600 }}>{hub.acronym}</span>
+                      <DensityBar
+                        value={hubs[0]!.value > 0 ? hub.value / hubs[0]!.value : 0}
+                        color="#f5911f"
+                      />
+                      <span style={{ minWidth: 38, textAlign: 'right' }}>
+                        {formatConvergence(backtrace.heatMetric, hub.value)}
+                      </span>
+                      {/* In count mode the value *is* the source count, so
+                          printing both twice says nothing. Under mean it is
+                          the evidence behind the average and has to be there:
+                          0.14 from two sources is a different claim from 0.14
+                          from sixty. */}
+                      {backtrace.heatMetric === 'mean' && (
+                        <span style={{ minWidth: 44 }}>n={hub.sourceCount}</span>
+                      )}
+                    </div>
+                  ))}
+                </>
+              )}
+
+              {backtrace.heatMode === 'regions' && (
+                <div className="provenance">
+                  <ul style={{ margin: 0, paddingLeft: 16 }}>
+                    {CONVERGENCE_CAVEATS.map((caveat) => (
+                      <li key={caveat}>{caveat}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {convergence.status === 'error' && (
+                <div className="warn-box">{convergence.message}</div>
+              )}
             </>
           )}
-        </div>
-      )}
+      </div>
 
       {backtrace.status === 'ready' && (
         <div className="section">

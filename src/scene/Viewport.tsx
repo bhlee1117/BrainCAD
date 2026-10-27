@@ -33,6 +33,15 @@ import { useAtlasMeshGeometry } from './useAtlasMeshGeometry.ts'
 import { sectionPlanes } from './section.ts'
 import { atlasToWorldMatrix, stereotaxicToWorld } from './world.ts'
 
+/**
+ * The selected target's colour.
+ *
+ * Exported because the heat-map view draws the same point. The two views are
+ * meant to be read against each other, and a target that is orange in one and
+ * white in the other asks the reader to work out that they are the same thing.
+ */
+export const TARGET_COLOR = '#ff6b4a'
+
 /** Fallback orbit centre, matching the controls' own default. */
 const ORIGIN = new Vector3(0, -2, 0)
 
@@ -154,7 +163,7 @@ function TargetMarker({ target, selected }: { target: Target; selected: boolean 
     <group position={position}>
       <mesh onClick={onClick}>
         <sphereGeometry args={[radius, 20, 20]} />
-        <meshBasicMaterial color={selected ? '#ff6b4a' : '#b8553f'} />
+        <meshBasicMaterial color={selected ? TARGET_COLOR : '#b8553f'} />
       </mesh>
 
       {selected && (

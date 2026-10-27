@@ -31,7 +31,7 @@ with anything?*
 | **+** | Objective view render, axon projection overlays | ✅ done |
 | **+** | Built-in hardware models, section planes, viewport capture | ✅ done |
 | **+** | Back-trace: what projects to the target, driven from the number pad | ✅ done |
-| **+** | Hub map: a second camera-locked brain painted with retrograde strength | ✅ done |
+| **+** | Hub map: a second camera-locked brain painted with whole-connectome convergence | ✅ done |
 
 ## Quick start
 
@@ -309,6 +309,19 @@ CA1 down to DV −3.35 lands in **PO**, and the sources become **RT** and
 **SSp-bfd** — the thalamic reticular nucleus and the barrel field, which is
 what projects to posterior thalamus.
 
+#### The number pad became WASD
+
+W and S move the target away and toward you, A and D to the animal's left and
+right, Q and E down and up — the pair either side of W, taking the axis WASD
+cannot reach, as a 3D editor's fly mode does it. Shift is ×10, and the legend
+doubles as buttons for a touch screen.
+
+Bound by `KeyboardEvent.code`, so the mapping follows the key's position rather
+than the letter printed on it and survives AZERTY. Left and right are the
+animal's, a plain sign on ML: an earlier version made this pair medial/lateral,
+measured from the midline, which is more anatomical and is not what A and D mean
+to a hand.
+
 #### A second brain, on the same camera
 
 The matrix answers "which structures project here" as a ranked list, which is
@@ -318,19 +331,37 @@ one lobe. So the BACKTRACE tab can open a second viewport beside the first,
 locked to the same camera — orbit either and both turn — showing the same brain
 painted with retrograde strength, with the target marked in both.
 
-A checkbox switches what it draws:
+A checkbox switches what it draws, and the two answer different questions:
 
-- **Regions** paints *where the inputs live*, structure by structure.
-- **Routes** draws *how they arrive*, every traced path on the heat ramp.
+- **Regions** paints the **convergence matrix** — across the whole connectome,
+  which regions is everything aimed at. This does **not** move when the target
+  moves. That is what makes it a hub map rather than a second drawing of the
+  back-trace, and the target on it is a reference mark, nothing more.
+- **Routes** draws the traced paths into the current target, which do move.
 
-They are not interchangeable. A compact nucleus with one strong projection is a
-bright blob and a single thin line; a corridor every afferent funnels through is
-invisible in regions and the brightest thing on screen in routes.
+The convergence matrix is built at build time by
+`scripts/fetch-connectivity-matrix.mjs` (`npm run connectivity:fetch`) and
+bundled: 586 queries against the Allen API once, rather than 586 queries the
+user waits through. It stores, per target structure, the strongest projection
+density reaching it from each *other* structure — one value per source, not per
+experiment, because counting experiments ranks how often the Allen Institute
+injected somewhere rather than the anatomy. Self-projection and same-lineage
+pairs are dropped: an injection into CA3 "projecting into" CA3 is the injection
+site at saturation, and left in it dominates every structure's own average.
 
-Strength is **mean by default, max one click away**. Max is one experiment's
-number, so it rewards a lucky injection — a structure sampled once, dead centre,
-outranks one sampled nine times slightly off. Mean asks the steadier question:
-*when Allen injects here, does the target light up?*
+It measures either **count** (how many regions project in — the region many
+places aim at) or **mean** (the average strength of those projections — the
+region the places that do aim at it aim at *hard*). A thalamic relay and a small
+nucleus with one massive input are both hubs in different senses, and no single
+number says both.
+
+**The corpus is the app's corpus.** The raw unionize table also carries rows
+from the Alzheimer, aged-cohort, retina and target-defined studies — for CA1,
+two thirds of all rows — and pooling those into "the mouse connectome" would mix
+separate experiments with different animals and aims. The script enumerates
+experiments through the same service the forward search uses, which costs 293
+extra cheap queries and buys the guarantee that every tab is talking about the
+same set of experiments.
 
 Two things about the painting are worth stating:
 

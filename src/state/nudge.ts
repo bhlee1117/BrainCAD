@@ -1,31 +1,37 @@
 /**
- * Nudging the target from the number pad.
+ * Nudging the target from the keyboard.
  *
- * At the rig the question is rarely "what is at AP −2.00" but "what happens if
- * I go half a millimetre deeper, or a touch more lateral" — and answering it by
- * clicking into a numeric field, selecting the value and retyping it breaks the
- * loop between moving and looking. Six keys laid out the way the directions
- * actually sit on the pad make the target something you can walk around:
+ * At the rig the question is rarely "what is at AP -2.00" but "what happens if
+ * I go half a millimetre deeper, or a touch more lateral" -- and answering it
+ * by clicking into a numeric field, selecting the value and retyping it breaks
+ * the loop between moving and looking.
  *
- *       7   8↑D  9↗P          D dorsal      P posterior
- *       4←M  5   6→L          M medial      L lateral
- *       1↙A  2↓V  3           A anterior    V ventral
+ *       Q   W   E          W forward (anterior)   S back (posterior)
+ *        A  S  D           A left                 D right
+ *                          E up (dorsal)          Q down (ventral)
  *
- * Dorsal/ventral run up and down the pad and anterior/posterior along its
- * diagonal, so the hand learns the mapping from the key positions rather than
- * from a legend.
+ * WASD because the hand already knows it: W is away from you and A is to the
+ * left of D, which is what the brain does on screen. Q and E are the pair
+ * either side of W, and take the axis WASD cannot reach -- the same convention
+ * a 3D editor's fly mode uses.
  *
- * The pure function lives here, apart from the listener, because the one thing
- * that can be subtly wrong — what "medial" means on the left of the brain — is
- * worth testing without a DOM.
+ * Left and right are the animal's, so they are a plain sign on ML. An earlier
+ * version made this pair medial/lateral, measured from the midline; that is a
+ * more anatomical reading but it is not what A and D mean to a hand, and a key
+ * that reverses its direction halfway across the brain is worse than one that
+ * does not.
+ *
+ * The pure function lives here, apart from the listener, so the mapping can be
+ * tested without a DOM -- and because these are letter keys now, the rule that
+ * they are ignored while the caret is in a field stopped being a nicety.
  */
 
 import type { Stereotaxic } from '../atlas/coords.ts'
 
 /** A direction the target can be nudged in. */
 export type NudgeDirection =
-  | 'medial'
-  | 'lateral'
+  | 'left'
+  | 'right'
   | 'anterior'
   | 'posterior'
   | 'dorsal'
@@ -34,36 +40,32 @@ export type NudgeDirection =
 /**
  * Physical keys, by `KeyboardEvent.code`.
  *
- * `code` rather than `key`, because the number pad reports `ArrowLeft` and
- * friends through `key` when Num Lock is off — so a mapping built on `key`
- * works on one machine and silently does nothing on the next. The top-row
- * digits are accepted too, for keyboards that have no pad at all.
+ * `code` rather than `key`, so the mapping follows the key's position rather
+ * than the letter printed on it: on an AZERTY or Dvorak keyboard `KeyW` is
+ * still the key above `KeyS`, which is the whole point of choosing WASD.
  */
 export const NUDGE_KEYS: Readonly<Record<string, NudgeDirection>> = {
-  Numpad4: 'medial',
-  Numpad6: 'lateral',
-  Numpad1: 'anterior',
-  Numpad9: 'posterior',
-  Numpad8: 'dorsal',
-  Numpad2: 'ventral',
-  Digit4: 'medial',
-  Digit6: 'lateral',
-  Digit1: 'anterior',
-  Digit9: 'posterior',
-  Digit8: 'dorsal',
-  Digit2: 'ventral',
+  KeyW: 'anterior',
+  KeyS: 'posterior',
+  KeyA: 'left',
+  KeyD: 'right',
+  KeyE: 'dorsal',
+  KeyQ: 'ventral',
 }
 
-/** The pad legend, for the panel. */
-export const NUDGE_LEGEND: readonly { key: string; direction: NudgeDirection; label: string }[] =
-  [
-    { key: '8', direction: 'dorsal', label: 'Dorsal' },
-    { key: '2', direction: 'ventral', label: 'Ventral' },
-    { key: '4', direction: 'medial', label: 'Medial' },
-    { key: '6', direction: 'lateral', label: 'Lateral' },
-    { key: '1', direction: 'anterior', label: 'Anterior' },
-    { key: '9', direction: 'posterior', label: 'Posterior' },
-  ]
+/** The legend, in the order the keys sit under the hand. */
+export const NUDGE_LEGEND: readonly {
+  key: string
+  direction: NudgeDirection
+  label: string
+}[] = [
+  { key: 'W', direction: 'anterior', label: 'Anterior' },
+  { key: 'S', direction: 'posterior', label: 'Posterior' },
+  { key: 'A', direction: 'left', label: 'Left' },
+  { key: 'D', direction: 'right', label: 'Right' },
+  { key: 'E', direction: 'dorsal', label: 'Dorsal' },
+  { key: 'Q', direction: 'ventral', label: 'Ventral' },
+]
 
 /** Default nudge, in millimetres. Shift multiplies it; see {@link COARSE_FACTOR}. */
 export const DEFAULT_STEP_MM = 0.1
@@ -74,14 +76,9 @@ export const COARSE_FACTOR = 10
 /**
  * Apply one nudge.
  *
- * Medial and lateral are relative to the midline, not to the sign of ML: on the
- * animal's left, at ML −1.5, "lateral" is *more* negative. Treating the keys as
- * plain ±ML would make them reverse meaning between hemispheres, which is the
- * sort of thing that is noticed only after a plan has been built on it.
- *
- * Exactly on the midline there is no lateral direction to prefer, so the key
- * moves to the animal's right — matching BrainCAD's +ML convention — rather
- * than doing nothing, which would read as a dead key.
+ * Left and right are the animal's own, so they are a sign on ML: +ML is the
+ * animal's right everywhere in BrainCAD, and these keys do not change meaning
+ * when the target crosses the midline.
  */
 export function nudgeCoord(
   coord: Stereotaxic,
@@ -97,16 +94,10 @@ export function nudgeCoord(
       return { ...coord, dv: coord.dv + stepMm }
     case 'ventral':
       return { ...coord, dv: coord.dv - stepMm }
-    case 'lateral':
-      return { ...coord, ml: coord.ml + (coord.ml < 0 ? -stepMm : stepMm) }
-    case 'medial': {
-      const toward = coord.ml > 0 ? -stepMm : stepMm
-      const next = coord.ml + toward
-      // Stop at the midline rather than crossing it. Overshooting would hand
-      // back a point in the other hemisphere, so holding "medial" would walk
-      // the target out through the far side of the brain.
-      return { ...coord, ml: Math.sign(coord.ml) !== Math.sign(next) ? 0 : next }
-    }
+    case 'right':
+      return { ...coord, ml: coord.ml + stepMm }
+    case 'left':
+      return { ...coord, ml: coord.ml - stepMm }
   }
 }
 

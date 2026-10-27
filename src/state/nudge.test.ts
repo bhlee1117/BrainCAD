@@ -1,13 +1,12 @@
 /**
  * Target-nudge tests.
  *
- * Five of the six directions are a sign on one axis and could hardly be wrong.
- * Medial and lateral are the ones worth testing: they are defined against the
- * midline rather than against the sign of ML, so they reverse their arithmetic
- * between hemispheres — and a mapping that quietly did `ml + step` for
- * "lateral" would behave correctly on the right of the brain and back to front
- * on the left, which is the kind of error a user discovers after building a
- * plan on it.
+ * The arithmetic is a sign on one axis and could hardly be wrong, so what
+ * these pin is the *mapping*: that W is away from you and S is toward you,
+ * that A and D are the animal's left and right rather than the reader's, and
+ * that E and Q take the axis WASD cannot reach. Those are conventions, not
+ * derivations, and a convention that drifts is noticed only after someone has
+ * planned on it.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -36,33 +35,27 @@ describe('nudgeCoord', () => {
     expect(nudgeCoord(AT, 'ventral', 0.1).dv).toBeCloseTo(-1.45, 10)
   })
 
-  it('reads lateral as away from the midline in the right hemisphere', () => {
-    expect(nudgeCoord({ ...AT, ml: 1.5 }, 'lateral', 0.1).ml).toBeCloseTo(1.6, 10)
-    expect(nudgeCoord({ ...AT, ml: 1.5 }, 'medial', 0.1).ml).toBeCloseTo(1.4, 10)
+  it('reads A and D as the left and right of the animal', () => {
+    // +ML is the animal's right everywhere in BrainCAD, so these are a plain
+    // sign and do not reverse when the target crosses the midline.
+    expect(nudgeCoord({ ...AT, ml: 1.5 }, 'right', 0.1).ml).toBeCloseTo(1.6, 10)
+    expect(nudgeCoord({ ...AT, ml: 1.5 }, 'left', 0.1).ml).toBeCloseTo(1.4, 10)
   })
 
-  it('reads lateral as away from the midline in the left hemisphere too', () => {
-    // The whole point of the pair: at ML −1.5, "lateral" is more negative.
-    expect(nudgeCoord({ ...AT, ml: -1.5 }, 'lateral', 0.1).ml).toBeCloseTo(-1.6, 10)
-    expect(nudgeCoord({ ...AT, ml: -1.5 }, 'medial', 0.1).ml).toBeCloseTo(-1.4, 10)
+  it('keeps that meaning in the left hemisphere', () => {
+    expect(nudgeCoord({ ...AT, ml: -1.5 }, 'right', 0.1).ml).toBeCloseTo(-1.4, 10)
+    expect(nudgeCoord({ ...AT, ml: -1.5 }, 'left', 0.1).ml).toBeCloseTo(-1.6, 10)
   })
 
-  it('stops medial travel at the midline instead of crossing it', () => {
-    // Holding "medial" should park the target on the midline, not walk it out
-    // through the opposite hemisphere.
-    expect(nudgeCoord({ ...AT, ml: 0.05 }, 'medial', 0.1).ml).toBe(0)
-    expect(nudgeCoord({ ...AT, ml: -0.05 }, 'medial', 0.1).ml).toBe(0)
-  })
-
-  it('picks a side for lateral when the target sits on the midline', () => {
-    // There is no "away from the midline" at the midline, so the key moves to
-    // the animal's right rather than reading as a dead key.
-    expect(nudgeCoord({ ...AT, ml: 0 }, 'lateral', 0.1).ml).toBeCloseTo(0.1, 10)
+  it('crosses the midline rather than stopping at it', () => {
+    // An earlier version measured from the midline and parked there. A key
+    // that stops halfway across the brain reads as broken.
+    expect(nudgeCoord({ ...AT, ml: 0.05 }, 'left', 0.1).ml).toBeCloseTo(-0.05, 10)
   })
 
   it.each([
-    'medial',
-    'lateral',
+    'left',
+    'right',
     'anterior',
     'posterior',
     'dorsal',
@@ -77,7 +70,7 @@ describe('nudgeCoord', () => {
     const pairs: [NudgeDirection, NudgeDirection][] = [
       ['anterior', 'posterior'],
       ['dorsal', 'ventral'],
-      ['lateral', 'medial'],
+      ['right', 'left'],
     ]
     for (const [there, back] of pairs) {
       const moved = nudgeCoord(AT, there, 0.2)
@@ -90,28 +83,31 @@ describe('nudgeCoord', () => {
 })
 
 describe('key mapping', () => {
-  it('binds the pad and the top row to the same directions', () => {
-    // `code` is the physical key, so the pad works with Num Lock off — but a
-    // laptop without a pad has to be able to drive this too.
-    for (const digit of ['1', '2', '4', '6', '8', '9']) {
-      expect(NUDGE_KEYS[`Numpad${digit}`]).toBe(NUDGE_KEYS[`Digit${digit}`])
-      expect(NUDGE_KEYS[`Numpad${digit}`]).toBeDefined()
+  it('lays WASD out the way the hand expects', () => {
+    // W away, S toward, A left, D right. If these drift the keys stop being
+    // guessable, which is the only reason to have chosen WASD at all.
+    expect(NUDGE_KEYS.KeyW).toBe('anterior')
+    expect(NUDGE_KEYS.KeyS).toBe('posterior')
+    expect(NUDGE_KEYS.KeyA).toBe('left')
+    expect(NUDGE_KEYS.KeyD).toBe('right')
+  })
+
+  it('gives Q and E the axis WASD cannot reach', () => {
+    // E up, Q down, as a 3D editor's fly mode does it.
+    expect(NUDGE_KEYS.KeyE).toBe('dorsal')
+    expect(NUDGE_KEYS.KeyQ).toBe('ventral')
+  })
+
+  it('binds by physical key, not by printed letter', () => {
+    // `code`, so the layout survives AZERTY and Dvorak: KeyW is the key above
+    // KeyS whatever is written on it.
+    for (const code of Object.keys(NUDGE_KEYS)) {
+      expect(code.startsWith('Key')).toBe(true)
     }
   })
 
-  it('maps the pad geometrically', () => {
-    // Up is dorsal, down is ventral, left is medial, right is lateral. The
-    // layout is the legend; if these drift the keys stop being guessable.
-    expect(NUDGE_KEYS.Numpad8).toBe('dorsal')
-    expect(NUDGE_KEYS.Numpad2).toBe('ventral')
-    expect(NUDGE_KEYS.Numpad4).toBe('medial')
-    expect(NUDGE_KEYS.Numpad6).toBe('lateral')
-    expect(NUDGE_KEYS.Numpad1).toBe('anterior')
-    expect(NUDGE_KEYS.Numpad9).toBe('posterior')
-  })
-
   it('leaves keys with other jobs alone', () => {
-    for (const code of ['Numpad5', 'Numpad0', 'Numpad3', 'Numpad7', 'KeyZ', 'Digit5']) {
+    for (const code of ['KeyZ', 'KeyR', 'KeyX', 'Digit4', 'Numpad4', 'Space']) {
       expect(NUDGE_KEYS[code]).toBeUndefined()
     }
   })
@@ -119,6 +115,12 @@ describe('key mapping', () => {
   it('shows every bound direction in the legend', () => {
     const bound = new Set(Object.values(NUDGE_KEYS))
     expect(new Set(NUDGE_LEGEND.map((e) => e.direction))).toEqual(bound)
+  })
+
+  it('labels the legend with the key that is actually bound', () => {
+    for (const entry of NUDGE_LEGEND) {
+      expect(NUDGE_KEYS[`Key${entry.key}`]).toBe(entry.direction)
+    }
   })
 })
 

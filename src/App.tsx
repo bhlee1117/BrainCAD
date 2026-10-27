@@ -31,10 +31,11 @@ import { OverlaysPanel } from './ui/OverlaysPanel.tsx'
 import { PlanPanel } from './ui/PlanPanel.tsx'
 import { HeatmapViewport } from './scene/HeatmapViewport.tsx'
 import {
-  describeHeatmap,
+  describeHubMap,
+  useConvergenceMatrix,
   useHeatmapSources,
-  useRetrogradeHeatmap,
-} from './overlays/useRetrogradeHeatmap.ts'
+  useHubHeatmap,
+} from './overlays/useHubMap.ts'
 import { BackTracePanel } from './ui/BackTracePanel.tsx'
 import { AtlasPanel, ProfilePanel, ScenePanel } from './ui/SidePanels.tsx'
 import { SlicePanel } from './ui/SlicePanel.tsx'
@@ -117,13 +118,24 @@ export function App() {
   const setAtlasStatus = useAppStore((s) => s.setAtlasStatus)
   const backtrace = useAppStore((s) => s.backtrace)
 
-  // The heat map is built here rather than in the panel so the second canvas
+  // The hub map is built here rather than in the panel so the second canvas
   // does not depend on a panel that is unmounted the moment the layout goes
   // compact — and so the cost is paid once, not once per consumer.
-  const heatmap = useRetrogradeHeatmap(atlas, backtrace)
-  const routeSources = useHeatmapSources(backtrace)
   const showHeatmap = tab === 'BACKTRACE' && backtrace.showHeatmap && !compact
-  const heatmapCaption = describeHeatmap(backtrace, heatmap)
+  const convergence = useConvergenceMatrix(showHeatmap)
+  const heatmap = useHubHeatmap(
+    atlas,
+    convergence.matrix,
+    backtrace.heatMetric,
+    backtrace.connectionThreshold,
+  )
+  const routeSources = useHeatmapSources(backtrace)
+  const heatmapCaption = describeHubMap(
+    backtrace,
+    convergence,
+    heatmap,
+    routeSources.length,
+  )
 
   // Widening the window retires the compact-only tabs. Without this, rotating a
   // tablet while on SLICES leaves the active tab pointing at a button that is

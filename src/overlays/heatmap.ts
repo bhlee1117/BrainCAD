@@ -1,28 +1,28 @@
 /**
- * Whole-brain heat map of retrograde strength.
+ * Painting a per-structure strength onto anatomy.
  *
- * The matrix in the BACKTRACE panel answers "which structures project here"
- * as a ranked list, which is the right shape for reading one value precisely
- * and the wrong shape for the question this module exists for: *where are the
- * hubs?* A list cannot show that three of the top five sources are neighbours
- * in one lobe, or that the strong inputs arrive from two widely separated
+ * A ranked list answers "which structures are strong" precisely and cannot
+ * answer *where are the hubs?* — it cannot show that three of the top five are
+ * neighbours in one lobe, or that the strong ones sit in two widely separated
  * places. Anatomy answers that, so the strength is painted onto anatomy.
  *
- * ## It is painted per structure, and the resolution is the ontology's
+ * The strengths themselves come from elsewhere: the convergence matrix for the
+ * hub map, and in principle any structure-keyed measure. This module only
+ * knows how to turn one into a cloud of coloured voxels.
  *
- * Allen reports a projection density at the target for each *experiment*, and
- * an experiment is labelled by the structure it was injected into. So the
- * finest grain available is a whole structure: every voxel of CA3 takes CA3's
- * value. The heat map is therefore a picture of the ontology coloured by
- * strength, not a voxel-wise measurement — it will show hard edges exactly on
- * structure boundaries, because that is where its information actually changes.
+ * ## The grain is the ontology's, not the volume's
+ *
+ * Whatever the measure, it is reported per structure, so every voxel of CA3
+ * takes CA3's value. The map is a picture of the ontology coloured by
+ * strength, not a voxel-wise measurement — it shows hard edges exactly on
+ * structure boundaries, because that is where its information changes.
  *
  * ## Matching runs up the tree, not by equality
  *
  * The annotation volume labels voxels with leaf structures — "Field CA3,
- * pyramidal layer" — while an injection is reported against a coarser one,
- * "Field CA3". Matching on equality would leave most of the brain unpainted
- * while the list above it confidently named CA3. So each voxel walks its own
+ * pyramidal layer" — while the measures are reported against coarser ones,
+ * "Field CA3". Matching on equality left most of the brain unpainted while the
+ * list beside it confidently named CA3. So each voxel walks its own
  * root-to-leaf path from the leaf upward and takes the first ancestor that has
  * a value, which is also the rule that makes a coarse source like "Isocortex"
  * paint everything beneath it.
@@ -32,60 +32,9 @@ import type { AnnotationVolume } from '../atlas/annotation.ts'
 import { UNLABELLED } from '../atlas/annotation.ts'
 import type { Stereotaxic } from '../atlas/coords.ts'
 import type { StructureIndex } from '../atlas/ontology.ts'
-import type { RetrogradeMatrixRow } from './retrograde.ts'
 
 /** Strength of each source structure, keyed by Allen structure id. */
 export type StrengthByStructure = ReadonlyMap<number, number>
-
-/**
- * What the heat map is measuring.
- *
- * Offered as a choice because "hub" is not one question. The strongest single
- * experiment and the most consistently sampled region are different claims,
- * and a tool that silently picked one would be answering a question the user
- * did not ask.
- */
-export type HeatmapMetric =
-  /** Mean across this structure's experiments. */
-  | 'mean'
-  /** Strongest single experiment from this structure. */
-  | 'max'
-
-export const HEATMAP_METRIC_LABEL: Record<HeatmapMetric, string> = {
-  mean: 'Mean — average across experiments',
-  max: 'Max — strongest single experiment',
-}
-
-/**
- * Mean by default.
- *
- * Max is one experiment's number, so it rewards a lucky injection: a structure
- * sampled once, right in its centre, outranks one sampled nine times slightly
- * off. Mean asks the steadier question — *when Allen injects here, does the
- * target light up?* — which is closer to what "hub" is meant to mean. Max is
- * still a click away, because a single strong experiment is real evidence and
- * averaging it against eight poorly placed ones hides it.
- */
-export const DEFAULT_HEATMAP_METRIC: HeatmapMetric = 'mean'
-
-/** Pull one metric out of the matrix, as a structure-id lookup. */
-export function strengthByStructure(
-  matrix: readonly RetrogradeMatrixRow[],
-  metric: HeatmapMetric,
-): Map<number, number> {
-  const out = new Map<number, number>()
-
-  for (const row of matrix) {
-    if (row.structureId <= 0) continue
-    const value = metric === 'max' ? row.peakDensity : row.meanDensity
-
-    // A structure can appear once per abbreviation, but two rows could in
-    // principle carry the same id; keep the larger rather than the later.
-    out.set(row.structureId, Math.max(out.get(row.structureId) ?? 0, value))
-  }
-
-  return out
-}
 
 export interface RetrogradeHeatmap {
   /** Voxel centres in CCF micrometres, ready for `positionsToWorld`. */
@@ -95,6 +44,8 @@ export interface RetrogradeHeatmap {
   readonly pointCount: number
   /** Largest strength present, for normalising the colour ramp. */
   readonly maxStrength: number
+  /** Smallest strength present; the ramp is stretched between the two. */
+  readonly minStrength: number
   /** Structure ids that actually matched a voxel. */
   readonly paintedStructureIds: readonly number[]
   /** Source structures with a value that matched no voxel in the volume. */
@@ -178,6 +129,7 @@ export function buildRetrogradeHeatmap(
   const positions: number[] = []
   const values: number[] = []
   let maxStrength = 0
+  let minStrength = Infinity
   let stride = Math.max(1, Math.round(requestedStride))
 
   // Raising the stride is how the cap is honoured: dropping points at random
@@ -188,6 +140,7 @@ export function buildRetrogradeHeatmap(
     values.length = 0
     painted.clear()
     maxStrength = 0
+    minStrength = Infinity
 
     for (let i0 = 0; i0 < n0; i0 += stride) {
       for (let i1 = 0; i1 < n1; i1 += stride) {
@@ -212,6 +165,7 @@ export function buildRetrogradeHeatmap(
           )
           values.push(strength)
           if (strength > maxStrength) maxStrength = strength
+          if (strength < minStrength) minStrength = strength
         }
       }
     }
@@ -244,6 +198,7 @@ export function buildRetrogradeHeatmap(
     strengths: Float32Array.from(values),
     pointCount: values.length,
     maxStrength,
+    minStrength: Number.isFinite(minStrength) ? minStrength : 0,
     paintedStructureIds: [...paintedStructureIds],
     unpaintedStructureIds: unpainted,
     stride,
@@ -284,21 +239,28 @@ export function heatColor(t: number): [number, number, number] {
 /**
  * Per-point colours for a heat map.
  *
- * Normalised against the strongest value present rather than against 1.0: a
- * target whose best input is 0.08 would otherwise render entirely at the dark
- * end, hiding the very contrast the map exists to show. The scale is therefore
- * relative, and the panel states the value the top of the ramp stands for.
+ * Stretched between the lowest and highest value actually present, not from
+ * zero. The first version normalised against the peak alone and lifted the low
+ * end with a square root — the right correction for projection densities,
+ * which are heavily skewed — and it was wrong for the measure this view ended
+ * up carrying. Source counts run 1 to 115 and most regions sit between 60 and
+ * 110, so nearly the whole brain landed at the top of the ramp and the hubs
+ * had nothing to stand out from.
  *
- * The square root is the same correction the projection clouds use. Densities
- * are heavily skewed — one saturated source and a long tail of faint ones — so
- * a linear ramp paints almost the whole brain at the bottom stop.
+ * Stretching costs something real and the caption pays it back: the scale is
+ * relative, so two different measures produce two maps that look equally
+ * bright. Both ends of the range are stated beside the map for that reason.
  */
 export function heatmapColors(heatmap: RetrogradeHeatmap): Float32Array {
   const colors = new Float32Array(heatmap.pointCount * 3)
-  const peak = heatmap.maxStrength > 0 ? heatmap.maxStrength : 1
+  const span = heatmap.maxStrength - heatmap.minStrength
+  // One distinct value everywhere means there is nothing to rank, so it all
+  // takes the top of the ramp rather than dividing by zero.
+  const scale = span > 0 ? 1 / span : 0
 
   for (let i = 0; i < heatmap.pointCount; i++) {
-    const [r, g, b] = heatColor(Math.sqrt(heatmap.strengths[i]! / peak))
+    const t = span > 0 ? (heatmap.strengths[i]! - heatmap.minStrength) * scale : 1
+    const [r, g, b] = heatColor(t)
     colors[i * 3] = r
     colors[i * 3 + 1] = g
     colors[i * 3 + 2] = b
@@ -382,28 +344,4 @@ export function buildRouteHeat(
   }
 
   return { points, colors, segmentCount, maxStrength }
-}
-
-/**
- * Rank the painted structures, strongest first — the hub list.
- *
- * Reads the same strength map the colours come from, so the list beside the
- * map and the map itself can never disagree about which region is hottest.
- */
-export function rankHubs(
-  index: StructureIndex,
-  strengths: StrengthByStructure,
-  heatmap: RetrogradeHeatmap,
-): { id: number; acronym: string; name: string; strength: number }[] {
-  return heatmap.paintedStructureIds
-    .map((id) => {
-      const structure = index.byId.get(id)
-      return {
-        id,
-        acronym: structure?.acronym ?? String(id),
-        name: structure?.name ?? 'Unknown structure',
-        strength: strengths.get(id) ?? 0,
-      }
-    })
-    .sort((a, b) => b.strength - a.strength)
 }

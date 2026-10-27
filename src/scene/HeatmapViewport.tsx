@@ -37,6 +37,7 @@ import type { RetrogradeSource } from '../overlays/retrograde.ts'
 import { positionsToWorld } from '../overlays/pointCloud.ts'
 import { useAppStore } from '../state/store.ts'
 import { readCameraPose } from './cameraLink.ts'
+import { TARGET_COLOR } from './Viewport.tsx'
 import { useAtlasMeshGeometry } from './useAtlasMeshGeometry.ts'
 import { atlasToWorldMatrix, stereotaxicToWorld } from './world.ts'
 
@@ -184,11 +185,16 @@ function TargetPin({ coord }: { coord: Stereotaxic }) {
     <group position={position}>
       <mesh renderOrder={5}>
         <sphereGeometry args={[0.17, 20, 20]} />
-        <meshBasicMaterial color="#ffffff" depthTest={false} />
+        <meshBasicMaterial color={TARGET_COLOR} depthTest={false} />
       </mesh>
       <line>
         <primitive object={ring} attach="geometry" />
-        <lineBasicMaterial color="#ffffff" transparent opacity={0.85} depthTest={false} />
+        <lineBasicMaterial
+          color={TARGET_COLOR}
+          transparent
+          opacity={0.85}
+          depthTest={false}
+        />
       </line>
     </group>
   )
