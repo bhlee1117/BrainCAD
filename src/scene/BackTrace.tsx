@@ -280,16 +280,16 @@ export function BackTrace() {
   const target = targets.find((t) => t.id === selectedTargetId) ?? null
   const midline = midlineWorldX(profile)
 
-  // Reflected so the target always lands in the left hemisphere, which is the
-  // side the hub map calls ipsilateral. Without it the two halves of the
-  // screen contradict each other: the sections below label the right half
-  // "contra" while the routes above run into it, because Allen injects the
-  // right hemisphere in 98% of experiments and these are its raw coordinates.
+  // Reflected so the target always lands in the right hemisphere, which is the
+  // side the hub map calls ipsilateral and the side Allen injects. Without it
+  // a target placed on the left shows its sources mostly on the right, while
+  // the sections below label that half ipsi — two halves of one screen
+  // disagreeing about which side is which.
   //
   // The cost is real and is why the mirrored target is drawn and named: these
   // routes are no longer registered to the coordinate the hardware in this
   // same view is planned against.
-  const mirrored = (target?.coord.ml ?? 0) > 0
+  const mirrored = (target?.coord.ml ?? 0) < 0
 
   const mirroredTarget = useMemo(() => {
     if (!mirrored || !target) return null

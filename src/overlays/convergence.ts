@@ -83,18 +83,23 @@ export type ConvergenceMetric = 'count' | 'mean'
  * Which half of the brain a value describes.
  *
  * Every experiment is read relative to its own injection, and the maps are
- * drawn with the injected side on the left — the same convention the voxel map
- * uses, so the two grains can be compared without re-learning the picture.
+ * drawn with the injected side on the right — the same convention the voxel
+ * map and the target buttons use, so nothing on screen contradicts anything
+ * else about which half is which.
  */
 export type Side = 'ipsi' | 'contra'
 
 /**
  * The side a voxel falls on.
  *
- * Left is ipsilateral by convention, not by measurement: the data has been
- * arranged that way, and nothing about the anatomy prefers one side. The
- * midline is the ML axis's own midpoint rather than a constant, because the
- * two bundled coordinate profiles do not put it in quite the same place.
+ * Right is ipsilateral, and the choice is not arbitrary even though the
+ * mirroring could have gone either way. Allen injects the right hemisphere, so
+ * a target there is reached from its own side — which is what makes the ipsi
+ * button send the target right. An earlier build normalised onto the left and
+ * then had the maps and that button putting opposite words on the same pixel.
+ *
+ * The midline is the ML axis's own midpoint rather than a constant, because
+ * the two bundled coordinate profiles do not put it in quite the same place.
  */
 export function voxelSide(
   space: VolumeSpace,
@@ -106,7 +111,7 @@ export function voxelSide(
   const left = indexIncreasesPositively(space.axes[mlAxis]!)
     ? index < midpoint
     : index >= midpoint
-  return left ? 'ipsi' : 'contra'
+  return left ? 'contra' : 'ipsi'
 }
 
 export const CONVERGENCE_METRIC_LABEL: Record<ConvergenceMetric, string> = {
@@ -176,8 +181,8 @@ export interface SectionSides {
  *
  * Read off the *display* convention rather than the volume's storage order.
  * `extractSlice` always puts +ML to the right whatever the array does, so the
- * animal's left — ipsilateral, by the mirroring the data was built with — is
- * always the left of the image.
+ * animal's right — ipsilateral, by the mirroring the data was built with — is
+ * always the right of the image.
  */
 export function sectionSides(
   axis: AnatomicalAxis,
@@ -186,11 +191,43 @@ export function sectionSides(
   if (axis === 'ML') {
     // Sagittal: one hemisphere, named by where the slice sits. Exactly on the
     // midline it is neither, and saying so is better than rounding to one.
-    const whole: Side | null = coord.ml < 0 ? 'ipsi' : coord.ml > 0 ? 'contra' : null
+    const whole: Side | null = coord.ml > 0 ? 'ipsi' : coord.ml < 0 ? 'contra' : null
     return { left: null, right: null, whole }
   }
 
-  return { left: 'ipsi', right: 'contra', whole: null }
+  return { left: 'contra', right: 'ipsi', whole: null }
+}
+
+/**
+ * Which hemisphere a target must sit in to receive input of a given side.
+ *
+ * Counter-intuitively the *right*, for ipsilateral. Allen injects the right
+ * hemisphere in 98% of experiments, so a target there is on the same side as
+ * nearly every source that reaches it, and a target on the left is reached
+ * mostly across the midline. Measured rather than assumed: the back-trace at
+ * dorsal CA1 returns 70 experiments at ML +1.5, 80% of them injected on the
+ * right, against 44 experiments at ML −1.5 of which only 55% are.
+ *
+ * The maps are normalised the same way, so the button and the labels agree:
+ * pressing ipsi sends the target to the half the sections call ipsi.
+ */
+export const SIDE_ML_SIGN: Record<Side, 1 | -1> = { ipsi: 1, contra: -1 }
+
+/**
+ * The same coordinate in the hemisphere that receives `side` input.
+ *
+ * A reflection of the ML component only, so the depth and the AP level — the
+ * things that decide which structure the target is in — are untouched and the
+ * two answers are comparable.
+ */
+export function targetForSide<T extends { ml: number }>(coord: T, side: Side): T {
+  return { ...coord, ml: Math.abs(coord.ml) * SIDE_ML_SIGN[side] }
+}
+
+/** Which side a target is currently positioned to see, or null on the midline. */
+export function sideOfTarget(coord: { ml: number }): Side | null {
+  if (coord.ml === 0) return null
+  return coord.ml > 0 ? 'ipsi' : 'contra'
 }
 
 /** How a side reads on screen. */
@@ -285,7 +322,7 @@ export function formatConvergence(metric: ConvergenceMetric, value: number): str
 export const CONVERGENCE_CAVEATS: readonly string[] = [
   'A property of the Allen connectome, not of your target — moving the target does not ' +
     'change this map. The target is drawn only as a reference mark.',
-  'Left is ipsilateral to the injection and right is contralateral: every experiment is ' +
+  'Right is ipsilateral to the injection and left is contralateral: every experiment is ' +
     'read relative to its own injection, which Allen places on the right 98% of the time.',
   'Anterograde data, so "projects into" is bulk signal detected in the region and counts ' +
     'fibres passing through the same as terminals.',

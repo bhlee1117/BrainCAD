@@ -15,10 +15,12 @@
  * Three things about it are not true of the structure map and change how it
  * should be read:
  *
- *  - **Left is ipsilateral.** Every experiment is mirrored so its injection
- *    lies in the left hemisphere. Raw, the brightness on whichever side the
- *    needle went in is a fact about Allen's method; mirrored, the two halves
- *    are the ipsilateral and contralateral parts of one answer.
+ *  - **Right is ipsilateral.** Every experiment is mirrored so its injection
+ *    lies in the right hemisphere — the side Allen already injects, so the
+ *    aggregate agrees with the raw anatomy and with the panel's ipsi button.
+ *    Raw, the brightness on whichever side the needle went in is a fact about
+ *    the method; mirrored, the two halves are the ipsilateral and
+ *    contralateral parts of one answer.
  *  - **White matter lights up, correctly.** A tract carries the axons of many
  *    sources, so it genuinely has high convergence by this measure — it is
  *    just convergence of *passage* rather than of termination. The structure
@@ -182,8 +184,8 @@ export function voxelIndexFor(
 
 /** Caveats carried wherever the voxel map is shown. */
 export const VOXEL_CAVEATS: readonly string[] = [
-  'Left is ipsilateral to the injection: every experiment is mirrored so its injection ' +
-    'lies on the left, so the right half is the contralateral answer.',
+  'Right is ipsilateral to the injection: every experiment is mirrored so its injection ' +
+    'lies on the right, so the left half is the contralateral answer.',
   'White matter is genuinely bright — a tract carries the axons of many sources. That is ' +
     'convergence of passage, not of termination.',
   'The scale tops out at the 99th percentile; a few voxels in dense tracts run four ' +

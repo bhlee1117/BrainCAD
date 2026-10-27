@@ -21,11 +21,15 @@ import {
   formatConvergence,
   loadConvergenceMatrix,
   SIDE_LABEL,
+  SIDE_ML_SIGN,
   rankConvergence,
   sectionSides,
+  sideOfTarget,
+  targetForSide,
   type ConvergenceMatrix,
   voxelSide,
   type ConvergenceMetric,
+  type Side,
 } from './convergence.ts'
 
 const originalFetch = globalThis.fetch
@@ -128,32 +132,33 @@ describe('convergenceStrengths', () => {
 describe('voxelSide', () => {
   const space = makeVolumeSpace([264, 160, 228], 50, 'asl')
 
-  it('calls the left half ipsilateral', () => {
-    // By convention, not by measurement: the data is arranged that way, and
-    // nothing about the anatomy prefers one side.
-    expect(voxelSide(space, { i0: 100, i1: 80, i2: 10 })).toBe('ipsi')
-    expect(voxelSide(space, { i0: 100, i1: 80, i2: 220 })).toBe('contra')
+  it('calls the right half ipsilateral', () => {
+    // Not arbitrary: Allen injects the right hemisphere, so normalising onto
+    // it makes the aggregate agree with the raw anatomy and with the panel's
+    // ipsi button, which sends the target right for the same reason.
+    expect(voxelSide(space, { i0: 100, i1: 80, i2: 220 })).toBe('ipsi')
+    expect(voxelSide(space, { i0: 100, i1: 80, i2: 10 })).toBe('contra')
   })
 
   it('follows the ML direction of the volume rather than the index', () => {
     // An 'asr' volume counts ML from the right, so the same index is the
-    // other hemisphere. Hard-coding "low index is left" would silently swap
+    // other hemisphere. Hard-coding "high index is right" would silently swap
     // ipsi and contra for any atlas stored the other way round.
     const flipped = makeVolumeSpace([264, 160, 228], 50, 'asr')
-    expect(voxelSide(flipped, { i0: 100, i1: 80, i2: 10 })).toBe('contra')
-    expect(voxelSide(flipped, { i0: 100, i1: 80, i2: 220 })).toBe('ipsi')
+    expect(voxelSide(flipped, { i0: 100, i1: 80, i2: 220 })).toBe('contra')
+    expect(voxelSide(flipped, { i0: 100, i1: 80, i2: 10 })).toBe('ipsi')
   })
 
   it('splits at the ML axis midpoint', () => {
-    expect(voxelSide(space, { i0: 0, i1: 0, i2: 113 })).toBe('ipsi')
-    expect(voxelSide(space, { i0: 0, i1: 0, i2: 114 })).toBe('contra')
+    expect(voxelSide(space, { i0: 0, i1: 0, i2: 113 })).toBe('contra')
+    expect(voxelSide(space, { i0: 0, i1: 0, i2: 114 })).toBe('ipsi')
   })
 
   it('agrees with the bundled voxel map about which side is which', () => {
     // The two grains are drawn side by side and compared by eye, so a
     // disagreement here would be read as a difference in the data.
-    expect(CONVERGENCE_CAVEATS.join(' ')).toMatch(/left is ipsilateral/i)
-    expect(VOXEL_CAVEATS.join(' ')).toMatch(/left is ipsilateral/i)
+    expect(CONVERGENCE_CAVEATS.join(' ')).toMatch(/right is ipsilateral/i)
+    expect(VOXEL_CAVEATS.join(' ')).toMatch(/right is ipsilateral/i)
   })
 })
 
@@ -185,33 +190,33 @@ describe('independence from the target', () => {
 })
 
 describe('sectionSides', () => {
-  it('splits a coronal section into ipsi on the left', () => {
+  it('splits a coronal section into ipsi on the right', () => {
     // `extractSlice` always puts +ML to the right whatever the array order is,
-    // so the animal's left — ipsilateral, by the mirroring the data was built
-    // with — is always the left of the image.
+    // so the animal's right — ipsilateral, by the mirroring the data was built
+    // with — is always the right of the image.
     const sides = sectionSides('AP', { ml: 1.5 })
-    expect(sides.left).toBe('ipsi')
-    expect(sides.right).toBe('contra')
+    expect(sides.right).toBe('ipsi')
+    expect(sides.left).toBe('contra')
     expect(sides.whole).toBeNull()
   })
 
   it('splits a horizontal section the same way', () => {
-    expect(sectionSides('DV', { ml: -2 }).left).toBe('ipsi')
+    expect(sectionSides('DV', { ml: -2 }).right).toBe('ipsi')
   })
 
   it('does not depend on where a coronal slice was taken', () => {
     // Both halves are on screen whatever the ML readout says, so the labels
     // must not follow the crosshair.
     for (const ml of [-4, 0, 4]) {
-      expect(sectionSides('AP', { ml }).left).toBe('ipsi')
+      expect(sectionSides('AP', { ml }).right).toBe('ipsi')
     }
   })
 
   it('names a sagittal section by the hemisphere it is in', () => {
     // One hemisphere only, and which one is the whole question.
-    expect(sectionSides('ML', { ml: -1.5 }).whole).toBe('ipsi')
-    expect(sectionSides('ML', { ml: 1.5 }).whole).toBe('contra')
-    expect(sectionSides('ML', { ml: -1.5 }).left).toBeNull()
+    expect(sectionSides('ML', { ml: 1.5 }).whole).toBe('ipsi')
+    expect(sectionSides('ML', { ml: -1.5 }).whole).toBe('contra')
+    expect(sectionSides('ML', { ml: 1.5 }).left).toBeNull()
   })
 
   it('refuses to name a sagittal section on the midline', () => {
@@ -224,6 +229,69 @@ describe('sectionSides', () => {
     expect(SIDE_LABEL.ipsi).toBeTruthy()
     expect(SIDE_LABEL.contra).toBeTruthy()
     expect(SIDE_LABEL.ipsi).not.toBe(SIDE_LABEL.contra)
+  })
+})
+
+describe('targetForSide', () => {
+  const at = { ap: -2, ml: 1.5, dv: -1.35 }
+
+  it('puts an ipsilateral target in the right hemisphere', () => {
+    // Counter-intuitive next to the maps reading "left is ipsilateral", and
+    // measured rather than assumed: Allen injects the right in 98% of
+    // experiments, so a target there is on the same side as nearly every
+    // source that reaches it.
+    expect(targetForSide(at, 'ipsi').ml).toBe(1.5)
+    expect(targetForSide({ ...at, ml: -1.5 }, 'ipsi').ml).toBe(1.5)
+  })
+
+  it('puts a contralateral target in the left hemisphere', () => {
+    expect(targetForSide(at, 'contra').ml).toBe(-1.5)
+    expect(targetForSide({ ...at, ml: -1.5 }, 'contra').ml).toBe(-1.5)
+  })
+
+  it('leaves AP and DV alone so the two answers are comparable', () => {
+    // Reflecting anything else would move the target into a different
+    // structure, and then the comparison is between two places rather than
+    // between two sides of one.
+    const moved = targetForSide(at, 'contra')
+    expect(moved.ap).toBe(at.ap)
+    expect(moved.dv).toBe(at.dv)
+  })
+
+  it('is idempotent', () => {
+    const once = targetForSide(at, 'contra')
+    expect(targetForSide(once, 'contra')).toEqual(once)
+  })
+
+  it('cannot move a target off the midline', () => {
+    // |0| is 0 whichever sign it takes, so the buttons are disabled there
+    // rather than inventing a lateral distance.
+    expect(targetForSide({ ...at, ml: 0 }, 'ipsi').ml).toBe(0)
+    expect(sideOfTarget({ ml: 0 })).toBeNull()
+  })
+
+  it('reports which side a target is currently on', () => {
+    expect(sideOfTarget({ ml: 1.5 })).toBe('ipsi')
+    expect(sideOfTarget({ ml: -1.5 })).toBe('contra')
+  })
+
+  it('agrees with the sign table', () => {
+    expect(SIDE_ML_SIGN.ipsi).toBe(1)
+    expect(SIDE_ML_SIGN.contra).toBe(-1)
+  })
+
+  it('sends the target to the half the sections label with the same word', () => {
+    // The collision this convention exists to prevent: an earlier build had
+    // the maps reading "left is ipsilateral" while this button sent the target
+    // right, putting opposite words on the same pixel.
+    const space = makeVolumeSpace([264, 160, 228], 50, 'asl')
+    for (const side of ['ipsi', 'contra'] as Side[]) {
+      const moved = targetForSide({ ml: 1.5 }, side)
+      // Voxel 114 is the midline, so +ML lands above it and -ML below.
+      const i2 = 114 + Math.round((moved.ml * 1000) / 50)
+      expect(voxelSide(space, { i0: 0, i1: 0, i2 })).toBe(side)
+      expect(sectionSides('AP', moved)[moved.ml > 0 ? 'right' : 'left']).toBe(side)
+    }
   })
 })
 

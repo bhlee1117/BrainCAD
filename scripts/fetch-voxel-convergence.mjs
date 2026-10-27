@@ -22,17 +22,23 @@
  * pixel is a measurement at that place rather than an average over the whole
  * region containing it.
  *
- * ## Every injection is put on the left
+ * ## Every injection is put on the right
  *
  * Allen injects one hemisphere, overwhelmingly the right. Accumulated raw, the
- * map comes out visibly brighter on that side — which is a fact about where
- * the needle went, not about the brain, and it reads as "the other hemisphere
- * is less of a hub". So each experiment whose injection centroid falls right
- * of the midline is mirrored before it is added.
+ * map comes out brighter on whichever side each needle went in, which is a
+ * fact about the method rather than about the brain. So each experiment whose
+ * injection centroid falls left of the midline is mirrored before it is added.
  *
- * The result is that **left is ipsilateral to the injection and right is
+ * The result is that **right is ipsilateral to the injection and left is
  * contralateral**, for every experiment, which is the comparison worth making
  * and is not available from the raw volumes at all.
+ *
+ * Right rather than left, and the reason is a collision the first version
+ * created. The maps read "left is ipsilateral" while the panel's own ipsi
+ * button sent the target to the *right* — because Allen injects there, so that
+ * is where a target is reached from its own side. Both statements were true
+ * and they put opposite words on the same pixel. Normalising onto the right
+ * makes the aggregate agree with the raw anatomy and with the button.
  *
  * The hemisphere is read from the experiment's own `injection_fraction`
  * centroid rather than from the reported injection coordinate: it is the same
@@ -251,7 +257,7 @@ async function main() {
         }
 
         const [n0, n1, n2] = sizes
-        const mirror = injectionIsRight(injection.data, sizes)
+        const mirror = !injectionIsRight(injection.data, sizes)
         if (mirror) mirrored += 1
 
         // Read mirrored, write straight: equivalent to flipping the input, and
@@ -339,8 +345,8 @@ async function main() {
       maxCount,
       mirroredExperiments: mirrored,
       hemisphere:
-        'Every experiment is mirrored so its injection lies in the left hemisphere. ' +
-        'Left is therefore ipsilateral to the injection and right is contralateral.',
+        'Every experiment is mirrored so its injection lies in the right hemisphere. ' +
+        'Right is therefore ipsilateral to the injection and left is contralateral.',
       // How to read the blob: two uint16 planes, counts then scaled means,
       // each `voxels` long, first axis fastest like every other volume here.
       data: binFile.split('/').pop(),
@@ -348,7 +354,7 @@ async function main() {
       voxels,
       source:
         'Allen Mouse Brain Connectivity Atlas projection_density grids at 100 um, ' +
-        'injection voxels masked per experiment, injections mirrored onto the left. ' +
+        'injection voxels masked per experiment, injections mirrored onto the right. ' +
         'Oh et al. (2014), Nature 508:207-214.',
     }),
   )
@@ -357,7 +363,7 @@ async function main() {
     `Wrote ${OUT_FILE} + ${binFile} (${(blob.length / 1024 / 1024).toFixed(1)} MB)\n` +
       `  ${sizes.join(' x ')} at 100 um, ${reached.toLocaleString()} of ` +
       `${voxels.toLocaleString()} voxels reached, max count ${maxCount}\n` +
-      `  ${mirrored} of ${chosen.length - failed} experiments mirrored onto the left`,
+      `  ${mirrored} of ${chosen.length - failed} experiments mirrored onto the right`,
   )
 }
 

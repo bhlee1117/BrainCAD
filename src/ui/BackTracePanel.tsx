@@ -26,9 +26,13 @@ import {
 import {
   CONVERGENCE_CAVEATS,
   CONVERGENCE_METRIC_LABEL,
+  SIDE_LABEL,
   formatConvergence,
   rankConvergence,
+  sideOfTarget,
+  targetForSide,
   type ConvergenceMetric,
+  type Side,
 } from '../overlays/convergence.ts'
 import { VOXEL_CAVEATS } from '../overlays/voxelConvergence.ts'
 import { useConvergenceMatrix } from '../overlays/useHubMap.ts'
@@ -351,6 +355,38 @@ export function BackTracePanel({
           tap above; hold Shift for ×{COARSE_FACTOR}. Left and right are the
           animal&rsquo;s. Keys are ignored while the caret is in a field.
         </p>
+
+        <div className="btn-row" style={{ marginTop: 6 }}>
+          {(['ipsi', 'contra'] as Side[]).map((side) => (
+            <button
+              key={side}
+              className={sideOfTarget(coord) === side ? 'btn btn--primary' : 'btn'}
+              disabled={coord.ml === 0}
+              title={
+                coord.ml === 0
+                  ? 'The target is on the midline, which is neither side'
+                  : `Move the target to ML ${(
+                      Math.abs(coord.ml) * (side === 'ipsi' ? 1 : -1)
+                    ).toFixed(2)}`
+              }
+              onClick={() =>
+                updateTarget(target.id, { coord: targetForSide(coord, side) })
+              }
+            >
+              {SIDE_LABEL[side]}
+            </button>
+          ))}
+        </div>
+        <p className="hint" style={{ marginTop: 2 }}>
+          {/* The direction is the opposite of what the maps' "left is ipsilateral"
+              suggests, so it is stated rather than left to be worked out. */}
+          Flips the target across the midline, keeping AP and DV so the two answers are
+          comparable. Allen injects the right hemisphere, so a target there is reached
+          mostly from its own side — at dorsal CA1, 70 experiments of which 80% are
+          ipsilateral, against 44 and 55% contralateral on the left. The maps are
+          normalised the same way, so this button and their labels agree.
+          {coord.ml === 0 && ' The target is on the midline, which is neither.'}
+        </p>
       </div>
 
       <div className="section">
@@ -372,12 +408,12 @@ export function BackTracePanel({
           />
           Draw routes in the 3D view
         </label>
-        {backtrace.showPaths && coord.ml > 0 && (
+        {backtrace.showPaths && coord.ml < 0 && (
           <p className="hint" style={{ marginTop: 0 }}>
-            Reflected across the midline so the target lands on the left, where the hub
+            Reflected across the midline so the target lands on the right, where the hub
             map puts ipsilateral. The routes therefore converge on the target&rsquo;s
-            mirror at ML {(-coord.ml).toFixed(2)}, not on the coordinate the hardware in
-            that view is planned against.
+            mirror at ML {Math.abs(coord.ml).toFixed(2)}, not on the coordinate the
+            hardware in that view is planned against.
           </p>
         )}
         <label className="check">

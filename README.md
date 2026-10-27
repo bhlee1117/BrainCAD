@@ -377,7 +377,7 @@ region identically on both halves and made the map symmetric by construction
 rather than by anatomy. It is not a small difference: a single CA3 experiment
 deposits 0.089 in one CA1 and 0.216 in the other. Both hemispheres are fetched
 and each experiment's own injection side decides which is ipsilateral, which
-matters because Allen injects the right hemisphere in 98% of cases. Left is ipsilateral in both grains, and the sections say so on themselves
+matters because Allen injects the right hemisphere in 98% of cases. Right is ipsilateral in both grains, and the sections say so on themselves
 rather than only in the caption: coronal and horizontal carry `ipsi` and
 `contra` under their two halves, and a sagittal section — which is one
 hemisphere, not two — is named by the one it was taken in, or `midline` when it
@@ -416,9 +416,9 @@ Two things the voxel map shows that the structure map hid, both real:
   tracts" block.
 - **Laterality, before it was corrected.** Accumulated raw, the map was
   brighter on whichever side the needle went in. Each experiment is now
-  mirrored so its injection lies on the **left**, making left ipsilateral and
-  right contralateral throughout, the same convention the structure matrix
-  uses.
+  mirrored so its injection lies on the **right**, making right ipsilateral and
+  left contralateral throughout — the side Allen already injects, so the
+  aggregate agrees with the raw anatomy and with the panel's ipsi button.
 
 The scale needs a percentile rather than a maximum: counts run to 1,772 against
 a median of 52, so scaling to the brightest voxels renders the rest of the brain
@@ -467,11 +467,19 @@ site, which is what makes a *visible* back-trace possible — one `LineSegments`
 for the whole trace, coloured per structure from the Allen ontology and shaded
 by that source's strength at the target.
 
-The routes are **reflected so the target lands on the left**, the side the hub
-map calls ipsilateral. Without it the two halves of the screen contradict each
-other: the sections label the right half `contra` while the routes above run
-into it, because these are Allen's raw coordinates and Allen injects the right
-hemisphere in 98% of experiments. The cost is that the routes no longer
+The routes are **reflected so the target lands on the right**, the side the hub
+map calls ipsilateral. Without it a target placed on the left shows its sources mostly on the right
+while the sections label that half `ipsi` — two halves of one screen
+disagreeing about which side is which.
+
+**Which side is ipsilateral is not an arbitrary choice, and getting it wrong
+is invisible.** An earlier build normalised everything onto the left, which
+read well until the panel grew `ipsi` and `contra` buttons that move the
+target: Allen injects the right hemisphere, so a target there is reached from
+its own side, and the button sent it right while the map called the right half
+`contra`. Both statements were true and they put opposite words on the same
+pixel. Measured at dorsal CA1: ML +1.5 returns 70 experiments of which 80%
+are ipsilateral, ML −1.5 returns 44 of which 55% are contralateral. The cost is that the routes no longer
 converge on the coordinate the hardware in that same view is planned against —
 so the target's mirror is drawn and named, a bundle of lines converging on
 empty space being exactly the kind of thing a reader assumes is a bug.
