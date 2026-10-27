@@ -9,15 +9,35 @@
 import { useEffect, useMemo, useRef } from 'react'
 
 import {
+  UNLABELLED,
   colorizeSlice,
+  slicePixelToVoxel,
   voxelToSlicePixel,
   type AnnotationVolume,
+  type SliceImage,
 } from '../atlas/annotation.ts'
 import { stereotaxicToVoxel, type Stereotaxic } from '../atlas/coords.ts'
 import type { LoadedAtlas } from '../atlas/load.ts'
 import type { ColorTable } from '../atlas/ontology.ts'
 import type { CoordinateProfile } from '../atlas/profile.ts'
 import type { AnatomicalAxis } from '../atlas/space.ts'
+
+/**
+ * Painting a value volume instead of the structure table.
+ *
+ * The hub map's voxel grid is 100 µm against the annotation's 50 µm, so it
+ * cannot be extracted as its own slice and lined up afterwards. Every pixel
+ * asks which point of the brain it is — through the same flip rules the image
+ * was built with — and then looks that point up here.
+ */
+export interface VoxelPaint {
+  /** Value at an annotation voxel, or null where there is none. */
+  valueAt: (voxel: { i0: number; i1: number; i2: number }) => number | null
+  /** Colour for a value, already normalised by the caller. */
+  colorFor: (value: number) => readonly [number, number, number]
+  /** Drawn where `valueAt` returns null but the voxel is inside the brain. */
+  readonly empty: readonly [number, number, number]
+}
 
 interface SliceViewProps {
   label: string
@@ -26,6 +46,38 @@ interface SliceViewProps {
   colors: ColorTable
   profile: CoordinateProfile
   coord: Stereotaxic
+  voxelPaint?: VoxelPaint
+}
+
+/** Paint one slice from a value volume rather than from the structure table. */
+function paintVoxels(
+  slice: SliceImage,
+  profile: CoordinateProfile,
+  axis: AnatomicalAxis,
+  sliceIndex: number,
+  paint: VoxelPaint,
+): Uint8ClampedArray {
+  const pixels = new Uint8ClampedArray(slice.width * slice.height * 4)
+
+  for (let y = 0; y < slice.height; y++) {
+    for (let x = 0; x < slice.width; x++) {
+      const at = (y * slice.width + x) * 4
+      // Outside the brain stays transparent, exactly as the label path leaves
+      // UNLABELLED pixels, so the section keeps its silhouette.
+      if (slice.labels[y * slice.width + x] === UNLABELLED) continue
+
+      const voxel = slicePixelToVoxel(profile.space, slice, axis, sliceIndex, x, y)
+      const value = paint.valueAt(voxel)
+      const [r, g, b] = value === null ? paint.empty : paint.colorFor(value)
+
+      pixels[at] = r * 255
+      pixels[at + 1] = g * 255
+      pixels[at + 2] = b * 255
+      pixels[at + 3] = 255
+    }
+  }
+
+  return pixels
 }
 
 /** Crosshair colour; deliberately the same accent used for target markers. */
@@ -42,7 +94,15 @@ const CROSSHAIR = 'rgba(255,107,74,0.95)'
  */
 const CROSSHAIR_HALO = 'rgba(0,0,0,0.65)'
 
-function SliceView({ label, axis, volume, colors, profile, coord }: SliceViewProps) {
+function SliceView({
+  label,
+  axis,
+  volume,
+  colors,
+  profile,
+  coord,
+  voxelPaint,
+}: SliceViewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   const voxel = useMemo(() => stereotaxicToVoxel(profile, coord), [profile, coord])
@@ -58,7 +118,9 @@ function SliceView({ label, axis, volume, colors, profile, coord }: SliceViewPro
     canvas.width = slice.width
     canvas.height = slice.height
 
-    const pixels = colorizeSlice(slice, colors)
+    const pixels = voxelPaint
+      ? paintVoxels(slice, profile, axis, sliceIndex, voxelPaint)
+      : colorizeSlice(slice, colors)
     // Built empty and filled, rather than passed to the ImageData constructor,
     // so the pixel buffer's backing store does not have to be a plain
     // ArrayBuffer to satisfy the DOM typings.
@@ -86,7 +148,7 @@ function SliceView({ label, axis, volume, colors, profile, coord }: SliceViewPro
     context.strokeStyle = CROSSHAIR
     context.lineWidth = 1
     crosshair()
-  }, [volume, colors, axis, sliceIndex, voxel, profile])
+  }, [volume, colors, axis, sliceIndex, voxel, profile, voxelPaint])
 
   const readout =
     axis === 'AP'
@@ -109,6 +171,7 @@ export function SlicePanel({
   profile,
   coord,
   colors,
+  voxelPaint,
   caption,
 }: {
   atlas: LoadedAtlas
@@ -123,6 +186,8 @@ export function SlicePanel({
    * indices and the readouts identical between the two.
    */
   colors?: ColorTable
+  /** Paints from a value volume instead; takes precedence over `colors`. */
+  voxelPaint?: VoxelPaint
   /** Says what the colours mean, when they are not the ontology's. */
   caption?: string
 }) {
@@ -137,6 +202,7 @@ export function SlicePanel({
         colors={table}
         profile={profile}
         coord={coord}
+        voxelPaint={voxelPaint}
       />
       <SliceView
         label="Sagittal"
@@ -145,6 +211,7 @@ export function SlicePanel({
         colors={table}
         profile={profile}
         coord={coord}
+        voxelPaint={voxelPaint}
       />
       <SliceView
         label="Horizontal"
@@ -153,6 +220,7 @@ export function SlicePanel({
         colors={table}
         profile={profile}
         coord={coord}
+        voxelPaint={voxelPaint}
       />
       {caption && <div className="slices__caption">{caption}</div>}
     </div>

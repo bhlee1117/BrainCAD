@@ -244,6 +244,14 @@ export interface BacktraceState {
   readonly heatSurface: 'sections' | 'brain'
   /** Whether the second brain paints regions or draws the traced routes. */
   readonly heatMode: HeatmapMode
+  /**
+   * How fine the hub map is.
+   *
+   * `structures` is the unionize matrix, one value per region. `voxels` is the
+   * same question asked of the raw 100 µm projection grids, which owes nothing
+   * to the parcellation and can disagree with it.
+   */
+  readonly heatGrain: 'structures' | 'voxels'
   /** What the convergence map measures. */
   readonly heatMetric: ConvergenceMetric
   /** Minimum projection density for a source to count as projecting in. */
@@ -274,6 +282,7 @@ const INITIAL_BACKTRACE: BacktraceState = {
   showHeatmap: true,
   heatSurface: 'sections',
   heatMode: 'regions',
+  heatGrain: 'structures',
   heatMetric: 'count',
   connectionThreshold: DEFAULT_CONNECTION_THRESHOLD,
   heatOpacity: 1,

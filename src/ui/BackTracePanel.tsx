@@ -30,6 +30,7 @@ import {
   rankConvergence,
   type ConvergenceMetric,
 } from '../overlays/convergence.ts'
+import { VOXEL_CAVEATS } from '../overlays/voxelConvergence.ts'
 import { useConvergenceMatrix } from '../overlays/useHubMap.ts'
 import { HEATMAP_MODE_LABEL } from '../overlays/heatmap.ts'
 import { COARSE_FACTOR, NUDGE_LEGEND, nudgeCoord } from '../state/nudge.ts'
@@ -472,6 +473,35 @@ export function BackTracePanel({
             </div>
           )}
 
+          {backtrace.showHeatmap && backtrace.heatSurface === 'sections' && (
+            <>
+              <div className="field">
+                <label htmlFor="heat-grain">Grain</label>
+                <select
+                  id="heat-grain"
+                  value={backtrace.heatGrain}
+                  onChange={(event) =>
+                    setBacktrace({
+                      heatGrain: event.target.value as 'structures' | 'voxels',
+                    })
+                  }
+                >
+                  <option value="structures">Structures — one value per region</option>
+                  <option value="voxels">Voxels — 100 µm, ignores the parcellation</option>
+                </select>
+              </div>
+              {backtrace.heatGrain === 'voxels' && (
+                <p className="hint" style={{ marginTop: 0 }}>
+                  Accumulated from the raw projection grids of all 2,331 experiments, so
+                  it owes nothing to the region boundaries and can disagree with them.
+                  The pixels are larger — 100 µm against the atlas&rsquo;s 50 — and each
+                  one is a measurement at that place rather than an average over the
+                  region containing it. 2 MB, fetched once.
+                </p>
+              )}
+            </>
+          )}
+
           {backtrace.showHeatmap && (
             <>
               {backtrace.heatSurface === 'brain' && (
@@ -517,7 +547,7 @@ export function BackTracePanel({
                     </select>
                   </div>
 
-                  <div className="field">
+                  <div className="field" hidden={backtrace.heatGrain === 'voxels'}>
                     <label htmlFor="heat-threshold">Counts above</label>
                     <NumberField
                       id="heat-threshold"
@@ -597,7 +627,8 @@ export function BackTracePanel({
                   <h2 style={{ marginTop: 14 }}>Top postsynaptic hubs</h2>
                   <div className="mrow__meta" style={{ marginBottom: 6, marginLeft: 0 }}>
                     Regions most projected <i>to</i>, across the whole connectome — not
-                    this target.
+                    this target. Ranked ipsilaterally; <b>c</b> is the contralateral
+                    value.
                   </div>
                   {hubs.slice(0, HUB_LIST_LENGTH).map((hub, rank) => (
                     <div key={hub.id} className="mrow__exp">
@@ -618,6 +649,13 @@ export function BackTracePanel({
                       {backtrace.heatMetric === 'mean' && (
                         <span style={{ minWidth: 44 }}>n={hub.sourceCount}</span>
                       )}
+                      {/* The contralateral value, never averaged into the
+                          ranking. A region fed almost equally from both sides
+                          is a different kind of hub from one fed overwhelmingly
+                          from its own, and a single number hides which. */}
+                      <span style={{ minWidth: 52 }} title="contralateral">
+                        c {formatConvergence(backtrace.heatMetric, hub.contra)}
+                      </span>
                     </div>
                   ))}
                 </>
@@ -627,7 +665,11 @@ export function BackTracePanel({
                 backtrace.heatMode === 'regions') && (
                 <div className="provenance">
                   <ul style={{ margin: 0, paddingLeft: 16 }}>
-                    {CONVERGENCE_CAVEATS.map((caveat) => (
+                    {(backtrace.heatSurface === 'sections' &&
+                    backtrace.heatGrain === 'voxels'
+                      ? VOXEL_CAVEATS
+                      : CONVERGENCE_CAVEATS
+                    ).map((caveat) => (
                       <li key={caveat}>{caveat}</li>
                     ))}
                   </ul>

@@ -16,7 +16,8 @@
     "typecheck": "tsc --noEmit",
     "atlas:fetch": "node scripts/fetch-atlas.mjs",
     "mouselight:fetch": "node scripts/fetch-mouselight.mjs",
-    "connectivity:fetch": "node scripts/fetch-connectivity-matrix.mjs"
+    "connectivity:fetch": "node scripts/fetch-connectivity-matrix.mjs",
+    "voxel:fetch": "node scripts/fetch-voxel-convergence.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^9.114.0",

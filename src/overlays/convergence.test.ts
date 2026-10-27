@@ -10,6 +10,7 @@
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { makeVolumeSpace } from '../atlas/space.ts'
 import {
   CONVERGENCE_CAVEATS,
   CONVERGENCE_METRIC_LABEL,
@@ -20,6 +21,7 @@ import {
   loadConvergenceMatrix,
   rankConvergence,
   type ConvergenceMatrix,
+  voxelSide,
   type ConvergenceMetric,
 } from './convergence.ts'
 
@@ -48,38 +50,54 @@ const MATRIX: ConvergenceMatrix = {
     1: {
       acronym: 'HUB',
       sources: [
-        [10, 0.05],
-        [11, 0.04],
-        [12, 0.03],
-        [13, 0.02],
-        [14, 0.011],
+        [10, 0.05, 0.02],
+        [11, 0.04, 0.001],
+        [12, 0.03, 0.03],
+        [13, 0.02, 0.001],
+        [14, 0.011, 0.001],
       ],
     },
-    2: { acronym: 'STRONG', sources: [[10, 0.9], [11, 0.5]] },
-    3: { acronym: 'QUIET', sources: [[10, 0.004]] },
+    2: {
+      acronym: 'STRONG',
+      sources: [
+        [10, 0.9, 0.1],
+        [11, 0.5, 0.004],
+      ],
+    },
+    3: { acronym: 'QUIET', sources: [[10, 0.004, 0.001]] },
   },
 }
 
 describe('convergenceStrengths', () => {
   it('counts the sources that clear the threshold', () => {
-    const s = convergenceStrengths(MATRIX, 'count')
-    expect(s.get(1)).toBe(5)
-    expect(s.get(2)).toBe(2)
+    const { ipsi } = convergenceStrengths(MATRIX, 'count')
+    expect(ipsi.get(1)).toBe(5)
+    expect(ipsi.get(2)).toBe(2)
   })
 
   it('averages only the sources that clear it', () => {
     // Dividing by every structure in the atlas instead would turn the mean
     // back into a count wearing a different name.
-    const s = convergenceStrengths(MATRIX, 'mean')
-    expect(s.get(2)).toBeCloseTo(0.7, 6)
-    expect(s.get(1)).toBeCloseTo((0.05 + 0.04 + 0.03 + 0.02 + 0.011) / 5, 6)
+    const { ipsi } = convergenceStrengths(MATRIX, 'mean')
+    expect(ipsi.get(2)).toBeCloseTo(0.7, 6)
+    expect(ipsi.get(1)).toBeCloseTo((0.05 + 0.04 + 0.03 + 0.02 + 0.011) / 5, 6)
+  })
+
+  it('keeps the two sides apart', () => {
+    // The whole point of refetching per hemisphere. Pooled, every structure
+    // took one number on both halves and the map was symmetric by
+    // construction rather than by anatomy.
+    const { ipsi, contra } = convergenceStrengths(MATRIX, 'count')
+    expect(ipsi.get(1)).toBe(5)
+    expect(contra.get(1)).toBe(2)
+    expect(contra.get(2)).toBe(1)
   })
 
   it('ranks the two metrics differently, which is why both exist', () => {
     // HUB is the region many places aim at; STRONG is the one the places that
     // do aim at it aim at hard. Neither number says both.
-    const byCount = convergenceStrengths(MATRIX, 'count')
-    const byMean = convergenceStrengths(MATRIX, 'mean')
+    const byCount = convergenceStrengths(MATRIX, 'count').ipsi
+    const byMean = convergenceStrengths(MATRIX, 'mean').ipsi
 
     expect(byCount.get(1)!).toBeGreaterThan(byCount.get(2)!)
     expect(byMean.get(2)!).toBeGreaterThan(byMean.get(1)!)
@@ -88,13 +106,12 @@ describe('convergenceStrengths', () => {
   it('drops a structure with nothing above the threshold', () => {
     // Absent from the map rather than painted black at zero: no sources that
     // clear the bar is not the same claim as a measured zero.
-    const s = convergenceStrengths(MATRIX, 'count')
-    expect(s.has(3)).toBe(false)
+    expect(convergenceStrengths(MATRIX, 'count').ipsi.has(3)).toBe(false)
   })
 
   it('moves the answer when the threshold moves', () => {
-    expect(convergenceStrengths(MATRIX, 'count', 0.001).get(3)).toBe(1)
-    expect(convergenceStrengths(MATRIX, 'count', 0.025).get(1)).toBe(3)
+    expect(convergenceStrengths(MATRIX, 'count', 0.001).ipsi.get(3)).toBe(1)
+    expect(convergenceStrengths(MATRIX, 'count', 0.025).ipsi.get(1)).toBe(3)
   })
 
   it('defaults to a threshold above the file is own fetch floor', () => {
@@ -102,6 +119,31 @@ describe('convergenceStrengths', () => {
     // counts as a connection, and it has to be the stricter of the two or the
     // stored noise floor would be making that claim instead.
     expect(DEFAULT_CONNECTION_THRESHOLD).toBeGreaterThan(MATRIX.fetchFloor)
+  })
+})
+
+describe('voxelSide', () => {
+  const space = makeVolumeSpace([264, 160, 228], 50, 'asl')
+
+  it('calls the left half ipsilateral', () => {
+    // By convention, not by measurement: the data is arranged that way, with
+    // every experiment read relative to its own injection.
+    expect(voxelSide(space, { i0: 100, i1: 80, i2: 10 })).toBe('ipsi')
+    expect(voxelSide(space, { i0: 100, i1: 80, i2: 220 })).toBe('contra')
+  })
+
+  it('follows the ML direction of the volume rather than the index', () => {
+    // An 'asr' volume counts ML from the right, so the same index is the
+    // other hemisphere. Hard-coding "low index is left" would silently swap
+    // ipsi and contra for any atlas stored the other way round.
+    const flipped = makeVolumeSpace([264, 160, 228], 50, 'asr')
+    expect(voxelSide(flipped, { i0: 100, i1: 80, i2: 10 })).toBe('contra')
+    expect(voxelSide(flipped, { i0: 100, i1: 80, i2: 220 })).toBe('ipsi')
+  })
+
+  it('splits at the ML axis midpoint', () => {
+    expect(voxelSide(space, { i0: 0, i1: 0, i2: 113 })).toBe('ipsi')
+    expect(voxelSide(space, { i0: 0, i1: 0, i2: 114 })).toBe('contra')
   })
 })
 
@@ -114,7 +156,11 @@ describe('independence from the target', () => {
 
     const first = convergenceStrengths(MATRIX, 'count')
     const second = convergenceStrengths(MATRIX, 'count')
-    expect([...first.entries()]).toEqual([...second.entries()])
+    expect([...first.ipsi.entries()]).toEqual([...second.ipsi.entries()])
+  })
+
+  it('says which side is which', () => {
+    expect(CONVERGENCE_CAVEATS.join(' ')).toMatch(/left is ipsilateral/i)
   })
 
   it('says so in the first caveat', () => {
@@ -137,6 +183,15 @@ describe('rankConvergence', () => {
     const ranked = rankConvergence(MATRIX, 'count')
     expect(ranked.map((r) => r.acronym)).toEqual(['HUB', 'STRONG'])
     expect(ranked[0]!.sourceCount).toBe(5)
+  })
+
+  it('carries the contralateral value without averaging it in', () => {
+    // A region fed almost equally from both sides is a different kind of hub
+    // from one fed overwhelmingly from its own, and an average hides which.
+    const ranked = rankConvergence(MATRIX, 'count')
+    const hub = ranked.find((r) => r.acronym === 'HUB')!
+    expect(hub.value).toBe(5)
+    expect(hub.contra).toBe(2)
   })
 
   it('carries the source count whichever metric ranks it', () => {

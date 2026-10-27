@@ -15,19 +15,31 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import type { LoadedAtlas } from '../atlas/load.ts'
-import type { ColorTable } from '../atlas/ontology.ts'
 import type { BacktraceState } from '../state/store.ts'
 import {
   convergenceStrengths,
   formatConvergence,
   loadConvergenceMatrix,
+  voxelSide,
   type ConvergenceMatrix,
+  type Side,
 } from './convergence.ts'
 import {
   buildRetrogradeHeatmap,
-  buildStrengthColorTable,
+  heatColor,
+  strengthForStructure,
   type RetrogradeHeatmap,
 } from './heatmap.ts'
+import { UNLABELLED } from '../atlas/annotation.ts'
+import {
+  loadVoxelConvergence,
+  valuesFor,
+  voxelIndexFor,
+  voxelRange,
+  type VoxelConvergence,
+  type VoxelRange,
+} from './voxelConvergence.ts'
+import type { VoxelPaint } from '../ui/SlicePanel.tsx'
 import {
   retrogradeMatrix,
   visibleSources,
@@ -113,50 +125,160 @@ export function useHubHeatmap(
 ): RetrogradeHeatmap | null {
   return useMemo(() => {
     if (!atlas || !matrix) return null
-    const strengths = convergenceStrengths(matrix, metric, threshold)
-    if (strengths.size === 0) return null
-    return buildRetrogradeHeatmap(atlas.volume, atlas.index, strengths)
+    const sided = convergenceStrengths(matrix, metric, threshold)
+    if (sided.ipsi.size === 0 && sided.contra.size === 0) return null
+    return buildRetrogradeHeatmap(atlas.volume, atlas.index, sided)
   }, [atlas, matrix, metric, threshold])
 }
 
-export interface SectionHubColors {
-  readonly colors: ColorTable
+export interface SectionPaint {
+  readonly paint: VoxelPaint
   readonly caption: string
 }
 
 /**
- * The hub map as a slice colour table.
+ * The structure map as a per-pixel paint source.
  *
- * Built from the same strengths and the same ramp as the 3D cloud, so the two
- * surfaces are two drawings of one answer rather than two answers. The range
- * is taken over every structure that has a value — not over the ones that
- * happen to appear in the current slice — or the colours would shift under the
- * reader every time the target moved to a section with a different mix of
- * regions, which looks exactly like the data changing.
+ * It used to be a structure-id colour table, which is how the slice renderer
+ * had always worked and stopped being expressible the moment a structure's
+ * value came to depend on which half of the brain the pixel is in. Both grains
+ * now take the same path — ask a pixel which voxel it is, then look that voxel
+ * up — so the two are drawn by one piece of code and cannot drift.
  */
-export function useSectionHubColors(
+export function useSectionHubPaint(
   atlas: LoadedAtlas | null,
   matrix: ConvergenceMatrix | null,
   metric: BacktraceState['heatMetric'],
   threshold: number,
-): SectionHubColors | null {
+): SectionPaint | null {
   return useMemo(() => {
     if (!atlas || !matrix) return null
 
-    const strengths = convergenceStrengths(matrix, metric, threshold)
-    if (strengths.size === 0) return null
+    const sided = convergenceStrengths(matrix, metric, threshold)
+    if (sided.ipsi.size === 0 && sided.contra.size === 0) return null
 
-    const values = [...strengths.values()]
-    const range = { min: Math.min(...values), max: Math.max(...values) }
+    const all = [...sided.ipsi.values(), ...sided.contra.values()]
+    const min = Math.min(...all)
+    const max = Math.max(...all)
+    const span = Math.max(max - min, Number.EPSILON)
+
+    // One ancestor walk per label per side, not one per pixel.
+    const cache: Record<Side, Map<number, number | null>> = {
+      ipsi: new Map(),
+      contra: new Map(),
+    }
 
     return {
-      colors: buildStrengthColorTable(atlas.index, strengths, range),
       caption:
-        `Sections coloured by convergence · ${metric} · ` +
-        `${formatConvergence(metric, range.min)} → ${formatConvergence(metric, range.max)} · ` +
-        `grey is unmeasured · independent of the target`,
+        `Sections coloured by convergence · structures · ${metric} · ` +
+        `${formatConvergence(metric, min)} → ${formatConvergence(metric, max)} · ` +
+        `left is ipsilateral · grey is unmeasured · independent of the target`,
+      paint: {
+        valueAt: (voxel) => {
+          const label = atlas.volume.labelAtVoxel(voxel.i0, voxel.i1, voxel.i2)
+          if (label === UNLABELLED) return null
+          const side = voxelSide(atlas.space, voxel)
+          let value = cache[side].get(label)
+          if (value === undefined) {
+            value = strengthForStructure(atlas.index, sided[side], label)
+            cache[side].set(label, value)
+          }
+          return value
+        },
+        colorFor: (value) => heatColor((value - min) / span),
+        empty: [0.105, 0.1, 0.09],
+      },
     }
   }, [atlas, matrix, metric, threshold])
+}
+
+export interface VoxelMapState {
+  readonly status: 'idle' | 'loading' | 'ready' | 'error'
+  readonly map: VoxelConvergence | null
+  readonly message: string
+}
+
+/**
+ * Load the bundled voxel map, once, on first use.
+ *
+ * Separate from the structure matrix and loaded only when the voxel grain is
+ * actually chosen: it is 2 MB over the wire against the matrix's 150 kB, and
+ * most sessions want the structure view.
+ */
+export function useVoxelConvergence(enabled: boolean): VoxelMapState {
+  const [state, setState] = useState<VoxelMapState>({
+    status: 'idle',
+    map: null,
+    message: '',
+  })
+  const started = useRef(false)
+
+  useEffect(() => {
+    if (!enabled || started.current) return
+    started.current = true
+
+    let live = true
+    setState({ status: 'loading', map: null, message: 'Loading voxel map (2 MB)…' })
+
+    loadVoxelConvergence()
+      .then((map) => {
+        if (live) setState({ status: 'ready', map, message: '' })
+      })
+      .catch((error: unknown) => {
+        started.current = false
+        if (!live) return
+        setState({
+          status: 'error',
+          map: null,
+          message: error instanceof Error ? error.message : String(error),
+        })
+      })
+
+    // Released so a StrictMode remount re-runs rather than finding the ref
+    // claimed by a run whose result this very cleanup discarded.
+    return () => {
+      live = false
+      started.current = false
+    }
+  }, [enabled])
+
+  return state
+}
+
+/**
+ * The voxel map as something the slice views can paint.
+ *
+ * The range is recomputed when the metric changes and not otherwise, because
+ * it sorts a tenth of a million samples; the per-pixel work is then two array
+ * reads and a ramp lookup.
+ */
+export function useVoxelPaint(
+  map: VoxelConvergence | null,
+  metric: BacktraceState['heatMetric'],
+): { paint: VoxelPaint; range: VoxelRange } | null {
+  return useMemo(() => {
+    if (!map) return null
+
+    const values = valuesFor(map, metric)
+    const range = voxelRange(values)
+    const span = Math.max(1, range.max - range.min)
+
+    return {
+      range,
+      paint: {
+        valueAt: (voxel) => {
+          const index = voxelIndexFor(map, voxel)
+          if (index < 0) return null
+          const raw = values[index]!
+          return raw > 0 ? raw : null
+        },
+        colorFor: (raw) => heatColor((raw - range.min) / span),
+        // Inside the brain but reached by nothing: a dim neutral, so the
+        // section keeps its shape rather than showing holes.
+        empty: [0.105, 0.1, 0.09],
+      },
+    }
+  }, [map, metric])
 }
 
 /**

@@ -371,6 +371,61 @@ region the places that do aim at it aim at *hard*). A thalamic relay and a small
 nucleus with one massive input are both hubs in different senses, and no single
 number says both.
 
+**Ipsilateral and contralateral are kept apart.** An earlier build asked Allen
+for `hemisphere_id=3` — one pooled number per structure — which painted every
+region identically on both halves and made the map symmetric by construction
+rather than by anatomy. It is not a small difference: a single CA3 experiment
+deposits 0.089 in one CA1 and 0.216 in the other. Both hemispheres are fetched
+and each experiment's own injection side decides which is ipsilateral, which
+matters because Allen injects the right hemisphere in 98% of cases. The median
+structure receives contralaterally from 0.58× as many regions as ipsilaterally,
+and the spread is the interesting part: the midline thalamic nuclei come out
+near 0.95, zona incerta at 0.53.
+
+#### Underneath the parcellation: the voxel grain
+
+The structure matrix's grain is also its ceiling. A dense input zone in one
+corner of a region, a cluster straddling an annotation boundary, a gradient
+across a nucleus — all averaged away before BrainCAD saw the number. So the
+same question is also asked of the raw 100 µm `projection_density` grids, all
+2,331 of them, accumulated per voxel by `npm run voxel:fetch` into a 4.6 MB
+blob (2 MB over the wire).
+
+It is worth being clear that **the pixels get bigger**: 100 µm against the
+annotation's 50. What changes is that each one is a measurement at that place
+rather than an average over the region containing it — which is what lets
+cortical layers, and hot spots the parcellation never drew, appear at all.
+
+Whether there was anything to find was tested before the full download, on a
+300-experiment sample stratified across source structures. Half the structures
+turned out to have a 95th percentile at least twice their own median, and —
+the part that matters — 91% of those hot voxels sat in clusters of 20 or more.
+Shuffling the values *within* each structure, which preserves the distribution
+and destroys the arrangement, dropped that to 18% and fragmented 3,237 clusters
+into 30,889. The variation is spatial, not a heavy tail.
+
+Two things the voxel map shows that the structure map hid, both real:
+
+- **White matter is bright.** A tract carries the axons of many sources, so it
+  genuinely has high convergence by this measure — convergence of *passage*
+  rather than of termination. The structure map buried this inside one "fiber
+  tracts" block.
+- **Laterality, before it was corrected.** Accumulated raw, the map was visibly
+  brighter on the right, which is where Allen puts the needle. Each experiment
+  is now mirrored so its injection lies on the left, making left ipsilateral and
+  right contralateral for every experiment — the same convention the structure
+  matrix uses.
+
+The scale needs a percentile rather than a maximum: counts run to 1,772 against
+a median of 52, so scaling to the brightest voxels renders the rest of the brain
+as one dark mass.
+
+Both grains paint through **one per-pixel path**. The slice renderer used to
+take a structure-id colour table, which stopped being expressible the moment a
+structure's value depended on which half of the brain a pixel was in. Now every
+pixel asks which voxel it is — through the same flip rules the image was built
+with — and that voxel is looked up in whichever map is selected.
+
 **The corpus is the app's corpus.** The raw unionize table also carries rows
 from the Alzheimer, aged-cohort, retina and target-defined studies — for CA1,
 two thirds of all rows — and pooling those into "the mouse connectome" would mix

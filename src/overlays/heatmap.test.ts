@@ -49,6 +49,11 @@ const INDEX = buildIndex(STRUCTURES)
  * Laid out by hand so the expected point counts can be reasoned about rather
  * than read back out of the function under test.
  */
+/** Both halves given the same values, when a test is not about laterality. */
+function bothSides(map: Map<number, number>) {
+  return { ipsi: map, contra: map }
+}
+
 /**
  * Compare colours with tolerance.
  *
@@ -113,7 +118,7 @@ describe('buildRetrogradeHeatmap', () => {
   const volume = miniVolume()
 
   it('paints only the voxels under a source', () => {
-    const heatmap = buildRetrogradeHeatmap(volume, INDEX, new Map([[382, 0.9]]), {
+    const heatmap = buildRetrogradeHeatmap(volume, INDEX, bothSides(new Map([[382, 0.9]])), {
       stride: 1,
     })
     // Half the volume is CA3sp: 2 of 4 along the first axis.
@@ -124,7 +129,7 @@ describe('buildRetrogradeHeatmap', () => {
 
   it('emits voxel centres, not corners', () => {
     // Half a voxel matters: a corner is 25 um off the tissue it stands for.
-    const heatmap = buildRetrogradeHeatmap(volume, INDEX, new Map([[382, 0.9]]), {
+    const heatmap = buildRetrogradeHeatmap(volume, INDEX, bothSides(new Map([[382, 0.9]])), {
       stride: 1,
     })
     expect(heatmap.positionsUm[0]).toBeCloseTo(25, 6)
@@ -133,14 +138,10 @@ describe('buildRetrogradeHeatmap', () => {
   })
 
   it('carries each voxel its own structure strength', () => {
-    const heatmap = buildRetrogradeHeatmap(
-      volume,
-      INDEX,
-      new Map([
+    const heatmap = buildRetrogradeHeatmap(volume, INDEX, bothSides(new Map([
         [382, 0.9],
         [262, 0.3],
-      ]),
-      { stride: 1 },
+      ])), { stride: 1 },
     )
     const values = new Set([...heatmap.strengths].map((v) => Number(v.toFixed(3))))
     expect(values).toEqual(new Set([0.9, 0.3]))
@@ -150,7 +151,7 @@ describe('buildRetrogradeHeatmap', () => {
   it('reports sources it could not paint', () => {
     // A named source the volume does not carry has to be visible as a gap,
     // not silently absent from a map that looks complete.
-    const heatmap = buildRetrogradeHeatmap(volume, INDEX, new Map([[262, 0.3], [999999, 0.5]]), {
+    const heatmap = buildRetrogradeHeatmap(volume, INDEX, bothSides(new Map([[262, 0.3], [999999, 0.5]])), {
       stride: 1,
     })
     expect(heatmap.paintedStructureIds).toEqual([262])
@@ -160,7 +161,7 @@ describe('buildRetrogradeHeatmap', () => {
   it('raises the stride rather than thinning the cloud at random', () => {
     // Dropping points at random would thin a dense hub and a faint one by the
     // same fraction, which looks like a measurement and is not.
-    const heatmap = buildRetrogradeHeatmap(volume, INDEX, new Map([[382, 0.9]]), {
+    const heatmap = buildRetrogradeHeatmap(volume, INDEX, bothSides(new Map([[382, 0.9]])), {
       stride: 1,
       maxPoints: 10,
     })
@@ -169,7 +170,7 @@ describe('buildRetrogradeHeatmap', () => {
   })
 
   it('is empty when nothing matches', () => {
-    const heatmap = buildRetrogradeHeatmap(volume, INDEX, new Map(), { stride: 1 })
+    const heatmap = buildRetrogradeHeatmap(volume, INDEX, bothSides(new Map()), { stride: 1 })
     expect(heatmap.pointCount).toBe(0)
     expect(heatmap.maxStrength).toBe(0)
     expect(heatmapColors(heatmap)).toHaveLength(0)
@@ -206,14 +207,10 @@ describe('the heat ramp', () => {
     // they run 1 to 115 with most regions between 60 and 110, so nearly the
     // whole brain landed at the top of the ramp with nothing to stand out
     // from. Stretched, the weakest region sits at the bottom stop.
-    const heatmap = buildRetrogradeHeatmap(
-      miniVolume(),
-      INDEX,
-      new Map([
+    const heatmap = buildRetrogradeHeatmap(miniVolume(), INDEX, bothSides(new Map([
         [382, 110],
         [262, 60],
-      ]),
-      { stride: 1 },
+      ])), { stride: 1 },
     )
     const colors = heatmapColors(heatmap)
     const strongIndex = [...heatmap.strengths].indexOf(110)
@@ -226,7 +223,7 @@ describe('the heat ramp', () => {
   })
 
   it('puts a single value at the top rather than dividing by zero', () => {
-    const flat = buildRetrogradeHeatmap(miniVolume(), INDEX, new Map([[382, 0.08]]), {
+    const flat = buildRetrogradeHeatmap(miniVolume(), INDEX, bothSides(new Map([[382, 0.08]])), {
       stride: 1,
     })
     expectColor(heatmapColors(flat).slice(0, 3), heatColor(1))
@@ -234,17 +231,9 @@ describe('the heat ramp', () => {
 
   it('does not care what scale the values are on', () => {
     // The same shape of answer, in counts or in densities, paints the same.
-    const counts = buildRetrogradeHeatmap(
-      miniVolume(),
-      INDEX,
-      new Map([[382, 110], [262, 60]]),
-      { stride: 1 },
+    const counts = buildRetrogradeHeatmap(miniVolume(), INDEX, bothSides(new Map([[382, 110], [262, 60]])), { stride: 1 },
     )
-    const densities = buildRetrogradeHeatmap(
-      miniVolume(),
-      INDEX,
-      new Map([[382, 0.11], [262, 0.06]]),
-      { stride: 1 },
+    const densities = buildRetrogradeHeatmap(miniVolume(), INDEX, bothSides(new Map([[382, 0.11], [262, 0.06]])), { stride: 1 },
     )
     expectColor(heatmapColors(counts), [...heatmapColors(densities)])
   })

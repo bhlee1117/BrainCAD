@@ -16,6 +16,20 @@
  * and the map would show the Allen Institute's sampling effort rather than
  * anatomy.
  *
+ * ## Ipsilateral and contralateral are kept apart
+ *
+ * Allen reports each structure's incoming density per hemisphere (1 left,
+ * 2 right, 3 both). An earlier version asked for 3 — one pooled number per
+ * structure — which painted every region identically on both sides and made
+ * the map symmetric by construction rather than by anatomy. It is not a small
+ * difference: a single CA3 experiment deposits 0.089 in one CA1 and 0.216 in
+ * the other.
+ *
+ * So both hemispheres are fetched, and each experiment's own injection side
+ * decides which is ipsilateral. Allen injects the right hemisphere in 98% of
+ * cases, so without that step "left" would mostly mean "contralateral" and
+ * occasionally not.
+ *
  * Self-projection is excluded, and so is anything on the same root-to-leaf
  * path. An injection into CA3 "projecting into" CA3 is the injection site at
  * saturation, and left in it dominates every structure's own average.
@@ -53,6 +67,9 @@ const PRECISION = 5
 
 /** Allen's 293-region summary set — the level connectivity is reported at. */
 const SUMMARY_SET = 'Mouse Connectivity - Summary'
+
+/** Midline in CCF micrometres: half of the 11.4 mm ML extent. */
+const MIDLINE_UM = 5700
 
 /** Be a good citizen: the service is shared and intermittently flaky. */
 const PAUSE_MS = 120
@@ -102,7 +119,14 @@ async function fetchCorpus(structures) {
         `[injection_structures$eq${structure.id}][primary_structure_only$eqtrue]`,
     )
     for (const row of rows) {
-      if (typeof row?.id === 'number') source.set(row.id, structure.id)
+      if (typeof row?.id !== 'number') continue
+      // The third component is ML in CCF micrometres, measured from the
+      // animal's left, so the midline is half the volume's ML extent.
+      const ml = row['injection-coordinates']?.[2]
+      source.set(row.id, {
+        structure: structure.id,
+        hemisphere: typeof ml === 'number' && ml > MIDLINE_UM ? 2 : 1,
+      })
     }
     done += 1
     process.stdout.write(
@@ -137,9 +161,11 @@ async function main() {
 
   console.log('Mapping experiments to their injection structure…')
   const sourceOfExperiment = await fetchCorpus(summary)
+  const right = [...sourceOfExperiment.values()].filter((e) => e.hemisphere === 2).length
   console.log(
     `  ${sourceOfExperiment.size} experiments from ` +
-      `${new Set(sourceOfExperiment.values()).size} source structures`,
+      `${new Set([...sourceOfExperiment.values()].map((e) => e.structure)).size} ` +
+      `source structures; ${right} injected on the right`,
   )
 
   console.log('Fetching incoming projections…')
@@ -152,32 +178,53 @@ async function main() {
     // join through to the injection structure instead turned a one-second
     // query into half a minute, which over 293 structures is the difference
     // between a coffee and an afternoon.
-    const rows = await query(
-      `model::ProjectionStructureUnionize,rma::criteria,` +
-        `[is_injection$eqfalse][structure_id$eq${structure.id}]` +
-        `[hemisphere_id$eq3][projection_density$gt${FETCH_FLOOR}],` +
-        `rma::options[num_rows$eq'all'][only$eq'projection_density,section_data_set_id']`,
+    const perHemisphere = await Promise.all(
+      [1, 2].map((hemisphere) =>
+        query(
+          `model::ProjectionStructureUnionize,rma::criteria,` +
+            `[is_injection$eqfalse][structure_id$eq${structure.id}]` +
+            `[hemisphere_id$eq${hemisphere}][projection_density$gt${FETCH_FLOOR}],` +
+            `rma::options[num_rows$eq'all']` +
+            `[only$eq'projection_density,section_data_set_id']`,
+        ),
+      ),
     )
 
-    // One number per source: its strongest experiment into this target.
+    // One pair per source: its strongest experiment into this target, kept as
+    // the ipsilateral and contralateral halves of that same experiment rather
+    // than as two independent maxima — otherwise a structure's ipsi and contra
+    // numbers could come from different animals and their ratio would mean
+    // nothing.
     const bySource = new Map()
-    for (const row of rows) {
-      const source = sourceOfExperiment.get(row.section_data_set_id)
-      if (source === undefined) {
-        unattributed += 1
-        continue
+    for (let h = 0; h < 2; h++) {
+      const hemisphere = h + 1
+      for (const row of perHemisphere[h]) {
+        const experiment = sourceOfExperiment.get(row.section_data_set_id)
+        if (experiment === undefined) {
+          unattributed += 1
+          continue
+        }
+        if (sameLineage(experiment.structure, structure.id)) continue
+        const density = row.projection_density
+        if (typeof density !== 'number' || !Number.isFinite(density)) continue
+
+        const side = hemisphere === experiment.hemisphere ? 'ipsi' : 'contra'
+        const current = bySource.get(experiment.structure) ?? { ipsi: 0, contra: 0, rank: 0 }
+        if (density > current[side]) current[side] = density
+        current.rank = Math.max(current.rank, current.ipsi)
+        bySource.set(experiment.structure, current)
       }
-      if (sameLineage(source, structure.id)) continue
-      const density = row.projection_density
-      if (typeof density !== 'number' || !Number.isFinite(density)) continue
-      if (!(bySource.get(source) >= density)) bySource.set(source, density)
     }
 
     convergence[structure.id] = {
       acronym: structure.acronym,
       sources: [...bySource.entries()]
-        .sort((a, b) => b[1] - a[1])
-        .map(([id, density]) => [id, Number(density.toFixed(PRECISION))]),
+        .sort((a, b) => b[1].ipsi - a[1].ipsi)
+        .map(([id, v]) => [
+          id,
+          Number(v.ipsi.toFixed(PRECISION)),
+          Number(v.contra.toFixed(PRECISION)),
+        ]),
     }
 
     done += 1
@@ -205,11 +252,15 @@ async function main() {
         'with primary_structure_only — the same corpus the rest of BrainCAD works from. ' +
         'Rows from the Alzheimer, aged-cohort, retina and target-defined studies are ' +
         'left out rather than pooled into one connectome.',
+      layout: '[sourceStructureId, ipsilateralDensity, contralateralDensity]',
+      hemisphere:
+        'Ipsilateral and contralateral are relative to each experiment own injection, ' +
+        'which Allen places in the right hemisphere 98% of the time.',
       note:
         'Per target structure, the strongest projection density reaching it from each ' +
-        'other structure. One value per source, not per experiment, so the map shows ' +
-        'anatomy rather than how often Allen injected a region. Self-projection and ' +
-        'same-lineage pairs are excluded.',
+        'other structure, split by side. One value per source, not per experiment, so ' +
+        'the map shows anatomy rather than how often Allen injected a region. ' +
+        'Self-projection and same-lineage pairs are excluded.',
       convergence,
     }),
   )

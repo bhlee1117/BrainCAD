@@ -35,8 +35,12 @@ import {
   useConvergenceMatrix,
   useHeatmapSources,
   useHubHeatmap,
-  useSectionHubColors,
+  useSectionHubPaint,
+  useVoxelConvergence,
+  useVoxelPaint,
 } from './overlays/useHubMap.ts'
+import { formatConvergence } from './overlays/convergence.ts'
+import { decode } from './overlays/voxelConvergence.ts'
 import { BackTracePanel } from './ui/BackTracePanel.tsx'
 import { AtlasPanel, ProfilePanel, ScenePanel } from './ui/SidePanels.tsx'
 import { SlicePanel } from './ui/SlicePanel.tsx'
@@ -133,15 +137,32 @@ export function App() {
   )
   const routeSources = useHeatmapSources(backtrace)
 
-  // The same strengths the 3D cloud would use, as a structure colour table —
-  // so the strip under the viewport can show the hub map without a second
-  // renderer, and a region yellow in one is yellow in the other.
-  const sectionHub = useSectionHubColors(
+  // Two grains, one surface. The structure paint reads the bundled matrix; the
+  // voxel paint reads the raw 100 µm grids, which are only downloaded once
+  // that grain is actually chosen.
+  const sectionsOn = hubMapOn && backtrace.heatSurface === 'sections'
+  const voxelOn = sectionsOn && backtrace.heatGrain === 'voxels'
+
+  const voxels = useVoxelConvergence(voxelOn)
+  const voxelPaint = useVoxelPaint(voxelOn ? voxels.map : null, backtrace.heatMetric)
+  const structurePaint = useSectionHubPaint(
     atlas,
-    hubMapOn && backtrace.heatSurface === 'sections' ? convergence.matrix : null,
+    sectionsOn && !voxelOn ? convergence.matrix : null,
     backtrace.heatMetric,
     backtrace.connectionThreshold,
   )
+
+  const sectionHub = voxelOn
+    ? voxelPaint && {
+        paint: voxelPaint.paint,
+        caption:
+          `Sections coloured by convergence · voxels (100 µm) · ` +
+          `${backtrace.heatMetric} · up to ` +
+          `${formatConvergence(backtrace.heatMetric, decode(backtrace.heatMetric, voxelPaint.range.max))}` +
+          ` at the 99th percentile · left is ipsilateral · ` +
+          `${voxels.map?.header.experiments ?? 0} experiments`,
+      }
+    : structurePaint
   const heatmapCaption = describeHubMap(
     backtrace,
     convergence,
@@ -199,8 +220,8 @@ export function App() {
           atlas={atlas}
           profile={profile}
           coord={target.coord}
-          colors={sectionHub?.colors}
-          caption={sectionHub?.caption}
+          voxelPaint={sectionHub?.paint}
+          caption={sectionHub?.caption ?? (voxelOn ? voxels.message : undefined)}
         />
       ) : (
         <p className="mhint">No target selected — sections follow the target.</p>
@@ -298,8 +319,8 @@ export function App() {
               atlas={atlas}
               profile={profile}
               coord={target.coord}
-              colors={sectionHub?.colors}
-              caption={sectionHub?.caption}
+              voxelPaint={sectionHub?.paint}
+              caption={sectionHub?.caption ?? (voxelOn ? voxels.message : undefined)}
             />
           )}
         </div>

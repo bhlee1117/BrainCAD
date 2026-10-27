@@ -30,13 +30,22 @@
  * weaker mirror.
  */
 
+import { arrayAxisFor, indexIncreasesPositively, type VolumeSpace } from '../atlas/space.ts'
+
 /** Resolve a path inside the bundled connectivity assets. */
 export function connectivityUrl(path: string): string {
   return `${import.meta.env.BASE_URL}connectivity/${path}`.replace(/([^:])\/{2,}/g, '$1/')
 }
 
-/** `[sourceStructureId, strongestProjectionDensity]`. */
-export type SourceEntry = readonly [number, number]
+/**
+ * `[sourceStructureId, ipsilateralDensity, contralateralDensity]`.
+ *
+ * Both sides, from the same experiment. An earlier build stored one pooled
+ * number per source, which painted every structure identically on both halves
+ * and made the map symmetric by construction rather than by anatomy — a single
+ * CA3 experiment puts 0.089 into one CA1 and 0.216 into the other.
+ */
+export type SourceEntry = readonly [number, number, number]
 
 export interface ConvergenceEntry {
   readonly acronym: string
@@ -64,6 +73,36 @@ export interface ConvergenceMatrix {
  * senses, and no single number says both.
  */
 export type ConvergenceMetric = 'count' | 'mean'
+
+/**
+ * Which half of the brain a value describes.
+ *
+ * Every experiment is read relative to its own injection, and the maps are
+ * drawn with the injected side on the left — the same convention the voxel map
+ * uses, so the two grains can be compared without re-learning the picture.
+ */
+export type Side = 'ipsi' | 'contra'
+
+/**
+ * The side a voxel falls on.
+ *
+ * Left is ipsilateral by convention, not by measurement: the data has been
+ * arranged that way. The midline is the ML axis's own midpoint rather than a
+ * constant, because the two bundled coordinate profiles do not put it in quite
+ * the same place.
+ */
+export function voxelSide(
+  space: VolumeSpace,
+  voxel: { i0: number; i1: number; i2: number },
+): Side {
+  const mlAxis = arrayAxisFor(space, 'ML')
+  const index = [voxel.i0, voxel.i1, voxel.i2][mlAxis]!
+  const midpoint = space.shape[mlAxis]! / 2
+  const left = indexIncreasesPositively(space.axes[mlAxis]!)
+    ? index < midpoint
+    : index >= midpoint
+  return left ? 'ipsi' : 'contra'
+}
 
 export const CONVERGENCE_METRIC_LABEL: Record<ConvergenceMetric, string> = {
   count: 'Count — how many regions project in',
@@ -114,48 +153,78 @@ export function clearConvergenceCache(): void {
  * Returns the same shape the retrograde heat map takes, so the second brain
  * paints a convergence map and a back-trace with one piece of code.
  */
+export interface SidedStrengths {
+  readonly ipsi: ReadonlyMap<number, number>
+  readonly contra: ReadonlyMap<number, number>
+}
+
 export function convergenceStrengths(
   matrix: ConvergenceMatrix,
   metric: ConvergenceMetric,
   threshold = DEFAULT_CONNECTION_THRESHOLD,
-): Map<number, number> {
-  const out = new Map<number, number>()
+): SidedStrengths {
+  const ipsi = new Map<number, number>()
+  const contra = new Map<number, number>()
 
   for (const [idText, entry] of Object.entries(matrix.convergence)) {
     const id = Number(idText)
     if (!Number.isFinite(id)) continue
 
-    const kept = entry.sources.filter(([, density]) => density >= threshold)
-    if (kept.length === 0) continue
+    for (const [side, column, out] of [
+      ['ipsi', 1, ipsi],
+      ['contra', 2, contra],
+    ] as const) {
+      void side
+      const kept = entry.sources
+        .map((source) => source[column] ?? 0)
+        .filter((density) => density >= threshold)
+      if (kept.length === 0) continue
 
-    if (metric === 'count') {
-      out.set(id, kept.length)
-    } else {
-      // Mean over the sources that clear the threshold, not over all 293
-      // structures: dividing by the ones that do not project would turn the
-      // measure back into a count wearing a different name.
-      out.set(id, kept.reduce((sum, [, d]) => sum + d, 0) / kept.length)
+      const value =
+        metric === 'count'
+          ? kept.length
+          : // Mean over the sources that clear the threshold, not over all 293
+            // structures: dividing by the ones that do not project would turn
+            // the measure back into a count wearing a different name.
+            kept.reduce((sum, d) => sum + d, 0) / kept.length
+
+      out.set(id, Math.max(out.get(id) ?? 0, value))
     }
   }
 
-  return out
+  return { ipsi, contra }
 }
 
-/** Hub ranking, for the panel's list. */
+/**
+ * Hub ranking, for the panel's list.
+ *
+ * Ranked on the ipsilateral side, and the contralateral value is carried
+ * alongside rather than averaged in. The ratio between them is a real property
+ * of a region — a structure fed almost equally from both sides is a different
+ * kind of hub from one fed overwhelmingly from its own — and an average
+ * destroys exactly that.
+ */
 export function rankConvergence(
   matrix: ConvergenceMatrix,
   metric: ConvergenceMetric,
   threshold = DEFAULT_CONNECTION_THRESHOLD,
-): { id: number; acronym: string; value: number; sourceCount: number }[] {
-  const strengths = convergenceStrengths(matrix, metric, threshold)
+): {
+  id: number
+  acronym: string
+  value: number
+  contra: number
+  sourceCount: number
+}[] {
+  const { ipsi, contra } = convergenceStrengths(matrix, metric, threshold)
 
-  return [...strengths.entries()]
+  return [...ipsi.entries()]
     .map(([id, value]) => ({
       id,
       acronym: matrix.convergence[String(id)]?.acronym ?? String(id),
       value,
+      contra: contra.get(id) ?? 0,
       sourceCount: (matrix.convergence[String(id)]?.sources ?? []).filter(
-        ([, d]) => d >= threshold,
+        (source) => (source[1] ?? 0) >= threshold,
       ).length,
     }))
     .sort((a, b) => b.value - a.value)
@@ -170,6 +239,8 @@ export function formatConvergence(metric: ConvergenceMetric, value: number): str
 export const CONVERGENCE_CAVEATS: readonly string[] = [
   'A property of the Allen connectome, not of your target — moving the target does not ' +
     'change this map. The target is drawn only as a reference mark.',
+  'Left is ipsilateral to the injection and right is contralateral: every experiment is ' +
+    'read relative to its own injection, which Allen places on the right 98% of the time.',
   'Anterograde data, so "projects into" is bulk signal detected in the region and counts ' +
     'fibres passing through the same as terminals.',
   'One value per source region, its strongest experiment — counting experiments would ' +

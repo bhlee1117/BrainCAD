@@ -87,6 +87,43 @@ export function voxelToSlicePixel(
   }
 }
 
+/**
+ * The inverse of {@link voxelToSlicePixel}: which voxel a pixel came from.
+ *
+ * Exists so a *different* volume can be painted onto the same image. The hub
+ * map's voxel grid is 100 µm against the annotation's 50 µm, so it cannot be
+ * extracted as a slice of its own and lined up afterwards — every pixel has to
+ * ask "which point of the brain am I", and then that point is looked up in
+ * whatever volume is being drawn.
+ *
+ * Both flips are involutions (`raw → span − 1 − raw`), so this is the same
+ * rule applied again rather than a second rule that could drift from the
+ * first — which is the whole reason the forward map was factored out.
+ */
+export function slicePixelToVoxel(
+  space: VolumeSpace,
+  slice: SliceImage,
+  axis: AnatomicalAxis,
+  sliceIndex: number,
+  x: number,
+  y: number,
+): { i0: number; i1: number; i2: number } {
+  const voxel: [number, number, number] = [0, 0, 0]
+  voxel[arrayAxisFor(space, axis)] = Math.round(sliceIndex)
+
+  const place = (inPlane: AnatomicalAxis, span: number, pixel: number) => {
+    const arrayAxis = arrayAxisFor(space, inPlane)
+    const flip =
+      indexIncreasesPositively(space.axes[arrayAxis]!) !== AXIS_DISPLAY_ASCENDING[inPlane]
+    voxel[arrayAxis] = flip ? span - 1 - pixel : pixel
+  }
+
+  place(slice.horizontalAxis, slice.width, x)
+  place(slice.verticalAxis, slice.height, y)
+
+  return { i0: voxel[0], i1: voxel[1], i2: voxel[2] }
+}
+
 export class AnnotationVolume {
   readonly space: VolumeSpace
   private readonly labels: Uint32Array
