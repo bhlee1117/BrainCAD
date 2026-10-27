@@ -134,7 +134,13 @@ let pending: Promise<ConvergenceMatrix> | null = null
 export function loadConvergenceMatrix(): Promise<ConvergenceMatrix> {
   if (!pending) {
     pending = (async () => {
-      const response = await fetch(connectivityUrl('convergence.json'))
+      // Revalidated for the same reason the voxel header is: the file is
+      // rebuilt whenever the corpus or the hemisphere split changes, and a
+      // browser holding the previous one shows a different answer under
+      // identical labels.
+      const response = await fetch(connectivityUrl('convergence.json'), {
+        cache: 'no-cache',
+      })
       if (!response.ok) {
         throw new Error(
           `Convergence matrix not available (HTTP ${response.status}). ` +

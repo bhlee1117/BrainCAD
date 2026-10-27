@@ -77,7 +77,15 @@ export function loadVoxelConvergence(): Promise<VoxelConvergence> {
     pending = (async () => {
       const header = (await fetchJson()) as VoxelConvergenceHeader
 
-      const response = await fetch(connectivityUrl(header.data))
+      // Stamped, because the blob's *meaning* has changed between builds while
+      // its name did not. Normalising the mirroring onto the other hemisphere
+      // leaves a byte-for-byte different file at the same path, and a browser
+      // holding the old one renders it under the new labels: the map comes out
+      // bright on the half the sections call contralateral, which looks exactly
+      // like the left and right having been swapped in code.
+      const response = await fetch(
+        `${connectivityUrl(header.data)}?v=${encodeURIComponent(header.generatedAt)}`,
+      )
       if (!response.ok) {
         throw new Error(`Voxel convergence data missing (HTTP ${response.status}).`)
       }
@@ -106,7 +114,12 @@ export function loadVoxelConvergence(): Promise<VoxelConvergence> {
 }
 
 async function fetchJson(): Promise<unknown> {
-  const response = await fetch(connectivityUrl('voxel-convergence.json'))
+  // Revalidated rather than taken from cache: it is 458 bytes, and it is what
+  // carries the stamp that busts the blob beside it. A cached header would
+  // keep handing out the old blob's URL and defeat the stamp entirely.
+  const response = await fetch(connectivityUrl('voxel-convergence.json'), {
+    cache: 'no-cache',
+  })
   if (!response.ok) {
     throw new Error(
       `Voxel convergence map not available (HTTP ${response.status}). ` +

@@ -408,14 +408,14 @@ export function BackTracePanel({
           />
           Draw routes in the 3D view
         </label>
-        {backtrace.showPaths && coord.ml < 0 && (
+        {backtrace.showPaths && (
           <p className="hint" style={{ marginTop: 0 }}>
-            Reflected across the midline so the target lands on the right, where the hub
-            map puts ipsilateral. The routes therefore converge on the target&rsquo;s
-            mirror at ML {Math.abs(coord.ml).toFixed(2)}, not on the coordinate the
-            hardware in that view is planned against.
+            Drawn on the target itself, in Allen&rsquo;s own coordinates — unmirrored, so
+            a route runs to where that experiment was actually injected. The hub map
+            below is mirrored and can be, having no target in it.
           </p>
         )}
+
         <label className="check">
           <input
             type="checkbox"

@@ -467,22 +467,32 @@ site, which is what makes a *visible* back-trace possible — one `LineSegments`
 for the whole trace, coloured per structure from the Allen ontology and shaded
 by that source's strength at the target.
 
-The routes are **reflected so the target lands on the right**, the side the hub
-map calls ipsilateral. Without it a target placed on the left shows its sources mostly on the right
-while the sections label that half `ipsi` — two halves of one screen
-disagreeing about which side is which.
+The routes are drawn **on the target itself, unmirrored**, so a route runs to
+where that experiment was actually injected. An earlier version reflected the
+whole trace so the target landed on the side the hub map calls ipsilateral,
+which made the two agree about left and right and cost more than it bought: the
+routes then converged on the target's *mirror* rather than on the target, so
+they were no longer registered to the coordinate the hardware in the same view
+is planned against, and a second "target (mirrored)" marker had to be drawn to
+explain where they had gone. The hub map can be mirrored because it is an
+aggregate with no target in it; these routes have one, and it is the point of
+the picture.
 
-**Which side is ipsilateral is not an arbitrary choice, and getting it wrong
-is invisible.** An earlier build normalised everything onto the left, which
-read well until the panel grew `ipsi` and `contra` buttons that move the
-target: Allen injects the right hemisphere, so a target there is reached from
-its own side, and the button sent it right while the map called the right half
+**Which side is ipsilateral is not an arbitrary choice, and getting it wrong is
+invisible.** An earlier build normalised the maps onto the left, which read
+well until the panel grew `ipsi` and `contra` buttons that move the target:
+Allen injects the right hemisphere, so a target there is reached from its own
+side, and the button sent it right while the map called the right half
 `contra`. Both statements were true and they put opposite words on the same
-pixel. Measured at dorsal CA1: ML +1.5 returns 70 experiments of which 80%
-are ipsilateral, ML −1.5 returns 44 of which 55% are contralateral. The cost is that the routes no longer
-converge on the coordinate the hardware in that same view is planned against —
-so the target's mirror is drawn and named, a bundle of lines converging on
-empty space being exactly the kind of thing a reader assumes is a bug.
+pixel. Measured at dorsal CA1: ML +1.5 returns 70 experiments of which 80% are
+ipsilateral, ML −1.5 returns 44 of which 55% are contralateral.
+
+That rebuild left a trap worth recording. The blob's *meaning* changed while
+its filename did not, so a browser holding the previous copy rendered it under
+the new labels — bright on the half now called contralateral, which looks
+exactly like left and right having been swapped in code. The header is now
+revalidated on every load and carries a build stamp that the blob's URL is
+keyed on.
 
 One value for the whole route, and deliberately **not** the per-point density
 Allen attaches to the path. That field looked like the obvious thing to use and

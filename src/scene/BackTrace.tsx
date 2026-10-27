@@ -14,12 +14,12 @@
 
 import { Billboard, Text } from '@react-three/drei'
 import { useEffect, useMemo } from 'react'
-import { AdditiveBlending, BufferAttribute, BufferGeometry, Color, Vector3 } from 'three'
+import { AdditiveBlending, BufferAttribute, BufferGeometry, Color } from 'three'
 
 import { visibleSources, type RetrogradeSource } from '../overlays/retrograde.ts'
-import { useAppStore, useProfile } from '../state/store.ts'
+import { useAppStore } from '../state/store.ts'
 import { Helper } from './Helper.tsx'
-import { midlineWorldX, stereotaxicToWorld } from './world.ts'
+import { stereotaxicToWorld } from './world.ts'
 
 /**
  * Minimum brightness of a route.
@@ -170,14 +170,7 @@ function TraceLines({ sources }: { sources: readonly RetrogradeSource[] }) {
  * is the thing a plan is actually about — the region you would have to be able
  * to reach, or avoid, for the connection to matter.
  */
-function SourceMarkers({
-  sources,
-  midline,
-}: {
-  sources: readonly RetrogradeSource[]
-  /** Reflect about this world X; null to leave positions alone. */
-  midline: number | null
-}) {
+function SourceMarkers({ sources }: { sources: readonly RetrogradeSource[] }) {
   // One marker per structure, at its strongest experiment. A dozen CA3
   // injections would otherwise stack a dozen identical labels on each other.
   const marks = useMemo(() => {
@@ -188,7 +181,6 @@ function SourceMarkers({
       if (!source.injectionCentre || seen.has(source.structureAbbrev)) continue
       seen.add(source.structureAbbrev)
       const world = stereotaxicToWorld(source.injectionCentre)
-      if (midline !== null) world.x = 2 * midline - world.x
       out.push({
         key: `${source.structureAbbrev}-${source.experimentId}`,
         abbrev: source.structureAbbrev,
@@ -197,7 +189,7 @@ function SourceMarkers({
       })
     }
     return out
-  }, [sources, midline])
+  }, [sources])
 
   return (
     <group>
@@ -225,42 +217,8 @@ function SourceMarkers({
   )
 }
 
-/**
- * The target's own marker, reflected with the routes.
- *
- * Drawn because the routes converge on it: mirrored, they no longer meet the
- * real target marker, and a bundle of lines converging on empty space is the
- * kind of thing a reader assumes is a bug. Labelled, because it *is* a
- * reflection — the coordinate under it is not where anything is being planned.
- */
-function MirroredTarget({ position }: { position: Vector3 }) {
-  return (
-    <group position={position}>
-      <mesh renderOrder={5}>
-        <sphereGeometry args={[0.12, 18, 18]} />
-        <meshBasicMaterial color="#ff6b4a" depthTest={false} transparent opacity={0.8} />
-      </mesh>
-      <Billboard position={[0, 0.3, 0]}>
-        <Text
-          fontSize={0.2}
-          color="#ff9f87"
-          anchorX="center"
-          anchorY="bottom"
-          outlineWidth={0.018}
-          outlineColor="#0b0e13"
-        >
-          target (mirrored)
-        </Text>
-      </Billboard>
-    </group>
-  )
-}
-
 export function BackTrace() {
   const backtrace = useAppStore((s) => s.backtrace)
-  const profile = useProfile()
-  const targets = useAppStore((s) => s.targets)
-  const selectedTargetId = useAppStore((s) => s.selectedTargetId)
 
   const sources = useMemo(
     () =>
@@ -277,43 +235,25 @@ export function BackTrace() {
     ],
   )
 
-  const target = targets.find((t) => t.id === selectedTargetId) ?? null
-  const midline = midlineWorldX(profile)
-
-  // Reflected so the target always lands in the right hemisphere, which is the
-  // side the hub map calls ipsilateral and the side Allen injects. Without it
-  // a target placed on the left shows its sources mostly on the right, while
-  // the sections below label that half ipsi — two halves of one screen
-  // disagreeing about which side is which.
+  // Drawn where the data actually is, with no mirroring.
   //
-  // The cost is real and is why the mirrored target is drawn and named: these
-  // routes are no longer registered to the coordinate the hardware in this
-  // same view is planned against.
-  const mirrored = (target?.coord.ml ?? 0) < 0
-
-  const mirroredTarget = useMemo(() => {
-    if (!mirrored || !target) return null
-    const world = stereotaxicToWorld(target.coord)
-    world.x = 2 * midline - world.x
-    return world
-  }, [mirrored, target, midline])
+  // An earlier version reflected the whole trace so the target landed on the
+  // side the hub map calls ipsilateral, which made the two agree about left
+  // and right and cost more than it bought: the routes then converged on the
+  // target's mirror rather than on the target, so they were no longer
+  // registered to the coordinate the hardware in this same view is planned
+  // against, and a second "target (mirrored)" marker had to be drawn to
+  // explain where they had gone.
+  //
+  // The hub map can be mirrored because it is an aggregate with no target in
+  // it. These routes have one, and it is the point of the picture.
 
   if (!backtrace.showPaths || sources.length === 0) return null
 
   return (
     <Helper>
-      {/* Lines and points take a negative scale safely — they have no winding
-          and no lighting. The markers carry text, which a negative scale would
-          render back to front, so they are reflected by hand instead. */}
-      <group
-        position={[mirrored ? 2 * midline : 0, 0, 0]}
-        scale={[mirrored ? -1 : 1, 1, 1]}
-      >
-        <TraceLines sources={sources} />
-      </group>
-
-      <SourceMarkers sources={sources} midline={mirrored ? midline : null} />
-      {mirroredTarget && <MirroredTarget position={mirroredTarget} />}
+      <TraceLines sources={sources} />
+      <SourceMarkers sources={sources} />
     </Helper>
   )
 }
