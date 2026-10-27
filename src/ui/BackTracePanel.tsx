@@ -27,10 +27,9 @@ import {
   CONVERGENCE_CAVEATS,
   CONVERGENCE_METRIC_LABEL,
   SIDE_LABEL,
+  flipHemisphere,
   formatConvergence,
   rankConvergence,
-  sideOfTarget,
-  targetForSide,
   type ConvergenceMetric,
   type Side,
 } from '../overlays/convergence.ts'
@@ -168,6 +167,9 @@ function MatrixRow({
                   : 'no injection centre'}
               </span>
               <span>{source.transgenicLine || 'wild-type'}</span>
+              {source.side && (
+                <span className="pair__tag">{SIDE_LABEL[source.side]}</span>
+              )}
               {source.targetInsideInjection && (
                 <span className="pair__tag">at target</span>
               )}
@@ -282,13 +284,24 @@ export function BackTracePanel({
         )
       : []
 
+  // Two separate exclusions, counted separately. Rolled into one number they
+  // read as "below the top N", which is not what being on the other side of
+  // the brain is.
+  const sided = visibleSources(backtrace.sources, {
+    includeOverlapping: backtrace.includeOverlapping,
+    topStructures: Number.POSITIVE_INFINITY,
+    focusAbbrev: null,
+    side: backtrace.sourceSide,
+  })
   const shown = visibleSources(backtrace.sources, {
     includeOverlapping: backtrace.includeOverlapping,
     topStructures: backtrace.topStructures,
     focusAbbrev: null,
+    side: backtrace.sourceSide,
   })
   const matrix = retrogradeMatrix(shown)
-  const excluded = backtrace.sources.length - shown.length
+  const belowTop = sided.length - shown.length
+  const otherSide = backtrace.sources.length - sided.length
 
   if (!target || !coord) {
     return (
@@ -357,35 +370,26 @@ export function BackTracePanel({
         </p>
 
         <div className="btn-row" style={{ marginTop: 6 }}>
-          {(['ipsi', 'contra'] as Side[]).map((side) => (
-            <button
-              key={side}
-              className={sideOfTarget(coord) === side ? 'btn btn--primary' : 'btn'}
-              disabled={coord.ml === 0}
-              title={
-                coord.ml === 0
-                  ? 'The target is on the midline, which is neither side'
-                  : `Move the target to ML ${(
-                      Math.abs(coord.ml) * (side === 'ipsi' ? 1 : -1)
-                    ).toFixed(2)}`
-              }
-              onClick={() =>
-                updateTarget(target.id, { coord: targetForSide(coord, side) })
-              }
-            >
-              {SIDE_LABEL[side]}
-            </button>
-          ))}
+          <button
+            className="btn"
+            disabled={coord.ml === 0}
+            title={
+              coord.ml === 0
+                ? 'The target is on the midline, so there is nothing to flip'
+                : `Move the target to ML ${(-coord.ml).toFixed(2)}`
+            }
+            onClick={() =>
+              updateTarget(target.id, { coord: flipHemisphere(coord) })
+            }
+          >
+            Flip hemisphere
+          </button>
         </div>
         <p className="hint" style={{ marginTop: 2 }}>
-          {/* The direction is the opposite of what the maps' "left is ipsilateral"
-              suggests, so it is stated rather than left to be worked out. */}
-          Flips the target across the midline, keeping AP and DV so the two answers are
-          comparable. Allen injects the right hemisphere, so a target there is reached
-          mostly from its own side — at dorsal CA1, 70 experiments of which 80% are
-          ipsilateral, against 44 and 55% contralateral on the left. The maps are
-          normalised the same way, so this button and their labels agree.
-          {coord.ml === 0 && ' The target is on the midline, which is neither.'}
+          Mirrors ML and keeps AP and DV, so the two answers are of one place rather than
+          two. It does <i>not</i> pick ipsilateral or contralateral input — a target has
+          both, and which dominates varies: 80% ipsilateral at dorsal CA1 ML +1.5, 65% at
+          MOs ML −0.90, 45% at CA1 ML −1.5. Use the source filter below for that.
         </p>
       </div>
 
@@ -415,6 +419,27 @@ export function BackTracePanel({
             below is mirrored and can be, having no target in it.
           </p>
         )}
+
+        <div className="field">
+          <label htmlFor="src-side">Side</label>
+          <select
+            id="src-side"
+            value={backtrace.sourceSide}
+            onChange={(event) =>
+              setBacktrace({ sourceSide: event.target.value as Side | 'all' })
+            }
+          >
+            <option value="all">Both sides</option>
+            <option value="ipsi">Ipsilateral only</option>
+            <option value="contra">Contralateral only</option>
+          </select>
+        </div>
+        <p className="hint" style={{ marginTop: 0 }}>
+          Read off each experiment&rsquo;s own injection against the target&rsquo;s, so it
+          is a fact about that pair rather than a guess from where Allen usually injects.
+          {coord.ml === 0 &&
+            ' The target is on the midline, where neither side is defined, so the filter is empty.'}
+        </p>
 
         <label className="check">
           <input
@@ -741,8 +766,9 @@ export function BackTracePanel({
               <div className="mrow__meta" style={{ marginBottom: 6 }}>
                 {matrix.length} source structure{matrix.length === 1 ? '' : 's'} ·{' '}
                 {shown.length} experiment{shown.length === 1 ? '' : 's'}
-                {excluded > 0 &&
-                  ` · ${excluded} more below the top ${backtrace.topStructures}`}
+                {belowTop > 0 &&
+                  ` · ${belowTop} more below the top ${backtrace.topStructures}`}
+                {otherSide > 0 && ` · ${otherSide} on the other side`}
               </div>
 
               {matrix.map((row) => (

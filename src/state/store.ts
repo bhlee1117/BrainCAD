@@ -28,6 +28,7 @@ import type { Measurement } from '../measure/measure.ts'
 import {
   DEFAULT_CONNECTION_THRESHOLD,
   type ConvergenceMetric,
+  type Side,
 } from '../overlays/convergence.ts'
 import type { HeatmapMode } from '../overlays/heatmap.ts'
 import type { RetrogradeSource } from '../overlays/retrograde.ts'
@@ -220,6 +221,14 @@ export interface BacktraceState {
   readonly topStructures: number
   /** Structure abbreviation the user has isolated, or null for all. */
   readonly focusAbbrev: string | null
+  /**
+   * Keep only sources on one side of the target.
+   *
+   * A property of each source-target pair, read off the two ML signs, not an
+   * inference from where Allen usually injects — which is true of the hub
+   * map's corpus and not of the one this search covers.
+   */
+  readonly sourceSide: Side | 'all'
 
   /**
    * Show the hub map at all.
@@ -282,6 +291,7 @@ const INITIAL_BACKTRACE: BacktraceState = {
   includeOverlapping: true,
   topStructures: 8,
   focusAbbrev: null,
+  sourceSide: 'all',
   showHeatmap: true,
   heatSurface: 'sections',
   heatMode: 'regions',

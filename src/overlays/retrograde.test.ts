@@ -25,6 +25,7 @@ import {
   retrogradeMatrix,
   searchRetrograde,
   seedPointParam,
+  sourceSide,
   targetInsideInjection,
   visibleSources,
   type RetrogradeSource,
@@ -347,7 +348,9 @@ describe('the response cache', () => {
 })
 
 /** Build a source with just the fields the matrix and the filter read. */
-function source(over: Partial<RetrogradeSource> & { abbrev: string; density: number }) {
+function source(
+  over: Partial<RetrogradeSource> & { abbrev: string; density: number },
+) {
   return {
     experimentId: over.experimentId ?? Math.round(over.density * 1e6),
     structureId: 1,
@@ -362,6 +365,9 @@ function source(over: Partial<RetrogradeSource> & { abbrev: string; density: num
     injectionRadiusMm: null,
     targetInsideInjection: over.targetInsideInjection ?? false,
     injectionStructures: [],
+    // `in`, not `??`: a test that passes `side: null` means it, and `??`
+    // would quietly turn that into 'ipsi'.
+    side: 'side' in over ? over.side : 'ipsi',
     path: [],
   } as RetrogradeSource
 }
@@ -458,6 +464,30 @@ describe('visibleSources', () => {
     expect(shown.map((s) => s.structureAbbrev)).toContain('CA1')
   })
 
+  it('keeps only one side when asked', () => {
+    const sided = [
+      source({ abbrev: 'CA3', density: 0.9, side: 'ipsi' }),
+      source({ abbrev: 'CA1c', density: 0.4, side: 'contra' }),
+      source({ abbrev: 'MID', density: 0.2, side: null }),
+    ]
+    const opts = { includeOverlapping: true, topStructures: 10, focusAbbrev: null }
+
+    expect(visibleSources(sided, { ...opts, side: 'ipsi' }).map((s) => s.structureAbbrev))
+      .toEqual(['CA3'])
+    expect(visibleSources(sided, { ...opts, side: 'contra' }).map((s) => s.structureAbbrev))
+      .toEqual(['CA1c'])
+  })
+
+  it('keeps an undecidable side only under "all"', () => {
+    // A source on the midline belongs to neither half, so either filter drops
+    // it rather than assigning it to one.
+    const mid = [source({ abbrev: 'MID', density: 0.2, side: null })]
+    const opts = { includeOverlapping: true, topStructures: 10, focusAbbrev: null }
+    expect(visibleSources(mid, { ...opts, side: 'all' })).toHaveLength(1)
+    expect(visibleSources(mid, { ...opts, side: 'ipsi' })).toHaveLength(0)
+    expect(visibleSources(mid, { ...opts, side: 'contra' })).toHaveLength(0)
+  })
+
   it('isolates one structure, ignoring the top-N limit', () => {
     const shown = visibleSources(sources, {
       includeOverlapping: true,
@@ -465,6 +495,48 @@ describe('visibleSources', () => {
       focusAbbrev: 'NDB',
     })
     expect(shown.map((s) => s.structureAbbrev)).toEqual(['NDB'])
+  })
+})
+
+describe('sourceSide', () => {
+  const target = { ap: -2, ml: 1.5, dv: -1.35 }
+
+  it('calls a same-signed injection ipsilateral', () => {
+    expect(sourceSide({ ap: 0, ml: 3, dv: 0 }, target)).toBe('ipsi')
+    expect(sourceSide({ ap: 0, ml: -3, dv: 0 }, { ...target, ml: -1.5 })).toBe('ipsi')
+  })
+
+  it('calls an opposite-signed injection contralateral', () => {
+    expect(sourceSide({ ap: 0, ml: -3, dv: 0 }, target)).toBe('contra')
+    expect(sourceSide({ ap: 0, ml: 3, dv: 0 }, { ...target, ml: -1.5 })).toBe('contra')
+  })
+
+  it('refuses to decide when either point is on the midline', () => {
+    // "Same side" has no meaning there, and guessing would put a source in a
+    // hemisphere it is not in.
+    expect(sourceSide({ ap: 0, ml: 0, dv: 0 }, target)).toBeNull()
+    expect(sourceSide({ ap: 0, ml: 3, dv: 0 }, { ...target, ml: 0 })).toBeNull()
+  })
+
+  it('is null without an injection centre', () => {
+    expect(sourceSide(null, target)).toBeNull()
+  })
+
+  it('is read off the pair, not off where Allen usually injects', () => {
+    // The error this replaced: inferring the side from the corpus. True of the
+    // hub map's experiments, 98% right, and not of the ones this search
+    // covers — a left-hemisphere target can be fed mostly from its own side.
+    const [parsed] = parseRetrogradeResponse(
+      PROFILE,
+      { ap: 0.7, ml: -0.9, dv: -0.85 },
+      {
+        success: true,
+        // Injected at ML index 52 of 228, left of the 114 midline.
+        msg: [row({ 'injection-coordinates': [4700, 1182, 2600] })],
+      },
+    )
+    expect(parsed!.injectionCentre!.ml).toBeLessThan(0)
+    expect(parsed!.side).toBe('ipsi')
   })
 })
 

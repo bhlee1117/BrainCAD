@@ -226,12 +226,14 @@ export function BackTrace() {
         includeOverlapping: backtrace.includeOverlapping,
         topStructures: backtrace.topStructures,
         focusAbbrev: backtrace.focusAbbrev,
+        side: backtrace.sourceSide,
       }),
     [
       backtrace.sources,
       backtrace.includeOverlapping,
       backtrace.topStructures,
       backtrace.focusAbbrev,
+      backtrace.sourceSide,
     ],
   )
 

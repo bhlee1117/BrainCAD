@@ -288,18 +288,22 @@ export function useVoxelPaint(
  * experiments the table is describing.
  */
 export function useHeatmapSources(backtrace: BacktraceState): RetrogradeSource[] {
-  const { sources, heatAllSources, includeOverlapping, topStructures } = backtrace
+  const { sources, heatAllSources, includeOverlapping, topStructures, sourceSide } =
+    backtrace
 
-  return useMemo(() => {
-    if (heatAllSources) {
-      return sources.filter((s) => includeOverlapping || !s.targetInsideInjection)
-    }
-    return visibleSources(sources, {
-      includeOverlapping,
-      topStructures,
-      focusAbbrev: null,
-    })
-  }, [sources, heatAllSources, includeOverlapping, topStructures])
+  return useMemo(
+    () =>
+      visibleSources(sources, {
+        includeOverlapping,
+        // "Every source" still means every source *on the chosen side*: the
+        // filter is about which half of the answer is being asked for, not
+        // about how much of it to draw.
+        topStructures: heatAllSources ? Number.POSITIVE_INFINITY : topStructures,
+        focusAbbrev: null,
+        side: sourceSide,
+      }),
+    [sources, heatAllSources, includeOverlapping, topStructures, sourceSide],
+  )
 }
 
 /**

@@ -205,35 +205,24 @@ export function sectionSides(
 }
 
 /**
- * Which hemisphere a target must sit in to receive input of a given side.
- *
- * Counter-intuitively the *right*, for ipsilateral. Allen injects the right
- * hemisphere in 98% of experiments, so a target there is on the same side as
- * nearly every source that reaches it, and a target on the left is reached
- * mostly across the midline. Measured rather than assumed: the back-trace at
- * dorsal CA1 returns 70 experiments at ML +1.5, 80% of them injected on the
- * right, against 44 experiments at ML −1.5 of which only 55% are.
- *
- * The maps are normalised the same way, so the button and the labels agree:
- * pressing ipsi sends the target to the half the sections call ipsi.
- */
-export const SIDE_ML_SIGN: Record<Side, 1 | -1> = { ipsi: 1, contra: -1 }
-
-/**
- * The same coordinate in the hemisphere that receives `side` input.
+ * The same coordinate in the other hemisphere.
  *
  * A reflection of the ML component only, so the depth and the AP level — the
  * things that decide which structure the target is in — are untouched and the
  * two answers are comparable.
+ *
+ * Named for what it does and no more. An earlier version called the two
+ * directions ipsi and contra, on the reasoning that Allen injects the right
+ * hemisphere so a target there is reached from its own side. That holds for
+ * the hub map's corpus, 98% right, and not for the wider one the back-trace
+ * searches: of 116 experiments reaching an MOs target at ML −0.90, 75 were
+ * injected on the left. Whether a *source* is ipsilateral is a fact about
+ * that source, and `sourceSide` reads it off directly.
  */
-export function targetForSide<T extends { ml: number }>(coord: T, side: Side): T {
-  return { ...coord, ml: Math.abs(coord.ml) * SIDE_ML_SIGN[side] }
-}
-
-/** Which side a target is currently positioned to see, or null on the midline. */
-export function sideOfTarget(coord: { ml: number }): Side | null {
-  if (coord.ml === 0) return null
-  return coord.ml > 0 ? 'ipsi' : 'contra'
+export function flipHemisphere<T extends { ml: number }>(coord: T): T {
+  // Normalised, because negating zero gives -0: harmless in arithmetic and
+  // surprising everywhere it is compared or printed.
+  return { ...coord, ml: coord.ml === 0 ? 0 : -coord.ml }
 }
 
 /** How a side reads on screen. */

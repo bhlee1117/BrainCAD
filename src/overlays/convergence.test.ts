@@ -21,15 +21,12 @@ import {
   formatConvergence,
   loadConvergenceMatrix,
   SIDE_LABEL,
-  SIDE_ML_SIGN,
+  flipHemisphere,
   rankConvergence,
   sectionSides,
-  sideOfTarget,
-  targetForSide,
   type ConvergenceMatrix,
   voxelSide,
   type ConvergenceMetric,
-  type Side,
 } from './convergence.ts'
 
 const originalFetch = globalThis.fetch
@@ -232,66 +229,26 @@ describe('sectionSides', () => {
   })
 })
 
-describe('targetForSide', () => {
+describe('flipHemisphere', () => {
   const at = { ap: -2, ml: 1.5, dv: -1.35 }
 
-  it('puts an ipsilateral target in the right hemisphere', () => {
-    // Counter-intuitive next to the maps reading "left is ipsilateral", and
-    // measured rather than assumed: Allen injects the right in 98% of
-    // experiments, so a target there is on the same side as nearly every
-    // source that reaches it.
-    expect(targetForSide(at, 'ipsi').ml).toBe(1.5)
-    expect(targetForSide({ ...at, ml: -1.5 }, 'ipsi').ml).toBe(1.5)
-  })
-
-  it('puts a contralateral target in the left hemisphere', () => {
-    expect(targetForSide(at, 'contra').ml).toBe(-1.5)
-    expect(targetForSide({ ...at, ml: -1.5 }, 'contra').ml).toBe(-1.5)
-  })
-
-  it('leaves AP and DV alone so the two answers are comparable', () => {
+  it('mirrors ML and nothing else', () => {
     // Reflecting anything else would move the target into a different
     // structure, and then the comparison is between two places rather than
     // between two sides of one.
-    const moved = targetForSide(at, 'contra')
+    const moved = flipHemisphere(at)
+    expect(moved.ml).toBe(-1.5)
     expect(moved.ap).toBe(at.ap)
     expect(moved.dv).toBe(at.dv)
   })
 
-  it('is idempotent', () => {
-    const once = targetForSide(at, 'contra')
-    expect(targetForSide(once, 'contra')).toEqual(once)
+  it('is its own inverse', () => {
+    expect(flipHemisphere(flipHemisphere(at))).toEqual(at)
   })
 
   it('cannot move a target off the midline', () => {
-    // |0| is 0 whichever sign it takes, so the buttons are disabled there
-    // rather than inventing a lateral distance.
-    expect(targetForSide({ ...at, ml: 0 }, 'ipsi').ml).toBe(0)
-    expect(sideOfTarget({ ml: 0 })).toBeNull()
-  })
-
-  it('reports which side a target is currently on', () => {
-    expect(sideOfTarget({ ml: 1.5 })).toBe('ipsi')
-    expect(sideOfTarget({ ml: -1.5 })).toBe('contra')
-  })
-
-  it('agrees with the sign table', () => {
-    expect(SIDE_ML_SIGN.ipsi).toBe(1)
-    expect(SIDE_ML_SIGN.contra).toBe(-1)
-  })
-
-  it('sends the target to the half the sections label with the same word', () => {
-    // The collision this convention exists to prevent: an earlier build had
-    // the maps reading "left is ipsilateral" while this button sent the target
-    // right, putting opposite words on the same pixel.
-    const space = makeVolumeSpace([264, 160, 228], 50, 'asl')
-    for (const side of ['ipsi', 'contra'] as Side[]) {
-      const moved = targetForSide({ ml: 1.5 }, side)
-      // Voxel 114 is the midline, so +ML lands above it and -ML below.
-      const i2 = 114 + Math.round((moved.ml * 1000) / 50)
-      expect(voxelSide(space, { i0: 0, i1: 0, i2 })).toBe(side)
-      expect(sectionSides('AP', moved)[moved.ml > 0 ? 'right' : 'left']).toBe(side)
-    }
+    // -0 is 0, so the button is disabled there rather than appearing to work.
+    expect(flipHemisphere({ ...at, ml: 0 }).ml).toBe(0)
   })
 })
 

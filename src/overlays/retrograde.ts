@@ -42,6 +42,7 @@ import { stereotaxicToVoxel, voxelToStereotaxic } from '../atlas/coords.ts'
 import type { CoordinateProfile } from '../atlas/profile.ts'
 import { isInsideVolume } from '../atlas/coords.ts'
 import { TransientApiError } from './connectivity.ts'
+import type { Side } from './convergence.ts'
 
 const API_BASE = 'https://api.brain-map.org'
 
@@ -78,8 +79,39 @@ export interface RetrogradeSource {
    */
   readonly targetInsideInjection: boolean
   readonly injectionStructures: readonly string[]
+  /**
+   * Whether this source sits in the target's own hemisphere.
+   *
+   * A fact about this pair, not a property of the target: one target has both
+   * ipsilateral and contralateral sources, and which it has more of varies by
+   * region. At dorsal CA1 ML +1.5, 80% of the experiments reaching it were
+   * injected on the same side; at MOs ML −0.90, 65% were. Null when either
+   * point sits on the midline, where "same side" has no meaning.
+   */
+  readonly side: Side | null
   /** Allen's route from the target back to the injection site. */
   readonly path: readonly BacktracePoint[]
+}
+
+/**
+ * Which side of the target a source was injected on.
+ *
+ * The comparison the panel's filter is built from, and the only honest way to
+ * say "ipsilateral" about a back-trace. An earlier build inferred it from
+ * where Allen *usually* injects — which is true of the hub map's corpus, 98%
+ * right, and not of the corpus this search covers: of 116 experiments reaching
+ * one MOs target, 71 came from outside that corpus and most of those were
+ * injected on the left.
+ */
+export function sourceSide(
+  injectionCentre: Stereotaxic | null,
+  target: Stereotaxic,
+): Side | null {
+  if (!injectionCentre) return null
+  const source = Math.sign(injectionCentre.ml)
+  const at = Math.sign(target.ml)
+  if (source === 0 || at === 0) return null
+  return source === at ? 'ipsi' : 'contra'
 }
 
 /** One row of the retrograde matrix: a source structure, pooled over experiments. */
@@ -247,6 +279,7 @@ function normaliseRow(
     injectionStructures: (row['injection-structures'] ?? [])
       .map((s) => s?.abbreviation)
       .filter((a): a is string => typeof a === 'string' && a.length > 0),
+    side: sourceSide(injectionCentre, target),
     path,
   }
 }
@@ -515,10 +548,18 @@ export function visibleSources(
     includeOverlapping: boolean
     topStructures: number
     focusAbbrev: string | null
+    /** Keep only sources on this side of the target; 'all' keeps both. */
+    side?: Side | 'all'
   },
 ): RetrogradeSource[] {
+  const side = options.side ?? 'all'
   const kept = sources.filter(
-    (s) => options.includeOverlapping || !s.targetInsideInjection,
+    (s) =>
+      (options.includeOverlapping || !s.targetInsideInjection) &&
+      // A source whose side could not be determined — either point on the
+      // midline — is kept under 'all' and excluded by either filter, rather
+      // than being quietly assigned to one.
+      (side === 'all' || s.side === side),
   )
 
   if (options.focusAbbrev) {

@@ -478,14 +478,19 @@ explain where they had gone. The hub map can be mirrored because it is an
 aggregate with no target in it; these routes have one, and it is the point of
 the picture.
 
-**Which side is ipsilateral is not an arbitrary choice, and getting it wrong is
-invisible.** An earlier build normalised the maps onto the left, which read
-well until the panel grew `ipsi` and `contra` buttons that move the target:
-Allen injects the right hemisphere, so a target there is reached from its own
-side, and the button sent it right while the map called the right half
-`contra`. Both statements were true and they put opposite words on the same
-pixel. Measured at dorsal CA1: ML +1.5 returns 70 experiments of which 80% are
-ipsilateral, ML −1.5 returns 44 of which 55% are contralateral.
+**Ipsilateral is a fact about a source, not about a target.** The panel filters
+sources by which side of the target they were injected on, read off the two ML
+signs. An earlier version instead offered buttons that moved the *target*,
+labelled ipsi and contra on the reasoning that Allen injects the right
+hemisphere so a target there is reached from its own side. That is true of the
+hub map's corpus, 98% right, and is not true of the wider one the spatial
+search covers: of 116 experiments reaching an MOs target at ML −0.90, 71 came
+from outside that corpus and 75 were injected on the left. The proportions do
+not generalise either — 80% ipsilateral at dorsal CA1 ML +1.5, 65% at MOs
+ML −0.90, 45% at CA1 ML −1.5 — so the labels were claiming something the data
+would not support. The target button is now just a hemisphere flip, and the
+two exclusions are counted separately in the summary, because "on the other
+side of the brain" is not the same statement as "below the top N".
 
 That rebuild left a trap worth recording. The blob's *meaning* changed while
 its filename did not, so a browser holding the previous copy rendered it under
