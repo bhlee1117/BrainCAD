@@ -154,6 +154,7 @@ export function useSectionHubPaint(
   metric: BacktraceState['heatMetric'],
   threshold: number,
   ipsiOnLeft: boolean,
+  mapSide: Side,
 ): SectionPaint | null {
   return useMemo(() => {
     if (!atlas || !matrix) return null
@@ -176,8 +177,8 @@ export function useSectionHubPaint(
       caption:
         `Sections coloured by convergence · structures · ${metric} · ` +
         `${formatConvergence(metric, min)} → ${formatConvergence(metric, max)} · ` +
-        `${ipsiOnLeft ? 'left' : 'right'} is ipsilateral, the target's own side · ` +
-        `grey is unmeasured · the values are independent of the target`,
+        `${ipsiOnLeft ? 'left' : 'right'} is ipsilateral, the target reads ` +
+        `${mapSide} · grey is unmeasured · the values are independent of the target`,
       paint: {
         valueAt: (voxel) => {
           const label = atlas.volume.labelAtVoxel(voxel.i0, voxel.i1, voxel.i2)
@@ -194,7 +195,7 @@ export function useSectionHubPaint(
         empty: [0.105, 0.1, 0.09],
       },
     }
-  }, [atlas, matrix, metric, threshold, ipsiOnLeft])
+  }, [atlas, matrix, metric, threshold, ipsiOnLeft, mapSide])
 }
 
 export interface VoxelMapState {

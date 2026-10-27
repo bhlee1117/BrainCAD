@@ -115,8 +115,12 @@ export type Side = 'ipsi' | 'contra'
  * Exactly on the midline there is no target hemisphere to follow, and the
  * stored orientation is kept rather than flipped on the sign of a zero.
  */
-export function ipsiOnLeftFor(target: { ml: number }): boolean {
-  return target.ml < 0
+export function ipsiOnLeftFor(target: { ml: number }, mapSide: Side = 'ipsi'): boolean {
+  const ipsiOnLeft = target.ml < 0
+  // Reading the contralateral answer at the target is the same reflection
+  // applied once more: the map is symmetrised, so the other half is the other
+  // answer and there is no third thing to show.
+  return mapSide === 'ipsi' ? ipsiOnLeft : !ipsiOnLeft
 }
 
 /**
@@ -243,15 +247,18 @@ export interface SectionSides {
 export function sectionSides(
   axis: AnatomicalAxis,
   coord: { ml: number },
+  mapSide: Side = 'ipsi',
 ): SectionSides {
   if (coord.ml === 0) {
     // No target hemisphere to be relative to.
     return { left: null, right: null, whole: null }
   }
 
-  if (axis === 'ML') return { left: null, right: null, whole: 'ipsi' }
+  // The sagittal slice is taken at the target's own ML, so it shows whichever
+  // half the target is being read as — which is exactly what `mapSide` says.
+  if (axis === 'ML') return { left: null, right: null, whole: mapSide }
 
-  return ipsiOnLeftFor(coord)
+  return ipsiOnLeftFor(coord, mapSide)
     ? { left: 'ipsi', right: 'contra', whole: null }
     : { left: 'contra', right: 'ipsi', whole: null }
 }

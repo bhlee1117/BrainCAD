@@ -266,6 +266,21 @@ export interface BacktraceState {
   readonly heatGrain: 'structures' | 'voxels'
   /** What the convergence map measures. */
   readonly heatMetric: ConvergenceMetric
+  /**
+   * Which half of the convergence map the target's own location is read as.
+   *
+   * The assets are built with every experiment mirrored onto one hemisphere,
+   * so both an ipsilateral and a contralateral answer exist at every
+   * coordinate and only one of them can be drawn where the target is. `ipsi`
+   * puts the target in the ipsilateral half, which is the reading that agrees
+   * with the back-trace routes crossing the same view; `contra` reflects the
+   * map so the target reads the other answer — what reaches that point from
+   * the opposite side.
+   *
+   * A view setting, not a fact about the data: it changes which of two stored
+   * numbers is shown at a pixel, never the numbers.
+   */
+  readonly mapSide: Side
   /** Minimum projection density for a source to count as projecting in. */
   readonly connectionThreshold: number
   readonly heatOpacity: number
@@ -297,6 +312,7 @@ const INITIAL_BACKTRACE: BacktraceState = {
   heatMode: 'regions',
   heatGrain: 'voxels',
   heatMetric: 'count',
+  mapSide: 'ipsi',
   connectionThreshold: DEFAULT_CONNECTION_THRESHOLD,
   heatOpacity: 1,
   heatPointSizeMm: 0.22,

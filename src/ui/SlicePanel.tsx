@@ -17,7 +17,7 @@ import {
   type SliceImage,
 } from '../atlas/annotation.ts'
 import { stereotaxicToVoxel, type Stereotaxic } from '../atlas/coords.ts'
-import { SIDE_LABEL, sectionSides } from '../overlays/convergence.ts'
+import { SIDE_LABEL, sectionSides, type Side } from '../overlays/convergence.ts'
 import type { LoadedAtlas } from '../atlas/load.ts'
 import type { ColorTable } from '../atlas/ontology.ts'
 import type { CoordinateProfile } from '../atlas/profile.ts'
@@ -48,6 +48,7 @@ interface SliceViewProps {
   profile: CoordinateProfile
   coord: Stereotaxic
   voxelPaint?: VoxelPaint
+  mapSide: Side
 }
 
 /** Paint one slice from a value volume rather than from the structure table. */
@@ -103,6 +104,7 @@ function SliceView({
   profile,
   coord,
   voxelPaint,
+  mapSide,
 }: SliceViewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
@@ -161,7 +163,7 @@ function SliceView({
   // Only while the hub map is painting: ipsilateral and contralateral are
   // properties of how that data was mirrored, and mean nothing about the
   // ontology colours the sections show the rest of the time.
-  const sides = voxelPaint ? sectionSides(axis, coord) : null
+  const sides = voxelPaint ? sectionSides(axis, coord, mapSide) : null
 
   return (
     <div className="slice">
@@ -195,6 +197,7 @@ export function SlicePanel({
   coord,
   colors,
   voxelPaint,
+  mapSide = 'ipsi',
   caption,
 }: {
   atlas: LoadedAtlas
@@ -211,6 +214,8 @@ export function SlicePanel({
   colors?: ColorTable
   /** Paints from a value volume instead; takes precedence over `colors`. */
   voxelPaint?: VoxelPaint
+  /** Which half of the hub map the target's own location is being read as. */
+  mapSide?: Side
   /** Says what the colours mean, when they are not the ontology's. */
   caption?: string
 }) {
@@ -226,6 +231,7 @@ export function SlicePanel({
         profile={profile}
         coord={coord}
         voxelPaint={voxelPaint}
+        mapSide={mapSide}
       />
       <SliceView
         label="Sagittal"
@@ -235,6 +241,7 @@ export function SlicePanel({
         profile={profile}
         coord={coord}
         voxelPaint={voxelPaint}
+        mapSide={mapSide}
       />
       <SliceView
         label="Horizontal"
@@ -244,6 +251,7 @@ export function SlicePanel({
         profile={profile}
         coord={coord}
         voxelPaint={voxelPaint}
+        mapSide={mapSide}
       />
       {caption && <div className="slices__caption">{caption}</div>}
     </div>

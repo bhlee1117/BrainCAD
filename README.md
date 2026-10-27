@@ -400,6 +400,17 @@ sagittal section is always the ipsilateral one, because the slice is taken at
 the target's own ML. A target exactly on the midline is in neither hemisphere
 and the labels say `midline` rather than rounding to a side.
 
+That left one thing harder than it had been. With the map pinned to a side you
+could read the *contralateral* convergence at a coordinate by flipping the
+target into the other half; once the map follows the target, flipping takes the
+map with it and the ipsilateral answer is all you ever see. Both answers exist
+at every coordinate — that is what symmetrising produced — and only one of them
+can be drawn where the target is. So the panel has **`ipsi` / `contra` buttons**
+that choose which: the map reflects, the target does not move, and the stored
+numbers do not change. The section labels and the sagittal caption come from the
+same flag as the paint, so a half drawn from the ipsilateral column cannot end
+up captioned `contra`.
+
 What this does *not* do is move sources. A source is ipsilateral or
 contralateral by where its needle went relative to the target, and for some
 projections that is nearly absolute: at a left visual-thalamic target, 165 of

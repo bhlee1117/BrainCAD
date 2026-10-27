@@ -132,8 +132,10 @@ export function App() {
 
   // Which way round the symmetrised hub map is drawn. Following the target is
   // what stops the sections labelling the target's own hemisphere `CONTRA`
-  // while the routes beside them draw its ipsilateral sources on that side.
-  const ipsiOnLeft = ipsiOnLeftFor(target?.coord ?? { ml: 0 })
+  // while the routes beside them draw its ipsilateral sources on that side;
+  // `mapSide` then chooses which of the two stored answers the target's own
+  // location is read as.
+  const ipsiOnLeft = ipsiOnLeftFor(target?.coord ?? { ml: 0 }, backtrace.mapSide)
 
   const heatmap = useHubHeatmap(
     atlas,
@@ -163,6 +165,7 @@ export function App() {
     backtrace.heatMetric,
     backtrace.connectionThreshold,
     ipsiOnLeft,
+    backtrace.mapSide,
   )
 
   const sectionHub = voxelOn
@@ -173,7 +176,7 @@ export function App() {
           `${backtrace.heatMetric} · up to ` +
           `${formatConvergence(backtrace.heatMetric, decode(backtrace.heatMetric, voxelPaint.range.max))}` +
           ` at the 99th percentile · ${ipsiOnLeft ? 'left' : 'right'} is ipsilateral, ` +
-          `the target's own side · ` +
+          `the target reads ${backtrace.mapSide} · ` +
           `${voxels.map?.header.experiments ?? 0} experiments`,
       }
     : structurePaint
@@ -235,6 +238,7 @@ export function App() {
           profile={profile}
           coord={target.coord}
           voxelPaint={sectionHub?.paint}
+          mapSide={backtrace.mapSide}
           caption={sectionHub?.caption ?? (voxelOn ? voxels.message : undefined)}
         />
       ) : (
@@ -334,6 +338,7 @@ export function App() {
               profile={profile}
               coord={target.coord}
               voxelPaint={sectionHub?.paint}
+              mapSide={backtrace.mapSide}
               caption={sectionHub?.caption ?? (voxelOn ? voxels.message : undefined)}
             />
           )}

@@ -616,6 +616,39 @@ export function BackTracePanel({
                     </select>
                   </div>
 
+                  <div className="field">
+                    <label>Target reads</label>
+                    <div className="btn-row">
+                      {(['ipsi', 'contra'] as Side[]).map((side) => (
+                        <button
+                          key={side}
+                          className={
+                            backtrace.mapSide === side ? 'btn btn--primary' : 'btn'
+                          }
+                          disabled={coord.ml === 0}
+                          title={
+                            coord.ml === 0
+                              ? 'The target is on the midline, which is in neither half'
+                              : side === 'ipsi'
+                                ? 'Read the target against the half fed from its own side'
+                                : 'Read the target against the half fed from the other side'
+                          }
+                          onClick={() => setBacktrace({ mapSide: side })}
+                        >
+                          {SIDE_LABEL[side]}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <p className="hint" style={{ marginTop: 0 }}>
+                    Every experiment was mirrored onto one hemisphere when the map was
+                    built, so an ipsilateral <i>and</i> a contralateral answer exist at
+                    every coordinate and only one of them can be drawn where the target
+                    is. This picks which — the map reflects, the target does not move,
+                    and the numbers themselves do not change.
+                    {coord.ml === 0 && ' The target is on the midline, which is neither.'}
+                  </p>
+
                   <div className="field" hidden={backtrace.heatGrain === 'voxels'}>
                     <label htmlFor="heat-threshold">Counts above</label>
                     <NumberField

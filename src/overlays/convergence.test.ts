@@ -155,6 +155,17 @@ describe('voxelSide', () => {
     expect(ipsiOnLeftFor({ ml: 0 })).toBe(false)
   })
 
+  it('reads the target against the other half when asked for contra', () => {
+    // Both answers exist at every coordinate because the map is symmetrised;
+    // only one can be drawn where the target is, and this chooses.
+    expect(ipsiOnLeftFor({ ml: -1.5 }, 'contra')).toBe(false)
+    expect(ipsiOnLeftFor({ ml: 1.5 }, 'contra')).toBe(true)
+    // Twice round is where it started, for either target.
+    for (const ml of [-1.5, 1.5]) {
+      expect(ipsiOnLeftFor({ ml }, 'ipsi')).toBe(!ipsiOnLeftFor({ ml }, 'contra'))
+    }
+  })
+
   it('reflects a voxel across the ML axis and nothing else', () => {
     const there = reflectVoxel(space, { i0: 100, i1: 80, i2: 220 })
     expect(there).toEqual({ i0: 100, i1: 80, i2: 7 })
@@ -250,6 +261,23 @@ describe('sectionSides', () => {
     expect(sectionSides('ML', { ml: 1.5 }).whole).toBe('ipsi')
     expect(sectionSides('ML', { ml: -1.5 }).whole).toBe('ipsi')
     expect(sectionSides('ML', { ml: 1.5 }).left).toBeNull()
+  })
+
+  it('relabels every section when the target is read as contralateral', () => {
+    // The labels and the paint come from the same flag, so a caption claiming
+    // `contra` over a half drawn from the ipsilateral column is not reachable.
+    const coronal = sectionSides('AP', { ml: 1.5 }, 'contra')
+    expect(coronal.right).toBe('contra')
+    expect(coronal.left).toBe('ipsi')
+    expect(sectionSides('ML', { ml: 1.5 }, 'contra').whole).toBe('contra')
+    expect(sectionSides('ML', { ml: -1.5 }, 'contra').whole).toBe('contra')
+  })
+
+  it('still names nothing on the midline, whichever half is asked for', () => {
+    for (const mapSide of ['ipsi', 'contra'] as const) {
+      expect(sectionSides('AP', { ml: 0 }, mapSide).left).toBeNull()
+      expect(sectionSides('ML', { ml: 0 }, mapSide).whole).toBeNull()
+    }
   })
 
   it('refuses to name anything for a target on the midline', () => {
