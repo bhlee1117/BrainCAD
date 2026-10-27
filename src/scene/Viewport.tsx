@@ -3,7 +3,7 @@
  * and scale bar, all in stereotaxic world millimetres.
  */
 
-import { Canvas, useThree, type ThreeEvent } from '@react-three/fiber'
+import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import { Line, OrbitControls, Text } from '@react-three/drei'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
@@ -11,12 +11,12 @@ import {
   BufferGeometry,
   DoubleSide,
   Matrix4,
+  PerspectiveCamera,
   Vector3,
   type Group,
 } from 'three'
 
-import { atlasUrl, type LoadedAtlas } from '../atlas/load.ts'
-import { loadAtlasMesh } from '../atlas/mesh.ts'
+import type { LoadedAtlas } from '../atlas/load.ts'
 import { colorComponents } from '../atlas/ontology.ts'
 import type { CoordinateProfile } from '../atlas/profile.ts'
 import { BackTrace } from './BackTrace.tsx'
@@ -27,9 +27,14 @@ import { useCollision, type AnatomyMesh } from '../collision/useCollision.ts'
 import { useAppStore, type Target } from '../state/store.ts'
 import { Helper } from './Helper.tsx'
 import { ANATOMY_FLAG } from './Helper.tsx'
+import { publishCameraPose } from './cameraLink.ts'
 import { setSceneHandle } from './handle.ts'
+import { useAtlasMeshGeometry } from './useAtlasMeshGeometry.ts'
 import { sectionPlanes } from './section.ts'
 import { atlasToWorldMatrix, stereotaxicToWorld } from './world.ts'
+
+/** Fallback orbit centre, matching the controls' own default. */
+const ORIGIN = new Vector3(0, -2, 0)
 
 /** Whole-brain root structure id in the Allen ontology. */
 const ROOT_STRUCTURE_ID = 997
@@ -45,40 +50,6 @@ const STANDARD_VIEWS = {
 } as const
 
 export type StandardView = keyof typeof STANDARD_VIEWS
-
-/** Load one atlas mesh by structure id, returning null until it arrives. */
-function useAtlasMeshGeometry(structureId: number): BufferGeometry | null {
-  const [geometry, setGeometry] = useState<BufferGeometry | null>(null)
-
-  useEffect(() => {
-    const controller = new AbortController()
-    let disposed = false
-    let loaded: BufferGeometry | null = null
-
-    loadAtlasMesh(atlasUrl(`meshes/${structureId}.msh`), controller.signal)
-      .then((mesh) => {
-        if (disposed) {
-          mesh.geometry.dispose()
-          return
-        }
-        loaded = mesh.geometry
-        setGeometry(mesh.geometry)
-      })
-      .catch((error: unknown) => {
-        if (!controller.signal.aborted) {
-          console.warn(`Could not load mesh ${structureId}`, error)
-        }
-      })
-
-    return () => {
-      disposed = true
-      controller.abort()
-      loaded?.dispose()
-    }
-  }, [structureId])
-
-  return geometry
-}
 
 /**
  * The translucent whole-brain surface.
@@ -310,6 +281,32 @@ function SectionPlanes() {
   return null
 }
 
+/**
+ * Publishes this camera's pose so the heat-map canvas can follow it.
+ *
+ * Read from the camera after the controls have had their turn, every frame,
+ * rather than from an event: damping keeps moving the camera for a beat after
+ * the mouse stops, and a change-event subscription would leave the second view
+ * a few degrees behind at exactly the moment the user stops to look.
+ */
+function CameraPublisher() {
+  const camera = useThree((state) => state.camera)
+  const controls = useThree((state) => state.controls) as { target?: Vector3 } | null
+
+  useFrame(() => {
+    const perspective = camera as PerspectiveCamera
+    publishCameraPose({
+      position: camera.position,
+      quaternion: camera.quaternion,
+      target: controls?.target ?? ORIGIN,
+      fov: perspective.isPerspectiveCamera ? perspective.fov : 40,
+      zoom: camera.zoom,
+    })
+  })
+
+  return null
+}
+
 /** Drives the camera to a standard view when one is requested. */
 function ViewDriver({ view }: { view: { name: StandardView; nonce: number } | null }) {
   const { camera } = useThree()
@@ -442,6 +439,7 @@ function Scene({
       </group>
 
       <SceneHandlePublisher />
+      <CameraPublisher />
       <SectionPlanes />
       <ViewDriver view={view} />
       <OrbitControls

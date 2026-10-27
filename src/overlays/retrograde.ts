@@ -256,7 +256,7 @@ export function parseRetrogradeResponse(
   profile: CoordinateProfile,
   target: Stereotaxic,
   payload: { success?: boolean; msg?: unknown },
-  limit = 60,
+  limit = DEFAULT_SOURCE_LIMIT,
 ): RetrogradeSource[] {
   if (!payload.success) {
     const detail = typeof payload.msg === 'string' ? payload.msg : 'no detail given'
@@ -282,6 +282,17 @@ export function parseRetrogradeResponse(
     .sort((a, b) => b.densityAtTarget - a.densityAtTarget)
     .slice(0, limit)
 }
+
+/**
+ * How many experiments to keep, after ranking.
+ *
+ * Generous, because the whole response is already downloaded — the limit only
+ * bounds what is parsed and drawn. It has to stay well above the panel's
+ * "show top N structures" control, or the far end of that slider would show a
+ * truncated list that looks like the complete answer. A real seed returns
+ * between 70 and 340 rows.
+ */
+export const DEFAULT_SOURCE_LIMIT = 400
 
 /** Backoff between retries, matching the forward connectivity client. */
 export const RETRY_DELAYS_MS = [400, 1200, 2500]
@@ -378,7 +389,7 @@ async function searchRetrogradeOnce(
   seed: string,
   options: RetrogradeQueryOptions,
 ): Promise<RetrogradeSource[]> {
-  const limit = options.limit ?? 60
+  const limit = options.limit ?? DEFAULT_SOURCE_LIMIT
 
   const cached = responseCache.get(seed)
   if (cached !== undefined) {

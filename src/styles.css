@@ -1707,3 +1707,66 @@ input[type='range'] {
   height: 100%;
   border-radius: 2px;
 }
+
+/* The viewport row. One brain normally; two, sharing a camera, while the
+   BACKTRACE hub map is open. */
+.viewrow {
+  position: relative;
+  min-height: 0;
+}
+
+.viewrow--split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--border);
+}
+
+/* The single-view case leans on `.viewport { position: absolute; inset: 0 }`
+   to fill its relative parent. In the split row that takes both panes out of
+   flow and stacks them on each other, so here they become grid items. */
+.viewrow--split > .viewport {
+  position: relative;
+  inset: auto;
+  min-width: 0;
+}
+
+.viewport--heat {
+  position: relative;
+}
+
+/* The heat map's caption carries the value its brightest colour stands for,
+   so it needs room to wrap rather than the single line the main HUD uses. */
+.hud--heat {
+  max-width: none;
+  right: 8px;
+  line-height: 1.5;
+}
+
+/* Legend for the heat ramp, drawn from the same stops as the point colours. */
+.ramp {
+  margin: 8px 0 2px;
+}
+
+.ramp__bar {
+  height: 9px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  background: linear-gradient(
+    to right,
+    rgb(23, 13, 56),
+    rgb(120, 28, 107),
+    rgb(201, 69, 69),
+    rgb(245, 145, 31),
+    rgb(252, 222, 89),
+    rgb(255, 255, 235)
+  );
+}
+
+.ramp__ends {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--text-faint);
+  margin-top: 2px;
+}

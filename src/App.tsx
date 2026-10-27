@@ -29,6 +29,12 @@ import { ObjectProperties } from './ui/ObjectProperties.tsx'
 import { ObjectsPanel } from './ui/ObjectsPanel.tsx'
 import { OverlaysPanel } from './ui/OverlaysPanel.tsx'
 import { PlanPanel } from './ui/PlanPanel.tsx'
+import { HeatmapViewport } from './scene/HeatmapViewport.tsx'
+import {
+  describeHeatmap,
+  useHeatmapSources,
+  useRetrogradeHeatmap,
+} from './overlays/useRetrogradeHeatmap.ts'
 import { BackTracePanel } from './ui/BackTracePanel.tsx'
 import { AtlasPanel, ProfilePanel, ScenePanel } from './ui/SidePanels.tsx'
 import { SlicePanel } from './ui/SlicePanel.tsx'
@@ -109,6 +115,15 @@ export function App() {
 
   const atlasStatus = useAppStore((s) => s.atlasStatus)
   const setAtlasStatus = useAppStore((s) => s.setAtlasStatus)
+  const backtrace = useAppStore((s) => s.backtrace)
+
+  // The heat map is built here rather than in the panel so the second canvas
+  // does not depend on a panel that is unmounted the moment the layout goes
+  // compact — and so the cost is paid once, not once per consumer.
+  const heatmap = useRetrogradeHeatmap(atlas, backtrace)
+  const routeSources = useHeatmapSources(backtrace)
+  const showHeatmap = tab === 'BACKTRACE' && backtrace.showHeatmap && !compact
+  const heatmapCaption = describeHeatmap(backtrace, heatmap)
 
   // Widening the window retires the compact-only tabs. Without this, rotating a
   // tablet while on SLICES leaves the active tab pointing at a button that is
@@ -202,11 +217,26 @@ export function App() {
         {!compact && <aside className="panel panel--left">{tabPanel}</aside>}
 
         <div style={{ display: 'grid', gridTemplateRows: '1fr auto', minWidth: 0 }}>
-          <div style={{ position: 'relative', minHeight: 0 }}>
+          <div className={showHeatmap ? 'viewrow viewrow--split' : 'viewrow'}>
             {atlas ? (
               <Viewport atlas={atlas} profile={profile} />
             ) : (
               <div className="viewport" />
+            )}
+
+            {/* The second brain only exists while BACKTRACE is open. It is a
+                reading of the target, not a permanent part of the scene, and
+                a canvas left running behind other tabs would cost a frame
+                budget for a view nobody is looking at. */}
+            {showHeatmap && atlas && (
+              <HeatmapViewport
+                atlas={atlas}
+                profile={profile}
+                heatmap={heatmap}
+                routeSources={routeSources}
+                target={target?.coord ?? null}
+                caption={heatmapCaption}
+              />
             )}
 
             {atlasStatus.kind === 'loading' && (

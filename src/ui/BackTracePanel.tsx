@@ -23,6 +23,11 @@ import {
   visibleSources,
   type RetrogradeMatrixRow,
 } from '../overlays/retrograde.ts'
+import {
+  HEATMAP_METRIC_LABEL,
+  HEATMAP_MODE_LABEL,
+  type HeatmapMetric,
+} from '../overlays/heatmap.ts'
 import { COARSE_FACTOR, NUDGE_LEGEND, nudgeCoord } from '../state/nudge.ts'
 import { useAppStore } from '../state/store.ts'
 import { NumberField } from './NumberField.tsx'
@@ -35,6 +40,16 @@ import { NumberField } from './NumberField.tsx'
  * deliberate step feels answered rather than queued.
  */
 const FOLLOW_DEBOUNCE_MS = 600
+
+/**
+ * Upper end of the "show top" slider.
+ *
+ * A hundred is past the point of reading the list and well into scanning the
+ * map: with every source painted, the question stops being "what are the top
+ * few" and becomes "is anything unexpected lit up". The fetch limit below is
+ * what actually has to keep up with it.
+ */
+const MAX_TOP_STRUCTURES = 100
 
 /**
  * How long the search typically takes, in seconds.
@@ -341,7 +356,7 @@ export function BackTracePanel({
             id="bt-top"
             type="range"
             min={1}
-            max={20}
+            max={MAX_TOP_STRUCTURES}
             step={1}
             value={backtrace.topStructures}
             onChange={(event) =>
@@ -390,6 +405,106 @@ export function BackTracePanel({
           </p>
         )}
       </div>
+
+      {backtrace.status === 'ready' && (
+        <div className="section">
+          <h2>Hub map</h2>
+
+          <label className="check">
+            <input
+              type="checkbox"
+              checked={backtrace.showHeatmap}
+              onChange={(event) => setBacktrace({ showHeatmap: event.target.checked })}
+            />
+            Second brain, painted with strength
+          </label>
+
+          {backtrace.showHeatmap && (
+            <>
+              <label className="check">
+                <input
+                  type="checkbox"
+                  checked={backtrace.heatMode === 'routes'}
+                  onChange={(event) =>
+                    setBacktrace({ heatMode: event.target.checked ? 'routes' : 'regions' })
+                  }
+                />
+                Draw traced routes instead of regions
+              </label>
+              <p className="hint" style={{ marginTop: 0 }}>
+                {HEATMAP_MODE_LABEL[backtrace.heatMode]}. A compact nucleus with one
+                strong projection is a bright blob in one and a single thin line in the
+                other; a corridor every afferent funnels through is invisible in regions
+                and the brightest thing on screen in routes.
+              </p>
+
+              <div className="field">
+                <label htmlFor="heat-metric">Measure</label>
+                <select
+                  id="heat-metric"
+                  value={backtrace.heatMetric}
+                  onChange={(event) =>
+                    setBacktrace({ heatMetric: event.target.value as HeatmapMetric })
+                  }
+                >
+                  {(Object.keys(HEATMAP_METRIC_LABEL) as HeatmapMetric[]).map((metric) => (
+                    <option key={metric} value={metric}>
+                      {HEATMAP_METRIC_LABEL[metric]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {backtrace.heatMode === 'routes' && (
+                <p className="hint" style={{ marginTop: 0 }}>
+                  Routes are coloured by their own experiment&rsquo;s strength at the
+                  target, so the measure above applies to the regions view only.
+                </p>
+              )}
+
+              <label className="check">
+                <input
+                  type="checkbox"
+                  checked={backtrace.heatAllSources}
+                  onChange={(event) =>
+                    setBacktrace({ heatAllSources: event.target.checked })
+                  }
+                />
+                Paint every source, not just the listed top
+              </label>
+
+              <div className="field">
+                <label htmlFor="heat-opacity">Opacity</label>
+                <input
+                  id="heat-opacity"
+                  type="range"
+                  min={0.1}
+                  max={1}
+                  step={0.05}
+                  value={backtrace.heatOpacity}
+                  onChange={(event) =>
+                    setBacktrace({ heatOpacity: Number(event.target.value) })
+                  }
+                />
+              </div>
+
+              <div className="ramp">
+                <div className="ramp__bar" />
+                <div className="ramp__ends">
+                  <span>weak</span>
+                  <span>strong</span>
+                </div>
+              </div>
+
+              <p className="hint">
+                The second view shares this one&rsquo;s camera, so orbiting the main brain
+                turns both. Colour is per structure, not per voxel — the finest grain
+                Allen reports is the region an experiment was injected into, so edges fall
+                on structure boundaries because that is where the information changes.
+              </p>
+            </>
+          )}
+        </div>
+      )}
 
       {backtrace.status === 'ready' && (
         <div className="section">

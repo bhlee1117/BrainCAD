@@ -31,6 +31,7 @@ with anything?*
 | **+** | Objective view render, axon projection overlays | ✅ done |
 | **+** | Built-in hardware models, section planes, viewport capture | ✅ done |
 | **+** | Back-trace: what projects to the target, driven from the number pad | ✅ done |
+| **+** | Hub map: a second camera-locked brain painted with retrograde strength | ✅ done |
 
 ## Quick start
 
@@ -307,6 +308,51 @@ Moving the target re-runs it, and the result follows the anatomy: nudging from
 CA1 down to DV −3.35 lands in **PO**, and the sources become **RT** and
 **SSp-bfd** — the thalamic reticular nucleus and the barrel field, which is
 what projects to posterior thalamus.
+
+#### A second brain, on the same camera
+
+The matrix answers "which structures project here" as a ranked list, which is
+the right shape for reading one value and the wrong shape for *where are the
+hubs?* A list cannot show that three of the top five sources are neighbours in
+one lobe. So the BACKTRACE tab can open a second viewport beside the first,
+locked to the same camera — orbit either and both turn — showing the same brain
+painted with retrograde strength, with the target marked in both.
+
+A checkbox switches what it draws:
+
+- **Regions** paints *where the inputs live*, structure by structure.
+- **Routes** draws *how they arrive*, every traced path on the heat ramp.
+
+They are not interchangeable. A compact nucleus with one strong projection is a
+bright blob and a single thin line; a corridor every afferent funnels through is
+invisible in regions and the brightest thing on screen in routes.
+
+Strength is **mean by default, max one click away**. Max is one experiment's
+number, so it rewards a lucky injection — a structure sampled once, dead centre,
+outranks one sampled nine times slightly off. Mean asks the steadier question:
+*when Allen injects here, does the target light up?*
+
+Two things about the painting are worth stating:
+
+- **The grain is the ontology's, not the volume's.** The finest thing Allen
+  reports is the structure an experiment was injected into, so every voxel of
+  CA3 takes CA3's value and edges fall on structure boundaries — that is where
+  the information actually changes. Matching runs *up* the tree, because the
+  annotation volume labels voxels "Field CA3, pyramidal layer" while the
+  injection is reported against "Field CA3"; matching on equality left the brain
+  unpainted while the list beside it confidently named CA3.
+- **It is not additively blended, and the first version was.** Overlapping
+  voxels summed, so a thick region blew out to white and the colour encoded how
+  much tissue lay along the view ray rather than how strong the input was — the
+  whole brain read as a hub. With depth, a pixel shows the nearest painted voxel
+  and its colour is a strength and nothing else.
+
+The ramp rises monotonically in luminance from deep indigo to near-white, so the
+ordering survives greyscale and a colour-blind reader; a test asserts that
+rather than trusting the stops. It is normalised against the strongest value
+present, not against 1.0 — a target whose best input is 0.08 would otherwise
+render entirely at the dark end — so the caption always states what the
+brightest colour stands for.
 
 #### The routes are drawn, and they are interpolations
 

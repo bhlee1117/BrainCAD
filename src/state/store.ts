@@ -25,6 +25,11 @@ import type { ObjectKind, PrimitiveParams } from '../objects/primitives.ts'
 import type { CollisionSettings, SceneCollisionReport } from '../collision/check.ts'
 import { DEFAULT_COLLISION_SETTINGS } from '../collision/check.ts'
 import type { Measurement } from '../measure/measure.ts'
+import {
+  DEFAULT_HEATMAP_METRIC,
+  type HeatmapMetric,
+  type HeatmapMode,
+} from '../overlays/heatmap.ts'
 import type { RetrogradeSource } from '../overlays/retrograde.ts'
 import { DEFAULT_STEP_MM } from './nudge.ts'
 import {
@@ -215,6 +220,24 @@ export interface BacktraceState {
   readonly topStructures: number
   /** Structure abbreviation the user has isolated, or null for all. */
   readonly focusAbbrev: string | null
+
+  /** Show the second brain, painted with retrograde strength. */
+  readonly showHeatmap: boolean
+  /** Whether the second brain paints regions or draws the traced routes. */
+  readonly heatMode: HeatmapMode
+  /** What the heat map measures. */
+  readonly heatMetric: HeatmapMetric
+  readonly heatOpacity: number
+  /** Heat point size in world millimetres. */
+  readonly heatPointSizeMm: number
+  /**
+   * Whether the heat map covers every source or only the listed top.
+   *
+   * Hub-hunting is the case for "everything": a region can be a hub precisely
+   * because it is reached by many middling experiments rather than one strong
+   * one, and the top-N filter in the list would hide exactly that.
+   */
+  readonly heatAllSources: boolean
 }
 
 const INITIAL_BACKTRACE: BacktraceState = {
@@ -227,6 +250,12 @@ const INITIAL_BACKTRACE: BacktraceState = {
   includeOverlapping: true,
   topStructures: 8,
   focusAbbrev: null,
+  showHeatmap: false,
+  heatMode: 'regions',
+  heatMetric: DEFAULT_HEATMAP_METRIC,
+  heatOpacity: 1,
+  heatPointSizeMm: 0.22,
+  heatAllSources: true,
 }
 
 /** A dorsal CA1 coordinate, so the app opens on something anatomically real. */

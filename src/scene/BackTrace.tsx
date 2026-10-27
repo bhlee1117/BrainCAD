@@ -32,6 +32,17 @@ import { stereotaxicToWorld } from './world.ts'
  */
 const MIN_BRIGHTNESS = 0.35
 
+/**
+ * Source-marker dot and label size, in world millimetres.
+ *
+ * Small on purpose. A dozen sources put a dozen dots and a dozen words into a
+ * 13 mm brain, and at the size an annotation wants to be they cover the
+ * anatomy they are annotating — the markers stop being labels on a picture and
+ * become the picture.
+ */
+const MARKER_RADIUS_MM = 0.065
+const LABEL_SIZE_MM = 0.17
+
 interface TraceBuffers {
   positions: Float32Array
   colors: Float32Array
@@ -160,16 +171,16 @@ function SourceMarkers({ sources }: { sources: readonly RetrogradeSource[] }) {
       {marks.map((mark) => (
         <group key={mark.key} position={mark.at}>
           <mesh renderOrder={4}>
-            <sphereGeometry args={[0.13, 16, 16]} />
+            <sphereGeometry args={[MARKER_RADIUS_MM, 16, 16]} />
             <meshBasicMaterial color={mark.color} depthTest={false} />
           </mesh>
-          <Billboard position={[0, 0.34, 0]}>
+          <Billboard position={[0, LABEL_SIZE_MM, 0]}>
             <Text
-              fontSize={0.34}
+              fontSize={LABEL_SIZE_MM}
               color={mark.color}
               anchorX="center"
               anchorY="bottom"
-              outlineWidth={0.03}
+              outlineWidth={0.015}
               outlineColor="#0b0e13"
             >
               {mark.abbrev}
