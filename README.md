@@ -377,7 +377,7 @@ region identically on both halves and made the map symmetric by construction
 rather than by anatomy. It is not a small difference: a single CA3 experiment
 deposits 0.089 in one CA1 and 0.216 in the other. Both hemispheres are fetched
 and each experiment's own injection side decides which is ipsilateral, which
-matters because Allen injects the right hemisphere in 98% of cases. Right is ipsilateral in both grains. The median
+matters because Allen injects the right hemisphere in 98% of cases. Left is ipsilateral in both grains. The median
 structure receives contralaterally from 0.58× as many regions as ipsilaterally,
 and the spread is the interesting part: the midline thalamic nuclei come out
 near 0.95, zona incerta at 0.53.
@@ -412,9 +412,9 @@ Two things the voxel map shows that the structure map hid, both real:
   tracts" block.
 - **Laterality, before it was corrected.** Accumulated raw, the map was
   brighter on whichever side the needle went in. Each experiment is now
-  mirrored so its injection lies on the **right** — where 98% of them already
-  are, and where BrainCAD's own +ML points — making right ipsilateral and left
-  contralateral throughout, the same convention the structure matrix uses.
+  mirrored so its injection lies on the **left**, making left ipsilateral and
+  right contralateral throughout, the same convention the structure matrix
+  uses.
 
 The scale needs a percentile rather than a maximum: counts run to 1,772 against
 a median of 52, so scaling to the brightest voxels renders the rest of the brain
@@ -460,8 +460,18 @@ brightest colour stands for.
 
 Each row carries Allen's polyline from the seed voxel back to the injection
 site, which is what makes a *visible* back-trace possible — one `LineSegments`
-for the whole trace, coloured per structure from the Allen ontology, shaded by
-the density sampled along each segment. It is a route through a density field,
+for the whole trace, coloured per structure from the Allen ontology and shaded
+by that source's strength at the target.
+
+One value for the whole route, and deliberately **not** the per-point density
+Allen attaches to the path. That field looked like the obvious thing to use and
+is almost entirely zero: a CA3 experiment delivering 0.981 at the target
+carries `[0, 0, 0, 0, 0, 0, 0, 0, 0.386, 0]` along its path — nine zeros, one
+value beside the injection, and a zero at the target itself, which is the one
+place the row's own number says the signal is strongest. It is not the same
+quantity on the same scale. Shading by it drew every route at the brightness
+floor with a single bright segment near its far end: a picture of where Allen's
+sampler happened to find signal rather than of anything anatomical. It is a route through a density field,
 not a traced axon; the MouseLight overlay is the thing to reach for when an
 individual arbor matters.
 

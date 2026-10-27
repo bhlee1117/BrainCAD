@@ -159,7 +159,7 @@ export function App() {
           `Sections coloured by convergence · voxels (100 µm) · ` +
           `${backtrace.heatMetric} · up to ` +
           `${formatConvergence(backtrace.heatMetric, decode(backtrace.heatMetric, voxelPaint.range.max))}` +
-          ` at the 99th percentile · right is ipsilateral · ` +
+          ` at the 99th percentile · left is ipsilateral · ` +
           `${voxels.map?.header.experiments ?? 0} experiments`,
       }
     : structurePaint

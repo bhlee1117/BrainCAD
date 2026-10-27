@@ -22,16 +22,33 @@ import { Helper } from './Helper.tsx'
 import { stereotaxicToWorld } from './world.ts'
 
 /**
- * Minimum brightness along a route.
+ * Minimum brightness of a route.
  *
- * Density along a path drops to exactly zero over stretches of white matter —
- * the sampled value is signal, not a count of axons passing — so shading
- * straight from it draws a route that vanishes mid-brain and reappears. The
- * floor keeps the route continuous while still letting the bright parts, where
- * the projection actually is, stand out.
+ * Even the weakest source has to stay visible as a route — the picture is
+ * about *where afferents arrive from*, and a line too faint to follow answers
+ * nothing. The floor is the brightness a density of zero maps to; everything
+ * above it spreads over the rest of the ramp.
  */
 const MIN_BRIGHTNESS = 0.35
 
+/**
+ * A route is shaded by its source's strength at the target, one value for the
+ * whole line, and deliberately not by the per-point density Allen attaches to
+ * the path.
+ *
+ * That field looked like the obvious thing to use and is almost entirely zero.
+ * On a real response a CA3 experiment delivering 0.981 at the target carries
+ * the path densities [0, 0, 0, 0, 0, 0, 0, 0, 0.386, 0] — nine zeros, one
+ * value next to the injection, and a zero at the target itself, which is the
+ * one place the row's own number says the signal is strongest. It is not the
+ * same quantity on the same scale, so shading by it drew every route at the
+ * floor with a single bright segment near its far end: a picture of where
+ * Allen's sampler happened to find signal, not of anything anatomical.
+ *
+ * The strength at the target is the number the route means — "this is how that
+ * source reaches here" — and it is what the hub map's routes view already
+ * uses, so the two now agree.
+ */
 /**
  * Source-marker dot and label size, in world millimetres.
  *
@@ -69,16 +86,31 @@ function buildBuffers(sources: readonly RetrogradeSource[]): TraceBuffers | null
   const base = new Color()
   const shade = new Color()
 
+  // Normalised against the strongest route drawn, not against 1.0: a target
+  // whose best input is 0.08 would otherwise render every route at the floor,
+  // hiding the very ranking the shading exists to show.
+  let peak = 0
+  for (const source of sources) {
+    if (source.densityAtTarget > peak) peak = source.densityAtTarget
+  }
+  const scale = peak > 0 ? 1 / peak : 0
+
   let at = 0
   for (const source of sources) {
     if (source.path.length < 2) continue
+
+    // Square root for the same reason the projection clouds use one:
+    // densities are heavily skewed, and a linear ramp puts almost every route
+    // at the floor next to one saturated source.
+    const weight =
+      MIN_BRIGHTNESS +
+      (1 - MIN_BRIGHTNESS) * Math.sqrt(Math.min(1, source.densityAtTarget * scale))
     base.set(source.structureColor)
+    shade.copy(base).multiplyScalar(weight)
 
     for (let i = 0; i < source.path.length - 1; i++) {
-      const a = source.path[i]!
-      const b = source.path[i + 1]!
-      const from = stereotaxicToWorld(a.coord)
-      const to = stereotaxicToWorld(b.coord)
+      const from = stereotaxicToWorld(source.path[i]!.coord)
+      const to = stereotaxicToWorld(source.path[i + 1]!.coord)
 
       positions[at] = from.x
       positions[at + 1] = from.y
@@ -87,17 +119,10 @@ function buildBuffers(sources: readonly RetrogradeSource[]): TraceBuffers | null
       positions[at + 4] = to.y
       positions[at + 5] = to.z
 
-      // Shaded by the density at each end, so a route brightens where the
-      // projection it follows is actually dense.
-      for (const [offset, point] of [
-        [0, a],
-        [3, b],
-      ] as const) {
-        const weight = MIN_BRIGHTNESS + (1 - MIN_BRIGHTNESS) * Math.min(1, point.density)
-        shade.copy(base).multiplyScalar(weight)
-        colors[at + offset] = shade.r
-        colors[at + offset + 1] = shade.g
-        colors[at + offset + 2] = shade.b
+      for (let k = 0; k < 6; k += 3) {
+        colors[at + k] = shade.r
+        colors[at + k + 1] = shade.g
+        colors[at + k + 2] = shade.b
       }
 
       at += 6
