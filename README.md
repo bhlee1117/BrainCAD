@@ -467,6 +467,15 @@ site, which is what makes a *visible* back-trace possible — one `LineSegments`
 for the whole trace, coloured per structure from the Allen ontology and shaded
 by that source's strength at the target.
 
+The routes are **reflected so the target lands on the left**, the side the hub
+map calls ipsilateral. Without it the two halves of the screen contradict each
+other: the sections label the right half `contra` while the routes above run
+into it, because these are Allen's raw coordinates and Allen injects the right
+hemisphere in 98% of experiments. The cost is that the routes no longer
+converge on the coordinate the hardware in that same view is planned against —
+so the target's mirror is drawn and named, a bundle of lines converging on
+empty space being exactly the kind of thing a reader assumes is a bug.
+
 One value for the whole route, and deliberately **not** the per-point density
 Allen attaches to the path. That field looked like the obvious thing to use and
 is almost entirely zero: a CA3 experiment delivering 0.981 at the target

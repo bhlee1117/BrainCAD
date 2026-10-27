@@ -372,6 +372,14 @@ export function BackTracePanel({
           />
           Draw routes in the 3D view
         </label>
+        {backtrace.showPaths && coord.ml > 0 && (
+          <p className="hint" style={{ marginTop: 0 }}>
+            Reflected across the midline so the target lands on the left, where the hub
+            map puts ipsilateral. The routes therefore converge on the target&rsquo;s
+            mirror at ML {(-coord.ml).toFixed(2)}, not on the coordinate the hardware in
+            that view is planned against.
+          </p>
+        )}
         <label className="check">
           <input
             type="checkbox"
