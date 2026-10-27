@@ -29,7 +29,18 @@ interface SliceViewProps {
 }
 
 /** Crosshair colour; deliberately the same accent used for target markers. */
-const CROSSHAIR = 'rgba(255,107,74,0.9)'
+const CROSSHAIR = 'rgba(255,107,74,0.95)'
+
+/**
+ * Dark halo drawn under the crosshair.
+ *
+ * The accent reads well against the ontology's colours and vanished the moment
+ * the sections could be painted with the heat ramp — whose bright end is the
+ * same warm orange. A dark line underneath costs one extra stroke and makes
+ * the target legible on any colouring, which matters more here than anywhere
+ * else on screen: the crosshair *is* the coordinate.
+ */
+const CROSSHAIR_HALO = 'rgba(0,0,0,0.65)'
 
 function SliceView({ label, axis, volume, colors, profile, coord }: SliceViewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -59,14 +70,22 @@ function SliceView({ label, axis, volume, colors, profile, coord }: SliceViewPro
     // so it cannot drift from the anatomy under a flipped axis.
     const { x, y } = voxelToSlicePixel(profile.space, slice, voxel)
 
+    const crosshair = () => {
+      context.beginPath()
+      context.moveTo(x + 0.5, 0)
+      context.lineTo(x + 0.5, slice.height)
+      context.moveTo(0, y + 0.5)
+      context.lineTo(slice.width, y + 0.5)
+      context.stroke()
+    }
+
+    context.strokeStyle = CROSSHAIR_HALO
+    context.lineWidth = 3
+    crosshair()
+
     context.strokeStyle = CROSSHAIR
     context.lineWidth = 1
-    context.beginPath()
-    context.moveTo(x + 0.5, 0)
-    context.lineTo(x + 0.5, slice.height)
-    context.moveTo(0, y + 0.5)
-    context.lineTo(slice.width, y + 0.5)
-    context.stroke()
+    crosshair()
   }, [volume, colors, axis, sliceIndex, voxel, profile])
 
   const readout =
@@ -89,18 +108,33 @@ export function SlicePanel({
   atlas,
   profile,
   coord,
+  colors,
+  caption,
 }: {
   atlas: LoadedAtlas
   profile: CoordinateProfile
   coord: Stereotaxic
+  /**
+   * Override the structure colours.
+   *
+   * The sections are painted through a lookup keyed by structure id, so
+   * showing something other than the ontology is a different table rather
+   * than a different renderer — which is what keeps the crosshair, the slice
+   * indices and the readouts identical between the two.
+   */
+  colors?: ColorTable
+  /** Says what the colours mean, when they are not the ontology's. */
+  caption?: string
 }) {
+  const table = colors ?? atlas.colors
+
   return (
-    <div className="slices">
+    <div className={caption ? 'slices slices--captioned' : 'slices'}>
       <SliceView
         label="Coronal"
         axis="AP"
         volume={atlas.volume}
-        colors={atlas.colors}
+        colors={table}
         profile={profile}
         coord={coord}
       />
@@ -108,7 +142,7 @@ export function SlicePanel({
         label="Sagittal"
         axis="ML"
         volume={atlas.volume}
-        colors={atlas.colors}
+        colors={table}
         profile={profile}
         coord={coord}
       />
@@ -116,10 +150,11 @@ export function SlicePanel({
         label="Horizontal"
         axis="DV"
         volume={atlas.volume}
-        colors={atlas.colors}
+        colors={table}
         profile={profile}
         coord={coord}
       />
+      {caption && <div className="slices__caption">{caption}</div>}
     </div>
   )
 }

@@ -35,6 +35,7 @@ import {
   useConvergenceMatrix,
   useHeatmapSources,
   useHubHeatmap,
+  useSectionHubColors,
 } from './overlays/useHubMap.ts'
 import { BackTracePanel } from './ui/BackTracePanel.tsx'
 import { AtlasPanel, ProfilePanel, ScenePanel } from './ui/SidePanels.tsx'
@@ -121,15 +122,26 @@ export function App() {
   // The hub map is built here rather than in the panel so the second canvas
   // does not depend on a panel that is unmounted the moment the layout goes
   // compact — and so the cost is paid once, not once per consumer.
-  const showHeatmap = tab === 'BACKTRACE' && backtrace.showHeatmap && !compact
-  const convergence = useConvergenceMatrix(showHeatmap)
+  const hubMapOn = tab === 'BACKTRACE' && backtrace.showHeatmap
+  const showHeatmap = hubMapOn && backtrace.heatSurface === 'brain' && !compact
+  const convergence = useConvergenceMatrix(hubMapOn)
   const heatmap = useHubHeatmap(
     atlas,
-    convergence.matrix,
+    showHeatmap ? convergence.matrix : null,
     backtrace.heatMetric,
     backtrace.connectionThreshold,
   )
   const routeSources = useHeatmapSources(backtrace)
+
+  // The same strengths the 3D cloud would use, as a structure colour table —
+  // so the strip under the viewport can show the hub map without a second
+  // renderer, and a region yellow in one is yellow in the other.
+  const sectionHub = useSectionHubColors(
+    atlas,
+    hubMapOn && backtrace.heatSurface === 'sections' ? convergence.matrix : null,
+    backtrace.heatMetric,
+    backtrace.connectionThreshold,
+  )
   const heatmapCaption = describeHubMap(
     backtrace,
     convergence,
@@ -183,7 +195,13 @@ export function App() {
       <AtlasPanel atlas={atlas} />
     ) : atlas && tab === 'SLICES' ? (
       target ? (
-        <SlicePanel atlas={atlas} profile={profile} coord={target.coord} />
+        <SlicePanel
+          atlas={atlas}
+          profile={profile}
+          coord={target.coord}
+          colors={sectionHub?.colors}
+          caption={sectionHub?.caption}
+        />
       ) : (
         <p className="mhint">No target selected — sections follow the target.</p>
       )
@@ -276,7 +294,13 @@ export function App() {
           </div>
 
           {atlas && target && !compact && (
-            <SlicePanel atlas={atlas} profile={profile} coord={target.coord} />
+            <SlicePanel
+              atlas={atlas}
+              profile={profile}
+              coord={target.coord}
+              colors={sectionHub?.colors}
+              caption={sectionHub?.caption}
+            />
           )}
         </div>
 

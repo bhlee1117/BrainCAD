@@ -221,8 +221,17 @@ export interface BacktraceState {
   /** Structure abbreviation the user has isolated, or null for all. */
   readonly focusAbbrev: string | null
 
-  /** Show the second brain, painted with retrograde strength. */
+  /** Show the hub map at all. */
   readonly showHeatmap: boolean
+  /**
+   * Where the hub map is drawn.
+   *
+   * `sections` recolours the coronal/sagittal/horizontal strip that is already
+   * under the viewport; `brain` opens a second 3D view beside the first. The
+   * sections win by default: a hub map is read for *what a hub sits next to*,
+   * and in 3D the answer is behind whatever is in front of it.
+   */
+  readonly heatSurface: 'sections' | 'brain'
   /** Whether the second brain paints regions or draws the traced routes. */
   readonly heatMode: HeatmapMode
   /** What the convergence map measures. */
@@ -253,6 +262,7 @@ const INITIAL_BACKTRACE: BacktraceState = {
   topStructures: 8,
   focusAbbrev: null,
   showHeatmap: false,
+  heatSurface: 'sections',
   heatMode: 'regions',
   heatMetric: 'count',
   connectionThreshold: DEFAULT_CONNECTION_THRESHOLD,

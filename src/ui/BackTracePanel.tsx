@@ -267,7 +267,9 @@ export function BackTracePanel({
   // Ranked from the same matrix the colours come from, so the list and the
   // map can never disagree about which region is hottest.
   const hubs =
-    convergence.matrix && backtrace.showHeatmap && backtrace.heatMode === 'regions'
+    convergence.matrix &&
+    backtrace.showHeatmap &&
+    (backtrace.heatSurface === 'sections' || backtrace.heatMode === 'regions')
       ? rankConvergence(
           convergence.matrix,
           backtrace.heatMetric,
@@ -449,26 +451,50 @@ export function BackTracePanel({
               checked={backtrace.showHeatmap}
               onChange={(event) => setBacktrace({ showHeatmap: event.target.checked })}
             />
-            Second brain, painted with strength
+            Show the hub map
           </label>
 
           {backtrace.showHeatmap && (
-            <>
-              <label className="check">
-                <input
-                  type="checkbox"
-                  checked={backtrace.heatMode === 'routes'}
-                  onChange={(event) =>
-                    setBacktrace({ heatMode: event.target.checked ? 'routes' : 'regions' })
-                  }
-                />
-                Draw traced routes instead of the hub map
-              </label>
-              <p className="hint" style={{ marginTop: 0 }}>
-                {HEATMAP_MODE_LABEL[backtrace.heatMode]}
-              </p>
+            <div className="field">
+              <label htmlFor="heat-surface">Draw on</label>
+              <select
+                id="heat-surface"
+                value={backtrace.heatSurface}
+                onChange={(event) =>
+                  setBacktrace({
+                    heatSurface: event.target.value as 'sections' | 'brain',
+                  })
+                }
+              >
+                <option value="sections">The section views below</option>
+                <option value="brain">A second brain, beside this one</option>
+              </select>
+            </div>
+          )}
 
-              {backtrace.heatMode === 'regions' ? (
+          {backtrace.showHeatmap && (
+            <>
+              {backtrace.heatSurface === 'brain' && (
+                <>
+                  <label className="check">
+                    <input
+                      type="checkbox"
+                      checked={backtrace.heatMode === 'routes'}
+                      onChange={(event) =>
+                        setBacktrace({
+                          heatMode: event.target.checked ? 'routes' : 'regions',
+                        })
+                      }
+                    />
+                    Draw traced routes instead of the hub map
+                  </label>
+                  <p className="hint" style={{ marginTop: 0 }}>
+                    {HEATMAP_MODE_LABEL[backtrace.heatMode]}
+                  </p>
+                </>
+              )}
+
+              {backtrace.heatSurface === 'sections' || backtrace.heatMode === 'regions' ? (
                 <>
                   <div className="field">
                     <label htmlFor="heat-metric">Measure</label>
@@ -513,7 +539,7 @@ export function BackTracePanel({
                 </p>
               )}
 
-              {backtrace.heatMode === 'routes' && (
+              {backtrace.heatSurface === 'brain' && backtrace.heatMode === 'routes' && (
                 <label className="check">
                   <input
                     type="checkbox"
@@ -526,6 +552,7 @@ export function BackTracePanel({
                 </label>
               )}
 
+              {backtrace.heatSurface === 'brain' && (
               <div className="field">
                 <label htmlFor="heat-opacity">Opacity</label>
                 <input
@@ -540,6 +567,7 @@ export function BackTracePanel({
                   }
                 />
               </div>
+              )}
 
               <div className="ramp">
                 <div className="ramp__bar" />
@@ -550,13 +578,15 @@ export function BackTracePanel({
               </div>
 
               <p className="hint">
-                The second view shares this one&rsquo;s camera, so orbiting the main brain
-                turns both. Colour is per structure, not per voxel — the finest grain
-                Allen reports is the region an experiment was injected into, so edges fall
-                on structure boundaries because that is where the information changes.
+                {backtrace.heatSurface === 'brain'
+                  ? 'The second view shares this one’s camera, so orbiting the main brain turns both. '
+                  : 'The strip under the viewport follows the target, so the sections move with it even though the colours do not. '}
+                Colour is per structure, not per voxel — the finest grain Allen reports is
+                the region an experiment was injected into, so edges fall on structure
+                boundaries because that is where the information changes.
               </p>
 
-              {backtrace.heatMode === 'regions' && hubs.length > 0 && (
+              {hubs.length > 0 && (
                 <>
                   <h2 style={{ marginTop: 14 }}>Top hubs</h2>
                   <div className="mrow__meta" style={{ marginBottom: 6, marginLeft: 0 }}>
@@ -586,7 +616,8 @@ export function BackTracePanel({
                 </>
               )}
 
-              {backtrace.heatMode === 'regions' && (
+              {(backtrace.heatSurface === 'sections' ||
+                backtrace.heatMode === 'regions') && (
                 <div className="provenance">
                   <ul style={{ margin: 0, paddingLeft: 16 }}>
                     {CONVERGENCE_CAVEATS.map((caveat) => (

@@ -15,6 +15,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import type { LoadedAtlas } from '../atlas/load.ts'
+import type { ColorTable } from '../atlas/ontology.ts'
 import type { BacktraceState } from '../state/store.ts'
 import {
   convergenceStrengths,
@@ -22,7 +23,11 @@ import {
   loadConvergenceMatrix,
   type ConvergenceMatrix,
 } from './convergence.ts'
-import { buildRetrogradeHeatmap, type RetrogradeHeatmap } from './heatmap.ts'
+import {
+  buildRetrogradeHeatmap,
+  buildStrengthColorTable,
+  type RetrogradeHeatmap,
+} from './heatmap.ts'
 import {
   retrogradeMatrix,
   visibleSources,
@@ -103,6 +108,46 @@ export function useHubHeatmap(
     const strengths = convergenceStrengths(matrix, metric, threshold)
     if (strengths.size === 0) return null
     return buildRetrogradeHeatmap(atlas.volume, atlas.index, strengths)
+  }, [atlas, matrix, metric, threshold])
+}
+
+export interface SectionHubColors {
+  readonly colors: ColorTable
+  readonly caption: string
+}
+
+/**
+ * The hub map as a slice colour table.
+ *
+ * Built from the same strengths and the same ramp as the 3D cloud, so the two
+ * surfaces are two drawings of one answer rather than two answers. The range
+ * is taken over every structure that has a value — not over the ones that
+ * happen to appear in the current slice — or the colours would shift under the
+ * reader every time the target moved to a section with a different mix of
+ * regions, which looks exactly like the data changing.
+ */
+export function useSectionHubColors(
+  atlas: LoadedAtlas | null,
+  matrix: ConvergenceMatrix | null,
+  metric: BacktraceState['heatMetric'],
+  threshold: number,
+): SectionHubColors | null {
+  return useMemo(() => {
+    if (!atlas || !matrix) return null
+
+    const strengths = convergenceStrengths(matrix, metric, threshold)
+    if (strengths.size === 0) return null
+
+    const values = [...strengths.values()]
+    const range = { min: Math.min(...values), max: Math.max(...values) }
+
+    return {
+      colors: buildStrengthColorTable(atlas.index, strengths, range),
+      caption:
+        `Sections coloured by convergence · ${metric} · ` +
+        `${formatConvergence(metric, range.min)} → ${formatConvergence(metric, range.max)} · ` +
+        `grey is unmeasured · independent of the target`,
+    }
   }, [atlas, matrix, metric, threshold])
 }
 

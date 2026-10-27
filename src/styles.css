@@ -1770,3 +1770,22 @@ input[type='range'] {
   color: var(--text-faint);
   margin-top: 2px;
 }
+
+/* The strip has a fixed height, so a caption added as a fourth grid child
+   would take its row out of the slices rather than from below them. Given its
+   own row, the strip grows by the caption instead of the slices shrinking. */
+.slices--captioned {
+  height: auto;
+  grid-template-rows: 208px auto;
+}
+
+/* Caption under the section strip, when it is showing something other than
+   the ontology's own colours. Spans all three so it reads as one statement
+   about the row rather than a label on the last slice. */
+.slices__caption {
+  grid-column: 1 / -1;
+  padding: 3px 8px 1px;
+  font-size: 10.5px;
+  color: var(--text-faint);
+  border-top: 1px solid var(--border);
+}

@@ -331,7 +331,23 @@ one lobe. So the BACKTRACE tab can open a second viewport beside the first,
 locked to the same camera — orbit either and both turn — showing the same brain
 painted with retrograde strength, with the target marked in both.
 
-A checkbox switches what it draws, and the two answer different questions:
+**It paints the section views by default, not a second brain.** The strip of
+coronal/sagittal/horizontal sections already under the viewport is recoloured
+by strength, because a hub map is read for *what a hub sits next to* and in 3D
+that answer is behind whatever is in front of it. The sections go through the
+existing slice renderer with a different structure colour table, so the
+crosshair, the slice indices and the readouts are the same code — the only
+change is what the lookup returns. A second brain beside the first, locked to
+the same camera, is still one dropdown away and is the better surface for the
+routes view, which a section cannot show.
+
+Recolouring cost the crosshair its legibility: the accent it is drawn in is the
+same warm orange as the ramp's bright end, so the target vanished exactly where
+the map was most interesting. It now carries a dark halo, which works on both
+colourings.
+
+On the 3D surface a checkbox switches what it draws, and the two answer
+different questions:
 
 - **Regions** paints the **convergence matrix** — across the whole connectome,
   which regions is everything aimed at. This does **not** move when the target

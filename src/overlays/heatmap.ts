@@ -31,7 +31,7 @@
 import type { AnnotationVolume } from '../atlas/annotation.ts'
 import { UNLABELLED } from '../atlas/annotation.ts'
 import type { Stereotaxic } from '../atlas/coords.ts'
-import type { StructureIndex } from '../atlas/ontology.ts'
+import type { ColorTable, StructureIndex } from '../atlas/ontology.ts'
 
 /** Strength of each source structure, keyed by Allen structure id. */
 export type StrengthByStructure = ReadonlyMap<number, number>
@@ -267,6 +267,57 @@ export function heatmapColors(heatmap: RetrogradeHeatmap): Float32Array {
   }
 
   return colors
+}
+
+/**
+ * Structure colours for painting a strength onto the slice views.
+ *
+ * The 3D cloud shows where the hubs are in space; a section shows what a hub
+ * is *next to*, which is the question a trajectory actually turns on. Both
+ * read the same strengths through the same ramp, so a region that is yellow in
+ * one is yellow in the other.
+ *
+ * Returns the `ColorTable` the existing slice renderer already takes — one
+ * packed uint32 per structure id — so nothing about how a section is drawn had
+ * to change to draw a different thing.
+ *
+ * Structures with no value keep a dim neutral grey rather than going
+ * transparent. Absent regions are most of the brain, and a section that paints
+ * them as holes stops being a section: the reader loses the outline they were
+ * going to locate the bright parts against.
+ */
+export function buildStrengthColorTable(
+  index: StructureIndex,
+  strengths: StrengthByStructure,
+  range: { min: number; max: number },
+): ColorTable {
+  const table = new Map<number, number>()
+  const span = range.max - range.min
+
+  // Dark enough to read as background against the ramp's own dark end, light
+  // enough to show the anatomy's shape.
+  const UNMEASURED = ((255 << 24) | (34 << 16) | (30 << 8) | 27) >>> 0
+
+  for (const structure of index.all) {
+    const strength = strengthForStructure(index, strengths, structure.id)
+    if (strength === null) {
+      table.set(structure.id, UNMEASURED)
+      continue
+    }
+
+    const t = span > 0 ? (strength - range.min) / span : 1
+    const [r, g, b] = heatColor(t)
+    table.set(
+      structure.id,
+      ((255 << 24) |
+        (Math.round(b * 255) << 16) |
+        (Math.round(g * 255) << 8) |
+        Math.round(r * 255)) >>>
+        0,
+    )
+  }
+
+  return table
 }
 
 /**
