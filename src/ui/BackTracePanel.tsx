@@ -366,9 +366,8 @@ export function BackTracePanel({
           ))}
         </div>
         <p className="hint">
-          WASD moves the target in the horizontal plane, Q and E take it down and up, or
-          tap above; hold Shift for ×{COARSE_FACTOR}. Left and right are the
-          animal&rsquo;s. Keys are ignored while the caret is in a field.
+          WASD moves the target, Q and E go down and up. Shift for ×{COARSE_FACTOR}.
+          Left and right are the animal&rsquo;s.
         </p>
 
         <div className="btn-row" style={{ marginTop: 6 }}>
@@ -388,10 +387,7 @@ export function BackTracePanel({
           </button>
         </div>
         <p className="hint" style={{ marginTop: 2 }}>
-          Mirrors ML and keeps AP and DV, so the two answers are of one place rather than
-          two. It does <i>not</i> pick ipsilateral or contralateral input — a target has
-          both, and which dominates varies: 80% ipsilateral at dorsal CA1 ML +1.5, 63% at
-          MOs ML −0.90, 45% at CA1 ML −1.5. Use the source filter below for that.
+          Moves the target to the same place in the other hemisphere.
         </p>
       </div>
 
@@ -416,9 +412,7 @@ export function BackTracePanel({
         </label>
         {backtrace.showPaths && (
           <p className="hint" style={{ marginTop: 0 }}>
-            Drawn on the target itself, in Allen&rsquo;s own coordinates — unmirrored, so
-            a route runs to where that experiment was actually injected. The hub map
-            below is mirrored and can be, having no target in it.
+            Each route runs to where that experiment was really injected.
           </p>
         )}
 
@@ -434,22 +428,15 @@ export function BackTracePanel({
           Mirror the projection
         </label>
         <p className="hint" style={{ marginTop: 0 }}>
-          Searches the target&rsquo;s reflection as well and lays its answer back over
-          this one, which under left-right symmetry is the fuller list of routes that
-          could reach here. Allen injects the right hemisphere in 75% of the corpus, so
-          the two halves are not sampled alike: CA1 at ML +1.5 finds 70 experiments and
-          its mirror image at ML −1.5 finds 44, while the anatomy agrees — 18 of their
-          22 and 28 source regions shared, in the same order. The difference is which
-          animals exist, not which projections do.
+          Allen injected one hemisphere far more than the other, so searching the
+          mirrored target too fills in the routes this side never sampled.
           {inferred > 0 && (
             <>
               {' '}
-              <b>{inferred}</b> of the sources listed below are inferred this way and
-              tagged <i>mirrored</i>; nothing was injected there.
+              <b>{inferred}</b> sources come from there, tagged <i>mirrored</i>.
             </>
           )}
-          {coord.ml === 0 &&
-            ' The target is on the midline, so its reflection is itself and there is nothing to add.'}
+          {coord.ml === 0 && ' The target is on the midline, so there is nothing to add.'}
         </p>
 
         <label className="check">
@@ -494,9 +481,8 @@ export function BackTracePanel({
 
         {loading && (
           <p className="hint">
-            Allen&rsquo;s spatial search compares the target against every injection in the
-            corpus and usually takes {TYPICAL_SECONDS}. Answers are kept, so stepping back
-            over a coordinate you have already traced is instant.
+            Allen&rsquo;s search usually takes {TYPICAL_SECONDS}. Answers are kept, so
+            going back to a coordinate you have traced is instant.
           </p>
         )}
 
@@ -548,10 +534,7 @@ export function BackTracePanel({
                 Also open a second brain beside this one
               </label>
               <p className="hint" style={{ marginTop: 0 }}>
-                Added to the section views below, not instead of them. The sections keep
-                their colouring either way: what a hub sits next to is the thing a hub
-                map is read for, and in 3D that answer is behind whatever is in front
-                of it.
+                Added to the sections below, not instead of them.
               </p>
             </>
           )}
@@ -575,11 +558,8 @@ export function BackTracePanel({
               </div>
               {backtrace.heatGrain === 'voxels' && (
                 <p className="hint" style={{ marginTop: 0 }}>
-                  Accumulated from the raw projection grids of all 2,826 experiments, so
-                  it owes nothing to the region boundaries and can disagree with them.
-                  The pixels are larger — 100 µm against the atlas&rsquo;s 50 — and each
-                  one is a measurement at that place rather than an average over the
-                  region containing it. 2 MB, fetched once.
+                  Measured per 100 µm voxel instead of averaged over a region, so it can
+                  disagree with the region boundaries. 2 MB, fetched once.
                 </p>
               )}
             </>
@@ -605,14 +585,9 @@ export function BackTracePanel({
                     {HEATMAP_MODE_LABEL[backtrace.heatMode]}
                   </p>
                   <p className="hint" style={{ marginTop: 2 }}>
-                    The second brain shows <i>this target&rsquo;s</i> answer and moves
-                    with it — unlike the section views, which paint the connectome-wide
-                    hub map and do not. Its <b>left</b> half carries that answer; its
-                    <b>right</b> half carries all 2,915 injection sites in the corpus,
-                    mirrored onto that side — the same side the sources themselves are
-                    on, so the colours are a visible subset of the dots. A region with
-                    no colour and no dots in it was never injected, which is not the
-                    same as not projecting here.
+                    This target&rsquo;s own answer, so it moves with the target — the
+                    sections do not. Grey dots behind it are all 2,915 injection sites:
+                    no colour and no dots means nobody injected there.
                   </p>
                 </>
               )}
@@ -655,9 +630,7 @@ export function BackTracePanel({
 
               {backtrace.showSecondBrain && (
                 <p className="hint" style={{ marginTop: 0 }}>
-                  Those two control the sections only. The second brain colours by each
-                  experiment&rsquo;s own projection density at the target, so the
-                  count/mean measure and its threshold do not reach it.
+                  Those two control the sections only.
                 </p>
               )}
 
@@ -703,11 +676,10 @@ export function BackTracePanel({
 
               <p className="hint">
                 {backtrace.showSecondBrain
-                  ? 'The second view shares this one’s camera, so orbiting the main brain turns both. '
-                  : 'The strip under the viewport follows the target, so the sections move with it even though the colours do not. '}
-                Colour is per structure, not per voxel — the finest grain Allen reports is
-                the region an experiment was injected into, so edges fall on structure
-                boundaries because that is where the information changes.
+                  ? 'Both brains share one camera, so orbiting either turns both. '
+                  : 'The sections follow the target; their colours do not. '}
+                {backtrace.heatGrain === 'structures' &&
+                  'Colour is per region, so edges fall on region boundaries.'}
               </p>
 
               {hubs.length > 0 && (
@@ -720,9 +692,8 @@ export function BackTracePanel({
                       is why that caveat sits directly under this list. */}
                   <h2 style={{ marginTop: 14 }}>Top postsynaptic hubs</h2>
                   <div className="mrow__meta" style={{ marginBottom: 6, marginLeft: 0 }}>
-                    Regions most projected <i>to</i>, across the whole connectome — not
-                    this target. Ranked ipsilaterally; <b>c</b> is the contralateral
-                    value.
+                    Regions most projected <i>to</i> across the whole connectome, not
+                    this target. <b>c</b> is the contralateral value.
                   </div>
                   {hubs.slice(0, HUB_LIST_LENGTH).map((hub, rank) => (
                     <div key={hub.id} className="mrow__exp">

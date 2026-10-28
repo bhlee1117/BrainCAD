@@ -205,15 +205,11 @@ export function voxelIndexFor(
 
 /** Caveats carried wherever the voxel map is shown. */
 export const VOXEL_CAVEATS: readonly string[] = [
-  'The right half is the injected hemisphere: every experiment is mirrored so its ' +
-    'injection lies on one side, and that side is drawn on the right. 534 of 2,826 ' +
-    'experiments were mirrored when the blob was built.',
-  'White matter is genuinely bright — a tract carries the axons of many sources. That is ' +
+  'The right half is the injected hemisphere.',
+  'White matter is genuinely bright: a tract carries axons from many sources. That is ' +
     'convergence of passage, not of termination.',
-  'The scale tops out at the 99th percentile; a few voxels in dense tracts run four ' +
-    'times higher and are drawn at the top of the ramp.',
-  '100 µm voxels against an averaged template: a hot spot one or two voxels across is at ' +
-    'the scale of the registration error between animals, not safely below it.',
-  'Injection voxels are masked per experiment, so the map is not a picture of where ' +
-    'tracer was put.',
+  'The scale tops out at the 99th percentile; a few tract voxels run four times higher.',
+  'A hot spot one or two voxels across is at the scale of the registration error ' +
+    'between animals, not safely below it.',
+  'Injection sites are masked out, so this is not a picture of where tracer was put.',
 ]

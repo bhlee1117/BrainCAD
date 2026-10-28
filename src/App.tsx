@@ -171,10 +171,9 @@ export function App() {
     ? voxelPaint && {
         paint: voxelPaint.paint,
         caption:
-          `Sections coloured by convergence · voxels (100 µm) · ` +
-          `${backtrace.heatMetric} · up to ` +
+          `Convergence · 100 µm voxels · ${backtrace.heatMetric} up to ` +
           `${formatConvergence(backtrace.heatMetric, decode(backtrace.heatMetric, voxelPaint.range.max))}` +
-          ` at the 99th percentile · the right half is the injected hemisphere · ` +
+          ` · right is the injected side · ` +
           `${voxels.map?.header.experiments ?? 0} experiments`,
       }
     : structurePaint

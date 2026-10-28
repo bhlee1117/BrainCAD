@@ -265,10 +265,9 @@ export function useSectionHubPaint(
 
     return {
       caption:
-        `Sections coloured by convergence · structures · ${metric} · ` +
+        `Convergence · regions · ${metric} ` +
         `${formatConvergence(metric, min)} → ${formatConvergence(metric, max)} · ` +
-        `the right half is the injected hemisphere · grey is unmeasured · ` +
-        `the values are independent of the target`,
+        `right is the injected side · grey is unmeasured · not this target`,
       paint: {
         valueAt: (voxel) => {
           const label = atlas.volume.labelAtVoxel(voxel.i0, voxel.i1, voxel.i2)
@@ -430,7 +429,7 @@ export function describeHubMap(
     const scope = backtrace.heatAllSources
       ? 'all sources'
       : `top ${backtrace.topStructures} structures`
-    return `Traced routes into the target · coloured by strength · ${scope}`
+    return `Routes into the target · coloured by strength · ${scope}`
   }
 
   if (!heatmap || heatmap.pointCount === 0) {
@@ -438,10 +437,9 @@ export function describeHubMap(
   }
 
   return (
-    `Sources painted by projection density at the target · ` +
-    `${heatmap.minStrength.toFixed(3)} → ${heatmap.maxStrength.toFixed(3)} across ` +
-    `${heatmap.paintedStructureIds.length} regions · among all ${injectionCount} ` +
-    `injection sites in grey · moves with the target`
+    `Sources of this target · ${heatmap.minStrength.toFixed(3)} → ` +
+    `${heatmap.maxStrength.toFixed(3)} across ${heatmap.paintedStructureIds.length} ` +
+    `regions · ${injectionCount} injection sites in grey`
   )
 }
 

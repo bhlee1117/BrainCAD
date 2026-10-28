@@ -327,16 +327,13 @@ export function formatConvergence(metric: ConvergenceMetric, value: number): str
 
 /** Caveats carried wherever the hub map is shown. */
 export const CONVERGENCE_CAVEATS: readonly string[] = [
-  'A property of the Allen connectome, not of your target — moving the target does not ' +
-    'change this map. The target is drawn only as a reference mark.',
-  'The right half is the injected hemisphere: every experiment is read relative to its ' +
-    'own injection, so the map has no left and right of its own and is drawn with the ' +
-    'injected side on the right, as the traced routes and the grey dots are.',
-  'Anterograde data, so "projects into" is bulk signal detected in the region and counts ' +
-    'fibres passing through the same as terminals.',
+  'A map of the whole connectome, not of your target: moving the target does not ' +
+    'change it. The target is only a reference mark.',
+  'The right half is the injected hemisphere.',
+  'Anterograde data, so fibres passing through a region count the same as terminals.',
   'One value per source region, its strongest experiment — counting experiments would ' +
-    'rank how often Allen injected somewhere rather than the anatomy.',
-  'Limited to the 293 summary structures, and to the 213 of them Allen injected.',
-  'Allen products 5, 6, 35, 36, 42, 44 and 45 — the anterograde survey of the normal ' +
-    'adult mouse. The Alzheimer, aged-cohort and retina studies are left out.',
+    'rank how often Allen injected somewhere instead of the anatomy.',
+  'Only the 293 summary regions, and only the 213 Allen injected.',
+  'Normal adult mice (Allen products 5, 6, 35, 36, 42, 44, 45). Disease, ageing and ' +
+    'retina studies are left out.',
 ]

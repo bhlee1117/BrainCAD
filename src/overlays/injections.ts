@@ -98,10 +98,9 @@ export function injectionSitesToStereotaxic(
 
 /** Carried wherever the dots are shown. */
 export const INJECTION_CAVEATS: readonly string[] = [
-  'One dot per experiment, at its reported injection centroid — a point standing for a ' +
-    'volume that is elongated along the pipette track.',
-  'Mirrored onto the right hemisphere, the same side the back-trace keeps, so the ' +
-    'coloured regions are a visible subset of these dots. 75% were already there.',
-  'A dark region with no dots in it was never injected, which is not the same as not ' +
+  'One dot per experiment, at its reported injection centre — a point standing for a ' +
+    'volume that is longer along the pipette track than it is wide.',
+  'All mirrored onto the right, the side the sources are drawn on.',
+  'A dark region with no dots was never injected, which is not the same as not ' +
     'projecting to the target.',
 ]

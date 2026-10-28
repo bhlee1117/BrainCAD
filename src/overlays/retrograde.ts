@@ -603,16 +603,15 @@ export const RETROGRADE_CITATION =
  * to mislead is first: this looks like retrograde tracing and is not.
  */
 export const RETROGRADE_CAVEATS: readonly string[] = [
-  'This is anterograde data read backwards, not retrograde tracing. It finds ' +
-    'injections whose projections reach the target, and reports where they were injected.',
-  'Limited to regions the Allen Institute injected. A region absent from this list ' +
-    'may simply never have been injected.',
-  'Signal is bulk projection density, so fibres passing through the target count the ' +
-    'same as terminals in it.',
-  'An experiment injected at the target saturates near 1.0; those rows are tagged ' +
-    '"at target" and say the tracer was put there, not that the region projects there.',
-  'Paths are Allen routes through a density volume, interpolated — not traced axons.',
-  'Every experiment is one injection in one animal, registered to the averaged CCFv3.',
+  'Anterograde data read backwards, not retrograde tracing: it finds injections whose ' +
+    'projections reach the target.',
+  'Only regions Allen injected. A region missing here may just never have been injected.',
+  'Fibres passing through the target count the same as terminals in it.',
+  'Rows tagged "at target" were injected on the target itself, so their value says the ' +
+    'tracer was put there, not that the region projects there.',
+  'Rows tagged "mirrored" reached the target\'s reflection; nothing was injected there.',
+  'Paths are interpolated routes through a density volume, not traced axons.',
+  'One injection in one animal each, registered to the averaged CCFv3.',
 ]
 
 /**

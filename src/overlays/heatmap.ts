@@ -298,8 +298,8 @@ export function heatmapColors(heatmap: RetrogradeHeatmap): Float32Array {
 export type HeatmapMode = 'regions' | 'routes'
 
 export const HEATMAP_MODE_LABEL: Record<HeatmapMode, string> = {
-  regions: 'Regions — paint the sources by their strength at the target',
-  routes: 'Routes — draw the traced paths in',
+  regions: 'Regions — sources, coloured by their strength here',
+  routes: 'Routes — the traced paths in',
 }
 
 /**
