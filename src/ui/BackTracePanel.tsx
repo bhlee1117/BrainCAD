@@ -37,7 +37,7 @@ import { VOXEL_CAVEATS } from '../overlays/voxelConvergence.ts'
 import { useConvergenceMatrix } from '../overlays/useHubMap.ts'
 import { HEATMAP_MODE_LABEL } from '../overlays/heatmap.ts'
 import { COARSE_FACTOR, NUDGE_LEGEND, nudgeCoord } from '../state/nudge.ts'
-import { useAppStore } from '../state/store.ts'
+import { useAppStore, useSourceSideFilter } from '../state/store.ts'
 import { NumberField } from './NumberField.tsx'
 
 /**
@@ -192,6 +192,7 @@ export function BackTracePanel({
   const selectedTargetId = useAppStore((s) => s.selectedTargetId)
   const backtrace = useAppStore((s) => s.backtrace)
   const setBacktrace = useAppStore((s) => s.setBacktrace)
+  const side = useSourceSideFilter()
   const nudgeStepMm = useAppStore((s) => s.nudgeStepMm)
   const setNudgeStepMm = useAppStore((s) => s.setNudgeStepMm)
   const updateTarget = useAppStore((s) => s.updateTarget)
@@ -291,13 +292,13 @@ export function BackTracePanel({
     includeOverlapping: backtrace.includeOverlapping,
     topStructures: Number.POSITIVE_INFINITY,
     focusAbbrev: null,
-    side: backtrace.sourceSide,
+    side,
   })
   const shown = visibleSources(backtrace.sources, {
     includeOverlapping: backtrace.includeOverlapping,
     topStructures: backtrace.topStructures,
     focusAbbrev: null,
-    side: backtrace.sourceSide,
+    side,
   })
   const matrix = retrogradeMatrix(shown)
   const belowTop = sided.length - shown.length
@@ -426,19 +427,40 @@ export function BackTracePanel({
             id="src-side"
             value={backtrace.sourceSide}
             onChange={(event) =>
-              setBacktrace({ sourceSide: event.target.value as Side | 'all' })
+              setBacktrace({ sourceSide: event.target.value as Side | 'all' | 'auto' })
             }
           >
+            <option value="auto">
+              Injections on the left — {SIDE_LABEL[side === 'all' ? 'ipsi' : side]} by
+              where the target is
+            </option>
             <option value="all">Both sides</option>
             <option value="ipsi">Ipsilateral only</option>
             <option value="contra">Contralateral only</option>
           </select>
         </div>
         <p className="hint" style={{ marginTop: 0 }}>
-          Read off each experiment&rsquo;s own injection against the target&rsquo;s, so it
-          is a fact about that pair rather than a guess from where Allen usually injects.
-          {coord.ml === 0 &&
-            ' The target is on the midline, where neither side is defined, so the filter is empty.'}
+          {backtrace.sourceSide === 'auto' ? (
+            <>
+              Every injection on screen is in the <b>left</b> hemisphere, so the target
+              decides what you are looking at: on the left it is reached from its own
+              side and you see its <b>ipsilateral</b> input; on the right it is reached
+              across the midline and you see its <b>contralateral</b> input. Move the
+              target across to swap between the two.
+              {coord.ml === 0
+                ? ' The target is on the midline, which is neither side, so everything is shown.'
+                : ` The target is at ML ${coord.ml.toFixed(2)}, so these are its
+                   ${side === 'contra' ? 'contralateral' : 'ipsilateral'} sources.`}
+            </>
+          ) : (
+            <>
+              Read off each experiment&rsquo;s own injection against the target&rsquo;s,
+              so it is a fact about that pair rather than a guess from where Allen
+              usually injects.
+              {coord.ml === 0 &&
+                ' The target is on the midline, where neither side is defined, so the filter is empty.'}
+            </>
+          )}
         </p>
 
         <label className="check">
@@ -615,39 +637,6 @@ export function BackTracePanel({
                       )}
                     </select>
                   </div>
-
-                  <div className="field">
-                    <label>Target reads</label>
-                    <div className="btn-row">
-                      {(['ipsi', 'contra'] as Side[]).map((side) => (
-                        <button
-                          key={side}
-                          className={
-                            backtrace.mapSide === side ? 'btn btn--primary' : 'btn'
-                          }
-                          disabled={coord.ml === 0}
-                          title={
-                            coord.ml === 0
-                              ? 'The target is on the midline, which is in neither half'
-                              : side === 'ipsi'
-                                ? 'Read the target against the half fed from its own side'
-                                : 'Read the target against the half fed from the other side'
-                          }
-                          onClick={() => setBacktrace({ mapSide: side })}
-                        >
-                          {SIDE_LABEL[side]}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <p className="hint" style={{ marginTop: 0 }}>
-                    Every experiment was mirrored onto one hemisphere when the map was
-                    built, so an ipsilateral <i>and</i> a contralateral answer exist at
-                    every coordinate and only one of them can be drawn where the target
-                    is. This picks which — the map reflects, the target does not move,
-                    and the numbers themselves do not change.
-                    {coord.ml === 0 && ' The target is on the midline, which is neither.'}
-                  </p>
 
                   <div className="field" hidden={backtrace.heatGrain === 'voxels'}>
                     <label htmlFor="heat-threshold">Counts above</label>

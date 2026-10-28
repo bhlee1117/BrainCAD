@@ -20,6 +20,8 @@ import type { BacktraceState } from '../state/store.ts'
 import {
   convergenceStrengths,
   formatConvergence,
+  IPSI_ON_LEFT,
+  autoSourceSide,
   loadConvergenceMatrix,
   reflectVoxel,
   voxelSide,
@@ -124,14 +126,13 @@ export function useHubHeatmap(
   matrix: ConvergenceMatrix | null,
   metric: BacktraceState['heatMetric'],
   threshold: number,
-  ipsiOnLeft: boolean,
 ): RetrogradeHeatmap | null {
   return useMemo(() => {
     if (!atlas || !matrix) return null
     const sided = convergenceStrengths(matrix, metric, threshold)
     if (sided.ipsi.size === 0 && sided.contra.size === 0) return null
-    return buildRetrogradeHeatmap(atlas.volume, atlas.index, sided, { ipsiOnLeft })
-  }, [atlas, matrix, metric, threshold, ipsiOnLeft])
+    return buildRetrogradeHeatmap(atlas.volume, atlas.index, sided)
+  }, [atlas, matrix, metric, threshold])
 }
 
 export interface SectionPaint {
@@ -153,8 +154,6 @@ export function useSectionHubPaint(
   matrix: ConvergenceMatrix | null,
   metric: BacktraceState['heatMetric'],
   threshold: number,
-  ipsiOnLeft: boolean,
-  mapSide: Side,
 ): SectionPaint | null {
   return useMemo(() => {
     if (!atlas || !matrix) return null
@@ -177,13 +176,13 @@ export function useSectionHubPaint(
       caption:
         `Sections coloured by convergence · structures · ${metric} · ` +
         `${formatConvergence(metric, min)} → ${formatConvergence(metric, max)} · ` +
-        `${ipsiOnLeft ? 'left' : 'right'} is ipsilateral, the target reads ` +
-        `${mapSide} · grey is unmeasured · the values are independent of the target`,
+        `the left half is the injected hemisphere · grey is unmeasured · ` +
+        `the values are independent of the target`,
       paint: {
         valueAt: (voxel) => {
           const label = atlas.volume.labelAtVoxel(voxel.i0, voxel.i1, voxel.i2)
           if (label === UNLABELLED) return null
-          const side = voxelSide(atlas.space, voxel, ipsiOnLeft)
+          const side = voxelSide(atlas.space, voxel)
           let value = cache[side].get(label)
           if (value === undefined) {
             value = strengthForStructure(atlas.index, sided[side], label)
@@ -195,7 +194,7 @@ export function useSectionHubPaint(
         empty: [0.105, 0.1, 0.09],
       },
     }
-  }, [atlas, matrix, metric, threshold, ipsiOnLeft, mapSide])
+  }, [atlas, matrix, metric, threshold])
 }
 
 export interface VoxelMapState {
@@ -262,7 +261,6 @@ export function useVoxelPaint(
   map: VoxelConvergence | null,
   metric: BacktraceState['heatMetric'],
   space: VolumeSpace | null,
-  ipsiOnLeft: boolean,
 ): { paint: VoxelPaint; range: VoxelRange } | null {
   return useMemo(() => {
     if (!map || !space) return null
@@ -278,7 +276,12 @@ export function useVoxelPaint(
           // Reflected at the annotation grain rather than by keeping a second
           // copy of the blob: the map is symmetrised by construction, so the
           // mirrored read *is* the other way round of the same answer.
-          const index = voxelIndexFor(map, ipsiOnLeft ? reflectVoxel(space, voxel) : voxel)
+          // The blob stores the injected half on one side; the screen's
+          // convention puts it on the left, so the read is reflected once.
+          const index = voxelIndexFor(
+            map,
+            IPSI_ON_LEFT ? reflectVoxel(space, voxel) : voxel,
+          )
           if (index < 0) return null
           const raw = values[index]!
           return raw > 0 ? raw : null
@@ -289,7 +292,7 @@ export function useVoxelPaint(
         empty: [0.105, 0.1, 0.09],
       },
     }
-  }, [map, metric, space, ipsiOnLeft])
+  }, [map, metric, space])
 }
 
 /**
@@ -298,9 +301,13 @@ export function useVoxelPaint(
  * Reads the same filters as the panel's list, so the routes on screen are the
  * experiments the table is describing.
  */
-export function useHeatmapSources(backtrace: BacktraceState): RetrogradeSource[] {
+export function useHeatmapSources(
+  backtrace: BacktraceState,
+  target: { ml: number } | null,
+): RetrogradeSource[] {
   const { sources, heatAllSources, includeOverlapping, topStructures, sourceSide } =
     backtrace
+  const ml = target?.ml ?? 0
 
   return useMemo(
     () =>
@@ -311,9 +318,9 @@ export function useHeatmapSources(backtrace: BacktraceState): RetrogradeSource[]
         // about how much of it to draw.
         topStructures: heatAllSources ? Number.POSITIVE_INFINITY : topStructures,
         focusAbbrev: null,
-        side: sourceSide,
+        side: sourceSide === 'auto' ? autoSourceSide({ ml }) : sourceSide,
       }),
-    [sources, heatAllSources, includeOverlapping, topStructures, sourceSide],
+    [sources, heatAllSources, includeOverlapping, topStructures, sourceSide, ml],
   )
 }
 

@@ -39,7 +39,7 @@ import {
   useVoxelConvergence,
   useVoxelPaint,
 } from './overlays/useHubMap.ts'
-import { formatConvergence, ipsiOnLeftFor } from './overlays/convergence.ts'
+import { formatConvergence } from './overlays/convergence.ts'
 import { decode } from './overlays/voxelConvergence.ts'
 import { BackTracePanel } from './ui/BackTracePanel.tsx'
 import { AtlasPanel, ProfilePanel, ScenePanel } from './ui/SidePanels.tsx'
@@ -130,21 +130,13 @@ export function App() {
   const showHeatmap = hubMapOn && backtrace.heatSurface === 'brain' && !compact
   const convergence = useConvergenceMatrix(hubMapOn)
 
-  // Which way round the symmetrised hub map is drawn. Following the target is
-  // what stops the sections labelling the target's own hemisphere `CONTRA`
-  // while the routes beside them draw its ipsilateral sources on that side;
-  // `mapSide` then chooses which of the two stored answers the target's own
-  // location is read as.
-  const ipsiOnLeft = ipsiOnLeftFor(target?.coord ?? { ml: 0 }, backtrace.mapSide)
-
   const heatmap = useHubHeatmap(
     atlas,
     showHeatmap ? convergence.matrix : null,
     backtrace.heatMetric,
     backtrace.connectionThreshold,
-    ipsiOnLeft,
   )
-  const routeSources = useHeatmapSources(backtrace)
+  const routeSources = useHeatmapSources(backtrace, target?.coord ?? null)
 
   // Two grains, one surface. The structure paint reads the bundled matrix; the
   // voxel paint reads the raw 100 µm grids, which are only downloaded once
@@ -157,15 +149,12 @@ export function App() {
     voxelOn ? voxels.map : null,
     backtrace.heatMetric,
     atlas?.space ?? null,
-    ipsiOnLeft,
   )
   const structurePaint = useSectionHubPaint(
     atlas,
     sectionsOn && !voxelOn ? convergence.matrix : null,
     backtrace.heatMetric,
     backtrace.connectionThreshold,
-    ipsiOnLeft,
-    backtrace.mapSide,
   )
 
   const sectionHub = voxelOn
@@ -175,8 +164,7 @@ export function App() {
           `Sections coloured by convergence · voxels (100 µm) · ` +
           `${backtrace.heatMetric} · up to ` +
           `${formatConvergence(backtrace.heatMetric, decode(backtrace.heatMetric, voxelPaint.range.max))}` +
-          ` at the 99th percentile · ${ipsiOnLeft ? 'left' : 'right'} is ipsilateral, ` +
-          `the target reads ${backtrace.mapSide} · ` +
+          ` at the 99th percentile · the left half is the injected hemisphere · ` +
           `${voxels.map?.header.experiments ?? 0} experiments`,
       }
     : structurePaint
@@ -238,7 +226,6 @@ export function App() {
           profile={profile}
           coord={target.coord}
           voxelPaint={sectionHub?.paint}
-          mapSide={backtrace.mapSide}
           caption={sectionHub?.caption ?? (voxelOn ? voxels.message : undefined)}
         />
       ) : (
@@ -338,8 +325,7 @@ export function App() {
               profile={profile}
               coord={target.coord}
               voxelPaint={sectionHub?.paint}
-              mapSide={backtrace.mapSide}
-              caption={sectionHub?.caption ?? (voxelOn ? voxels.message : undefined)}
+                  caption={sectionHub?.caption ?? (voxelOn ? voxels.message : undefined)}
             />
           )}
         </div>

@@ -380,36 +380,36 @@ deposits 0.089 in one CA1 and 0.216 in the other. Both hemispheres are fetched
 and each experiment's own injection side decides which is ipsilateral, which
 matters because Allen injects the right hemisphere in 81% of this corpus.
 
-**The map follows the target.** Mirroring every experiment leaves an aggregate
-with an ipsilateral half and a contralateral half and no left or right of its
-own, so which way round to draw it is a choice. Drawn on a fixed side — the
-right, as it was — the sections put `IPSI` over the half Allen happened to
-inject, which is a statement about the Allen Institute's method and not about
-the plan on screen. Put a target in the other half and the view contradicted
-itself: the sections labelled the target's own hemisphere `CONTRA` while the
-back-trace beside them, correctly, drew that target's ipsilateral sources on
-exactly that side. Two frames, one screen, and the back-trace was the one being
-disbelieved. Now the half holding the target is always the ipsilateral one.
+**One convention: the left hemisphere is the injection side.** Mirroring every
+experiment leaves an aggregate with an injected half and an other half and no
+left or right of its own, so which way round to draw it is a choice — and for a
+while it was a choice made twice. The sections named their halves `ipsi` and
+`contra` and swapped them to follow the target, while the 3D routes were drawn
+in raw anatomy. Two frames on one screen, and the words on the sections kept
+contradicting the lines above them.
 
-The reflection costs nothing, because the thing being reflected was symmetrised
-by construction: the voxel grain reads the mirrored voxel out of the one stored
-blob, and the structure grain swaps which of the two columns it looks up. The
-sections say which is which on themselves rather than only in the caption —
-coronal and horizontal carry `ipsi` and `contra` under their halves, and a
-sagittal section is always the ipsilateral one, because the slice is taken at
-the target's own ML. A target exactly on the midline is in neither hemisphere
-and the labels say `midline` rather than rounding to a side.
+Now there is one rule and the sections do not carry laterality labels at all.
+The hub map is drawn with its injected half on the left — the voxel grain reads
+the mirrored voxel out of the one stored blob, the structure grain picks the
+matching column, and the caption says what the halves are rather than labelling
+them on the image. Ipsilateral and contralateral belong to the 3D view alone.
 
-That left one thing harder than it had been. With the map pinned to a side you
-could read the *contralateral* convergence at a coordinate by flipping the
-target into the other half; once the map follows the target, flipping takes the
-map with it and the ipsilateral answer is all you ever see. Both answers exist
-at every coordinate — that is what symmetrising produced — and only one of them
-can be drawn where the target is. So the panel has **`ipsi` / `contra` buttons**
-that choose which: the map reflects, the target does not move, and the stored
-numbers do not change. The section labels and the sagittal caption come from the
-same flag as the paint, so a half drawn from the ipsilateral column cannot end
-up captioned `contra`.
+**And in the 3D view they are read off the target, because the sources on
+screen really are injected on the left.** The back-trace filters to
+left-hemisphere injections, so there is nothing to mirror and nothing claimed
+that is not in the data:
+
+- Target in the **left** hemisphere — the sources are on its own side, so the
+  view is its **ipsilateral** input.
+- Target in the **right** hemisphere — the sources reach it across the midline,
+  so the view is its **contralateral** input.
+
+Moving the target across is the whole of the ipsi/contra control; there is no
+button, because there is nothing a button could set that the coordinate does
+not already say. At dorsal CA1 it is 13 experiments on the right against 15 on
+the left, out of 70 and 44 traced — contralateral input is genuinely rarer, and
+the count says so instead of a caption. A target exactly on the midline is on
+neither side and the filter is not applied.
 
 What this does *not* do is move sources. A source is ipsilateral or
 contralateral by where its needle went relative to the target, and for some

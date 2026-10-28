@@ -27,6 +27,7 @@ import { DEFAULT_COLLISION_SETTINGS } from '../collision/check.ts'
 import type { Measurement } from '../measure/measure.ts'
 import {
   DEFAULT_CONNECTION_THRESHOLD,
+  autoSourceSide,
   type ConvergenceMetric,
   type Side,
 } from '../overlays/convergence.ts'
@@ -228,7 +229,7 @@ export interface BacktraceState {
    * inference from where Allen usually injects — which is true of the hub
    * map's corpus and not of the one this search covers.
    */
-  readonly sourceSide: Side | 'all'
+  readonly sourceSide: Side | 'all' | 'auto'
 
   /**
    * Show the hub map at all.
@@ -266,21 +267,6 @@ export interface BacktraceState {
   readonly heatGrain: 'structures' | 'voxels'
   /** What the convergence map measures. */
   readonly heatMetric: ConvergenceMetric
-  /**
-   * Which half of the convergence map the target's own location is read as.
-   *
-   * The assets are built with every experiment mirrored onto one hemisphere,
-   * so both an ipsilateral and a contralateral answer exist at every
-   * coordinate and only one of them can be drawn where the target is. `ipsi`
-   * puts the target in the ipsilateral half, which is the reading that agrees
-   * with the back-trace routes crossing the same view; `contra` reflects the
-   * map so the target reads the other answer — what reaches that point from
-   * the opposite side.
-   *
-   * A view setting, not a fact about the data: it changes which of two stored
-   * numbers is shown at a pixel, never the numbers.
-   */
-  readonly mapSide: Side
   /** Minimum projection density for a source to count as projecting in. */
   readonly connectionThreshold: number
   readonly heatOpacity: number
@@ -306,13 +292,12 @@ const INITIAL_BACKTRACE: BacktraceState = {
   includeOverlapping: true,
   topStructures: 8,
   focusAbbrev: null,
-  sourceSide: 'all',
+  sourceSide: 'auto',
   showHeatmap: true,
   heatSurface: 'sections',
   heatMode: 'regions',
   heatGrain: 'voxels',
   heatMetric: 'count',
-  mapSide: 'ipsi',
   connectionThreshold: DEFAULT_CONNECTION_THRESHOLD,
   heatOpacity: 1,
   heatPointSizeMm: 0.22,
@@ -613,6 +598,24 @@ export function useProfile(): CoordinateProfile {
 /** The currently selected target, if any. */
 export function useSelectedTarget(): Target | null {
   return useAppStore((s) => s.targets.find((t) => t.id === s.selectedTargetId) ?? null)
+}
+
+/**
+ * The side filter the 3D view is actually applying.
+ *
+ * `auto` is the default and is not a setting so much as a consequence: the
+ * screen draws injections on the left, so a target on the left sees its
+ * ipsilateral input and a target on the right sees its contralateral input.
+ * Resolving it here keeps the three places that filter sources — the 3D
+ * routes, the hub map's routes mode and the panel's own counts — from drifting
+ * apart.
+ */
+export function useSourceSideFilter(): Side | 'all' {
+  const sourceSide = useAppStore((s) => s.backtrace.sourceSide)
+  const ml = useAppStore(
+    (s) => s.targets.find((t) => t.id === s.selectedTargetId)?.coord.ml ?? 0,
+  )
+  return sourceSide === 'auto' ? autoSourceSide({ ml }) : sourceSide
 }
 
 /** The loaded atlas, or null while loading or on error. */

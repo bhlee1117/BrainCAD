@@ -20,12 +20,11 @@ import {
   convergenceStrengths,
   formatConvergence,
   loadConvergenceMatrix,
-  SIDE_LABEL,
   flipHemisphere,
-  ipsiOnLeftFor,
+  IPSI_ON_LEFT,
+  autoSourceSide,
   rankConvergence,
   reflectVoxel,
-  sectionSides,
   type ConvergenceMatrix,
   voxelSide,
   type ConvergenceMetric,
@@ -134,36 +133,17 @@ describe('convergenceStrengths', () => {
 describe('voxelSide', () => {
   const space = makeVolumeSpace([264, 160, 228], 50, 'asl')
 
-  it('calls the right half ipsilateral by default', () => {
-    expect(voxelSide(space, { i0: 100, i1: 80, i2: 220 })).toBe('ipsi')
-    expect(voxelSide(space, { i0: 100, i1: 80, i2: 10 })).toBe('contra')
+  it('calls the left half ipsilateral, which is the screen convention', () => {
+    // IPSI_ON_LEFT is the whole of it: the injected half is drawn on the left
+    // so that the sections and the 3D routes describe the same hemisphere.
+    expect(IPSI_ON_LEFT).toBe(true)
+    expect(voxelSide(space, { i0: 100, i1: 80, i2: 10 })).toBe('ipsi')
+    expect(voxelSide(space, { i0: 100, i1: 80, i2: 220 })).toBe('contra')
   })
 
-  it('swaps the two halves when the target is in the left hemisphere', () => {
-    // The map is symmetrised by construction, so which half is called ipsi is
-    // a drawing choice. Fixed on the right it labelled a left-hemisphere
-    // target's own side `contra`, while the routes in the same view correctly
-    // put that target's ipsilateral sources there.
-    expect(voxelSide(space, { i0: 100, i1: 80, i2: 220 }, true)).toBe('contra')
-    expect(voxelSide(space, { i0: 100, i1: 80, i2: 10 }, true)).toBe('ipsi')
-  })
-
-  it('takes the side from the target, and keeps the midline as stored', () => {
-    expect(ipsiOnLeftFor({ ml: -1.5 })).toBe(true)
-    expect(ipsiOnLeftFor({ ml: 1.5 })).toBe(false)
-    // Negating zero is not a hemisphere.
-    expect(ipsiOnLeftFor({ ml: 0 })).toBe(false)
-  })
-
-  it('reads the target against the other half when asked for contra', () => {
-    // Both answers exist at every coordinate because the map is symmetrised;
-    // only one can be drawn where the target is, and this chooses.
-    expect(ipsiOnLeftFor({ ml: -1.5 }, 'contra')).toBe(false)
-    expect(ipsiOnLeftFor({ ml: 1.5 }, 'contra')).toBe(true)
-    // Twice round is where it started, for either target.
-    for (const ml of [-1.5, 1.5]) {
-      expect(ipsiOnLeftFor({ ml }, 'ipsi')).toBe(!ipsiOnLeftFor({ ml }, 'contra'))
-    }
+  it('can still be asked for the other orientation', () => {
+    expect(voxelSide(space, { i0: 100, i1: 80, i2: 220 }, false)).toBe('ipsi')
+    expect(voxelSide(space, { i0: 100, i1: 80, i2: 10 }, false)).toBe('contra')
   })
 
   it('reflects a voxel across the ML axis and nothing else', () => {
@@ -171,7 +151,7 @@ describe('voxelSide', () => {
     expect(there).toEqual({ i0: 100, i1: 80, i2: 7 })
     // An involution, so a reflected read is the same answer the other way up.
     expect(reflectVoxel(space, there)).toEqual({ i0: 100, i1: 80, i2: 220 })
-    expect(voxelSide(space, there)).toBe('contra')
+    expect(voxelSide(space, there)).toBe('ipsi')
   })
 
   it('follows the ML direction of the volume rather than the index', () => {
@@ -179,20 +159,20 @@ describe('voxelSide', () => {
     // other hemisphere. Hard-coding "high index is right" would silently swap
     // ipsi and contra for any atlas stored the other way round.
     const flipped = makeVolumeSpace([264, 160, 228], 50, 'asr')
-    expect(voxelSide(flipped, { i0: 100, i1: 80, i2: 220 })).toBe('contra')
-    expect(voxelSide(flipped, { i0: 100, i1: 80, i2: 10 })).toBe('ipsi')
+    expect(voxelSide(flipped, { i0: 100, i1: 80, i2: 220 })).toBe('ipsi')
+    expect(voxelSide(flipped, { i0: 100, i1: 80, i2: 10 })).toBe('contra')
   })
 
   it('splits at the ML axis midpoint', () => {
-    expect(voxelSide(space, { i0: 0, i1: 0, i2: 113 })).toBe('contra')
-    expect(voxelSide(space, { i0: 0, i1: 0, i2: 114 })).toBe('ipsi')
+    expect(voxelSide(space, { i0: 0, i1: 0, i2: 113 })).toBe('ipsi')
+    expect(voxelSide(space, { i0: 0, i1: 0, i2: 114 })).toBe('contra')
   })
 
   it('agrees with the bundled voxel map about which side is which', () => {
     // The two grains are drawn side by side and compared by eye, so a
     // disagreement here would be read as a difference in the data.
-    expect(CONVERGENCE_CAVEATS.join(' ')).toMatch(/target's own half/i)
-    expect(VOXEL_CAVEATS.join(' ')).toMatch(/target's own half/i)
+    expect(CONVERGENCE_CAVEATS.join(' ')).toMatch(/left half is the injected/i)
+    expect(VOXEL_CAVEATS.join(' ')).toMatch(/left half is the injected/i)
   })
 })
 
@@ -223,75 +203,27 @@ describe('independence from the target', () => {
   })
 })
 
-describe('sectionSides', () => {
-  it('puts ipsi on the right for a right-hemisphere target', () => {
-    // `extractSlice` always puts +ML to the right whatever the array order is,
-    // so a target at positive ML is in the right of the image.
-    const sides = sectionSides('AP', { ml: 1.5 })
-    expect(sides.right).toBe('ipsi')
-    expect(sides.left).toBe('contra')
-    expect(sides.whole).toBeNull()
+describe('autoSourceSide', () => {
+  it('shows a left-hemisphere target its ipsilateral input', () => {
+    // Injections are on the left, so a target there is on the side the tracer
+    // was put — and filtering to ipsilateral leaves exactly those experiments.
+    expect(autoSourceSide({ ml: -1.5 })).toBe('ipsi')
   })
 
-  it('puts ipsi on the left for a left-hemisphere target', () => {
-    // The complaint this answers: a target drawn in the half the sections
-    // called `contra`, with its own ipsilateral sources traced into it.
-    const sides = sectionSides('AP', { ml: -1.5 })
-    expect(sides.left).toBe('ipsi')
-    expect(sides.right).toBe('contra')
+  it('shows a right-hemisphere target its contralateral input', () => {
+    // The same filter from the other side: the sources are still the ones
+    // injected on the left, and now they reach the target across the midline.
+    expect(autoSourceSide({ ml: 1.5 })).toBe('contra')
   })
 
-  it('splits a horizontal section the same way', () => {
-    expect(sectionSides('DV', { ml: -2 }).right).toBe('contra')
-    expect(sectionSides('DV', { ml: 2 }).right).toBe('ipsi')
+  it('keeps everything for a target on the midline', () => {
+    // Neither side, so picking one would be inventing a hemisphere.
+    expect(autoSourceSide({ ml: 0 })).toBe('all')
   })
 
-  it('follows the target rather than the slice, for every AP level', () => {
-    // The coronal slice index says nothing about laterality; the target does.
-    for (const ap of [-4, 0, 4]) {
-      void ap
-      expect(sectionSides('AP', { ml: 1.5 }).right).toBe('ipsi')
-      expect(sectionSides('AP', { ml: -1.5 }).right).toBe('contra')
-    }
-  })
-
-  it('calls a sagittal section ipsilateral, because it passes through the target', () => {
-    // One hemisphere only, and it is the target's own — the slice is taken at
-    // the target's ML, so there is no other hemisphere it could be showing.
-    expect(sectionSides('ML', { ml: 1.5 }).whole).toBe('ipsi')
-    expect(sectionSides('ML', { ml: -1.5 }).whole).toBe('ipsi')
-    expect(sectionSides('ML', { ml: 1.5 }).left).toBeNull()
-  })
-
-  it('relabels every section when the target is read as contralateral', () => {
-    // The labels and the paint come from the same flag, so a caption claiming
-    // `contra` over a half drawn from the ipsilateral column is not reachable.
-    const coronal = sectionSides('AP', { ml: 1.5 }, 'contra')
-    expect(coronal.right).toBe('contra')
-    expect(coronal.left).toBe('ipsi')
-    expect(sectionSides('ML', { ml: 1.5 }, 'contra').whole).toBe('contra')
-    expect(sectionSides('ML', { ml: -1.5 }, 'contra').whole).toBe('contra')
-  })
-
-  it('still names nothing on the midline, whichever half is asked for', () => {
-    for (const mapSide of ['ipsi', 'contra'] as const) {
-      expect(sectionSides('AP', { ml: 0 }, mapSide).left).toBeNull()
-      expect(sectionSides('ML', { ml: 0 }, mapSide).whole).toBeNull()
-    }
-  })
-
-  it('refuses to name anything for a target on the midline', () => {
-    // Rounding to one side would be a quiet lie about which half the colours
-    // came from.
-    expect(sectionSides('ML', { ml: 0 }).whole).toBeNull()
-    expect(sectionSides('AP', { ml: 0 }).left).toBeNull()
-    expect(sectionSides('AP', { ml: 0 }).right).toBeNull()
-  })
-
-  it('labels both sides', () => {
-    expect(SIDE_LABEL.ipsi).toBeTruthy()
-    expect(SIDE_LABEL.contra).toBeTruthy()
-    expect(SIDE_LABEL.ipsi).not.toBe(SIDE_LABEL.contra)
+  it('swaps as the target crosses, with nothing in between', () => {
+    const sides = [-2, -0.01, 0, 0.01, 2].map((ml) => autoSourceSide({ ml }))
+    expect(sides).toEqual(['ipsi', 'ipsi', 'all', 'contra', 'contra'])
   })
 })
 
