@@ -355,25 +355,41 @@ which does:
   how hard each region drives this coordinate. Half a millimetre away it is a
   different picture.
 - **Routes** draws the traced paths into the target instead.
-- Over either, **every injection site is a translucent grey dot**. The colours
-  keep one value per structure by design, so a region that is bright because
-  twelve needles went into it and one that is bright on the strength of a
-  single experiment are the same colour; the dots are the only thing on screen
-  that can tell them apart. They are drawn with the depth test off — a layer
-  meant to explain the colours should not be hidden behind them — and at low
-  opacity, so overlapping needles accumulate and the density of the grey *is*
-  the sample count.
+The two halves of that brain carry different things, which is what makes the
+view worth having:
 
-The dots come straight from each experiment's reported injection centre, so
-they are also the check on everything above: they are on the left because the
-sources really were injected on the left, and the painted regions have to agree
-with them. That caught a real bug here. `HeatmapOptions` still carried an
-`ipsiOnLeft` that defaulted the other way, left behind when the per-target
-orientation was removed, so the 3D cloud painted its ipsilateral half on the
-right while every section beside it painted theirs on the left — and the dots
-sat on the half the colours called contralateral. One convention is only one
-convention if nothing can override it locally; the option is gone and a test
-asserts it stays gone.
+- **Left** — the answer. The back-trace's own sources are all injected on the
+  left under the default side filter, so that half is free for them.
+- **Right** — the sampling. All 2,915 injection sites in the corpus, every one
+  mirrored onto that side, as translucent grey dots at low opacity so overlap
+  reads as density rather than saturating.
+
+The colours alone have a blind spot they cannot show: a dark region is dark
+either because nothing projects from it or because nobody ever put a needle
+there, and those look identical. **A dark region with no dots in it was never
+sampled, which is not a finding about the brain.** The same layer separates a
+region that is bright because a dozen needles went into it from one bright on
+the strength of a single experiment — the colours keep one value per structure
+by design and cannot tell them apart.
+
+`scripts/fetch-injection-sites.mjs` (`npm run injections:fetch`) builds the
+list in one query and about four seconds:
+`service::mouse_connectivity_injection_structure` matches hierarchically, so
+asking it for the root returns every experiment it knows of, each carrying the
+`injection-coordinates` triple that `model::SectionDataSet` does not expose.
+Filtered to the same seven products, that is 2,915 sites in a 45 KB asset — and
+the 140 corpus experiments the service omits are exactly the 140 with no grid
+data at all, so nothing usable is lost.
+
+The dots are also the check on everything above, because they come straight
+from each experiment's reported centroid and no convention can get them wrong.
+That caught a real bug. `HeatmapOptions` still carried an `ipsiOnLeft` that
+defaulted the other way, left behind when the per-target orientation was
+removed, so the 3D cloud painted its ipsilateral half on the right while every
+section beside it painted theirs on the left — and the dots, then still the
+back-trace's own, sat on the half the colours called contralateral. One
+convention is only one convention if nothing can override it locally; the
+option is gone and a test asserts it stays gone.
 
 The convergence matrix is built at build time by
 `scripts/fetch-connectivity-matrix.mjs` (`npm run connectivity:fetch`) and

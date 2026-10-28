@@ -216,11 +216,12 @@ function InjectionDots({
         // and a hot region and a needle should not be the same colour.
         color="#aeb6c4"
         transparent
-        // Low enough that overlap is the signal: nineteen needles into one
-        // nucleus accumulate into a visibly brighter patch, one needle stays
-        // faint. At 0.5 and three times this size the cluster merged into a
-        // solid block and the count was lost.
-        opacity={0.35}
+        // Low enough that overlap is the signal rather than saturation: a
+        // heavily sampled nucleus accumulates into a visibly brighter patch
+        // and a single needle stays faint. Tuned for the whole corpus — at
+        // 0.35 the 2,915 dots blew out to a solid white half and the one
+        // thing the layer is for, the gaps, went with it.
+        opacity={0.2}
         depthWrite={false}
         depthTest={false}
       />
@@ -355,7 +356,7 @@ function HeatScene({
       )}
 
       {/* Over both modes: where the needles went is context for either. */}
-      <InjectionDots sites={injectionSites} sizeMm={backtrace.heatPointSizeMm * 1.5} />
+      <InjectionDots sites={injectionSites} sizeMm={backtrace.heatPointSizeMm * 1.2} />
 
       {target && <TargetPin coord={target} />}
 

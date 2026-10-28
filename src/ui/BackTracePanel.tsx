@@ -615,10 +615,10 @@ export function BackTracePanel({
                   <p className="hint" style={{ marginTop: 2 }}>
                     The second brain shows <i>this target&rsquo;s</i> answer and moves
                     with it — unlike the section views, which paint the connectome-wide
-                    hub map and do not. Every injection site is drawn over it in
-                    translucent grey, so a region that is bright because twelve needles
-                    went into it can be told apart from one that is bright because of a
-                    single strong experiment.
+                    hub map and do not. Its <b>left</b> half carries that answer; its
+                    <b>right</b> half carries all 2,915 injection sites in the corpus,
+                    mirrored onto one side. A region with no colour and no dots in it
+                    was never injected, which is not the same as not projecting here.
                   </p>
                 </>
               )}

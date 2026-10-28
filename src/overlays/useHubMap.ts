@@ -16,6 +16,13 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 
 import type { LoadedAtlas } from '../atlas/load.ts'
 import type { VolumeSpace } from '../atlas/space.ts'
+import type { CoordinateProfile } from '../atlas/profile.ts'
+import type { Stereotaxic } from '../atlas/coords.ts'
+import {
+  injectionSitesToStereotaxic,
+  loadInjectionSites,
+  type InjectionSites,
+} from './injections.ts'
 import type { BacktraceState } from '../state/store.ts'
 import {
   convergenceStrengths,
@@ -154,6 +161,68 @@ export function useBacktraceHeatmap(
     if (sided.ipsi.size === 0 && sided.contra.size === 0) return null
     return buildRetrogradeHeatmap(atlas.volume, atlas.index, sided)
   }, [atlas, sources])
+}
+
+export interface InjectionSitesState {
+  readonly status: 'idle' | 'loading' | 'ready' | 'error'
+  readonly sites: readonly Stereotaxic[]
+  readonly message: string
+}
+
+/**
+ * The corpus's injection sites, as stereotaxic coordinates on one side.
+ *
+ * Loaded only while the second brain is open, and converted through the active
+ * profile so the dots move if the profile does.
+ */
+export function useInjectionSites(
+  enabled: boolean,
+  profile: CoordinateProfile,
+): InjectionSitesState {
+  const [loaded, setLoaded] = useState<InjectionSites | null>(null)
+  const [state, setState] = useState<Omit<InjectionSitesState, 'sites'>>({
+    status: 'idle',
+    message: '',
+  })
+  const started = useRef(false)
+
+  useEffect(() => {
+    if (!enabled || started.current) return
+    started.current = true
+
+    let live = true
+    setState({ status: 'loading', message: 'Loading injection sites…' })
+
+    loadInjectionSites()
+      .then((sites) => {
+        if (!live) return
+        setLoaded(sites)
+        setState({ status: 'ready', message: '' })
+      })
+      .catch((error: unknown) => {
+        started.current = false
+        if (!live) return
+        setState({
+          status: 'error',
+          message: error instanceof Error ? error.message : String(error),
+        })
+      })
+
+    // Released for the same StrictMode reason the other two loaders release
+    // theirs: a run whose result this cleanup discards must not leave the ref
+    // claimed against the remount.
+    return () => {
+      live = false
+      started.current = false
+    }
+  }, [enabled])
+
+  const sites = useMemo(
+    () => (loaded ? injectionSitesToStereotaxic(loaded, profile) : []),
+    [loaded, profile],
+  )
+
+  return { ...state, sites }
 }
 
 export interface SectionPaint {
@@ -377,8 +446,8 @@ export function describeHubMap(
   return (
     `Sources painted by projection density at the target · ` +
     `${heatmap.minStrength.toFixed(3)} → ${heatmap.maxStrength.toFixed(3)} across ` +
-    `${heatmap.paintedStructureIds.length} regions · ` +
-    `${injectionCount} injection sites in grey · moves with the target`
+    `${heatmap.paintedStructureIds.length} regions, left · ` +
+    `all ${injectionCount} injection sites in grey, right · moves with the target`
   )
 }
 
