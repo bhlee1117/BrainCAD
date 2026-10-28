@@ -277,7 +277,7 @@ export function BackTracePanel({
   const hubs =
     convergence.matrix &&
     backtrace.showHeatmap &&
-    (backtrace.heatSurface === 'sections' || backtrace.heatMode === 'regions')
+    backtrace.heatSurface === 'sections'
       ? rankConvergence(
           convergence.matrix,
           backtrace.heatMetric,
@@ -543,7 +543,7 @@ export function BackTracePanel({
               checked={backtrace.showHeatmap}
               onChange={(event) => setBacktrace({ showHeatmap: event.target.checked })}
             />
-            Show the hub map
+            Show the projection map
           </label>
 
           {backtrace.showHeatmap && (
@@ -607,15 +607,23 @@ export function BackTracePanel({
                         })
                       }
                     />
-                    Draw traced routes instead of the hub map
+                    Draw traced routes instead of painted regions
                   </label>
                   <p className="hint" style={{ marginTop: 0 }}>
                     {HEATMAP_MODE_LABEL[backtrace.heatMode]}
                   </p>
+                  <p className="hint" style={{ marginTop: 2 }}>
+                    The second brain shows <i>this target&rsquo;s</i> answer and moves
+                    with it — unlike the section views, which paint the connectome-wide
+                    hub map and do not. Every injection site is drawn over it in
+                    translucent grey, so a region that is bright because twelve needles
+                    went into it can be told apart from one that is bright because of a
+                    single strong experiment.
+                  </p>
                 </>
               )}
 
-              {backtrace.heatSurface === 'sections' || backtrace.heatMode === 'regions' ? (
+              {backtrace.heatSurface === 'sections' ? (
                 <>
                   <div className="field">
                     <label htmlFor="heat-metric">Measure</label>
@@ -655,12 +663,13 @@ export function BackTracePanel({
                 </>
               ) : (
                 <p className="hint" style={{ marginTop: 0 }}>
-                  Routes are coloured by their own experiment&rsquo;s strength at the
-                  target, so the hub-map measure does not apply here.
+                  Both second-brain modes colour by each experiment&rsquo;s own
+                  projection density at the target, so the hub map&rsquo;s count/mean
+                  measure and its threshold do not apply here.
                 </p>
               )}
 
-              {backtrace.heatSurface === 'brain' && backtrace.heatMode === 'routes' && (
+              {backtrace.heatSurface === 'brain' && (
                 <label className="check">
                   <input
                     type="checkbox"
@@ -669,7 +678,9 @@ export function BackTracePanel({
                       setBacktrace({ heatAllSources: event.target.checked })
                     }
                   />
-                  Draw every route, not just the listed top
+                  {backtrace.heatMode === 'routes'
+                    ? 'Draw every route, not just the listed top'
+                    : 'Paint every source, not just the listed top'}
                 </label>
               )}
 
@@ -752,8 +763,7 @@ export function BackTracePanel({
                 </>
               )}
 
-              {(backtrace.heatSurface === 'sections' ||
-                backtrace.heatMode === 'regions') && (
+              {backtrace.heatSurface === 'sections' && (
                 <div className="provenance">
                   <ul style={{ margin: 0, paddingLeft: 16 }}>
                     {(backtrace.heatSurface === 'sections' &&

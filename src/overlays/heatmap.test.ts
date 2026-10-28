@@ -17,6 +17,7 @@ import { makeVolumeSpace } from '../atlas/space.ts'
 import {
   DEFAULT_HEATMAP_OPTIONS,
   HEATMAP_MODE_LABEL,
+  backtraceStrengths,
   buildRetrogradeHeatmap,
   buildRouteHeat,
   heatColor,
@@ -313,5 +314,64 @@ describe('buildRouteHeat', () => {
     for (const mode of ['regions', 'routes'] as HeatmapMode[]) {
       expect(HEATMAP_MODE_LABEL[mode]).toBeTruthy()
     }
+  })
+})
+
+describe('the one orientation convention', () => {
+  it('leaves the cloud no way to disagree with the sections', () => {
+    // The regression this guards: HeatmapOptions carried an `ipsiOnLeft` that
+    // defaulted the other way, so the 3D cloud painted its ipsilateral half on
+    // the right while every section beside it painted theirs on the left — and
+    // the grey injection dots, which come straight from the coordinates, sat
+    // on the half the colours said was contralateral.
+    expect('ipsiOnLeft' in DEFAULT_HEATMAP_OPTIONS).toBe(false)
+  })
+})
+
+describe('backtraceStrengths', () => {
+  const source = (
+    structureId: number,
+    densityAtTarget: number,
+    ml: number | null,
+  ) => ({
+    structureId,
+    densityAtTarget,
+    injectionCentre: ml === null ? null : { ml },
+  })
+
+  it('keeps each structure its strongest experiment', () => {
+    // One value per structure, for the reason the hub map keeps one: nine
+    // injections into a region would otherwise read as nine times the source.
+    const { ipsi } = backtraceStrengths([
+      source(463, 0.2, -1.5),
+      source(463, 0.9, -2.0),
+      source(463, 0.4, -1.0),
+    ])
+    expect(ipsi.get(463)).toBeCloseTo(0.9)
+  })
+
+  it('paints a source in the hemisphere its needle went into', () => {
+    // Not the hemisphere it is ipsilateral *to* — the colour belongs where the
+    // tracer was, which is what makes the grey injection dots line up with it.
+    const { ipsi, contra } = backtraceStrengths([
+      source(463, 0.5, -1.5),
+      source(549, 0.6, 2.0),
+    ])
+    expect(ipsi.get(463)).toBeCloseTo(0.5)
+    expect(ipsi.has(549)).toBe(false)
+    expect(contra.get(549)).toBeCloseTo(0.6)
+  })
+
+  it('skips an experiment with no reported injection centre', () => {
+    // There is nowhere to paint it, and guessing a hemisphere would put a real
+    // number on the wrong half of the brain.
+    const { ipsi, contra } = backtraceStrengths([source(463, 0.5, null)])
+    expect(ipsi.size).toBe(0)
+    expect(contra.size).toBe(0)
+  })
+
+  it('is empty for no sources, so the view can say "trace first"', () => {
+    const { ipsi, contra } = backtraceStrengths([])
+    expect(ipsi.size + contra.size).toBe(0)
   })
 })

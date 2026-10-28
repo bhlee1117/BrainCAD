@@ -157,6 +157,78 @@ function HeatPoints({
 }
 
 /**
+ * Every injection site, as translucent grey dots over the painted regions.
+ *
+ * The colours answer "how hard does this region drive the target"; these
+ * answer "and where did the needles actually go". The pair is worth seeing
+ * together because a bright region backed by one injection and a bright region
+ * backed by twelve are different claims, and the painted cloud alone cannot
+ * tell them apart — it keeps one value per structure by design, so a region
+ * sampled once and a region sampled a dozen times are the same colour.
+ *
+ * Grey and unlit on purpose: anything on the heat ramp would read as another
+ * strength, and this layer is a count of needles rather than a measurement.
+ *
+ * Drawn with the depth test off, which is unusual enough to say why. The
+ * colours and the dots describe the same places — a strong source is strong
+ * *because* a needle went there — so with depth on, the layer that is supposed
+ * to explain the colours is hidden behind exactly the colours it explains.
+ * Off, every injection is visible and the dots read as an overlay rather than
+ * as objects in the scene, which is what they are. They are drawn before the
+ * target pin so the one thing that is a position rather than a reference stays
+ * on top.
+ *
+ * These are already stereotaxic millimetres, which is world space, so they
+ * need no atlas matrix — the coordinates came back from Allen as coordinates.
+ */
+function InjectionDots({
+  sites,
+  sizeMm,
+}: {
+  sites: readonly Stereotaxic[]
+  sizeMm: number
+}) {
+  const geometry = useMemo(() => {
+    if (sites.length === 0) return null
+    const points = new Float32Array(sites.length * 3)
+    for (let i = 0; i < sites.length; i++) {
+      const world = stereotaxicToWorld(sites[i]!)
+      points[i * 3] = world.x
+      points[i * 3 + 1] = world.y
+      points[i * 3 + 2] = world.z
+    }
+    const buffer = new BufferGeometry()
+    buffer.setAttribute('position', new BufferAttribute(points, 3))
+    buffer.computeBoundingSphere()
+    return buffer
+  }, [sites])
+
+  useEffect(() => () => geometry?.dispose(), [geometry])
+
+  if (!geometry) return null
+
+  return (
+    <points geometry={geometry} renderOrder={3}>
+      <pointsMaterial
+        size={sizeMm}
+        sizeAttenuation
+        // Cool neutral rather than white: the heat ramp tops out near-white,
+        // and a hot region and a needle should not be the same colour.
+        color="#aeb6c4"
+        transparent
+        // Low enough that overlap is the signal: nineteen needles into one
+        // nucleus accumulate into a visibly brighter patch, one needle stays
+        // faint. At 0.5 and three times this size the cluster merged into a
+        // solid block and the count was lost.
+        opacity={0.35}
+        depthWrite={false}
+        depthTest={false}
+      />
+    </points>
+  )
+}
+
+/**
  * The target, drawn the same way in both views.
  *
  * Deliberately not the main viewport's full marker with its whiskers and
@@ -245,12 +317,14 @@ function HeatScene({
   profile,
   heatmap,
   routeSources,
+  injectionSites,
   target,
 }: {
   atlas: LoadedAtlas
   profile: CoordinateProfile
   heatmap: RetrogradeHeatmap | null
   routeSources: readonly RetrogradeSource[]
+  injectionSites: readonly Stereotaxic[]
   target: Stereotaxic | null
 }) {
   const matrix = useMemo(() => atlasToWorldMatrix(profile), [profile])
@@ -280,6 +354,9 @@ function HeatScene({
         <HeatRoutes sources={routeSources} opacity={backtrace.heatOpacity} />
       )}
 
+      {/* Over both modes: where the needles went is context for either. */}
+      <InjectionDots sites={injectionSites} sizeMm={backtrace.heatPointSizeMm * 1.5} />
+
       {target && <TargetPin coord={target} />}
 
       <CameraFollower />
@@ -292,6 +369,7 @@ export function HeatmapViewport({
   profile,
   heatmap,
   routeSources,
+  injectionSites,
   target,
   caption,
 }: {
@@ -299,6 +377,8 @@ export function HeatmapViewport({
   profile: CoordinateProfile
   heatmap: RetrogradeHeatmap | null
   routeSources: readonly RetrogradeSource[]
+  /** Where every experiment in the current answer was injected. */
+  injectionSites: readonly Stereotaxic[]
   target: Stereotaxic | null
   caption: string
 }) {
@@ -315,6 +395,7 @@ export function HeatmapViewport({
           profile={profile}
           heatmap={heatmap}
           routeSources={routeSources}
+          injectionSites={injectionSites}
           target={target}
         />
       </Canvas>

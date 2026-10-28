@@ -346,14 +346,34 @@ same warm orange as the ramp's bright end, so the target vanished exactly where
 the map was most interesting. It now carries a dark halo, which works on both
 colourings.
 
-On the 3D surface a checkbox switches what it draws, and the two answer
-different questions:
+**The two surfaces answer different questions, and that is the point of having
+both.** The sections carry the connectome-wide hub map, which does not move
+when the target moves. The second brain carries *this* target's own answer,
+which does:
 
-- **Regions** paints the **convergence matrix** — across the whole connectome,
-  which regions is everything aimed at. This does **not** move when the target
-  moves. That is what makes it a hub map rather than a second drawing of the
-  back-trace, and the target on it is a reference mark, nothing more.
-- **Routes** draws the traced paths into the current target, which do move.
+- **Regions** paints every source by its projection density at the target —
+  how hard each region drives this coordinate. Half a millimetre away it is a
+  different picture.
+- **Routes** draws the traced paths into the target instead.
+- Over either, **every injection site is a translucent grey dot**. The colours
+  keep one value per structure by design, so a region that is bright because
+  twelve needles went into it and one that is bright on the strength of a
+  single experiment are the same colour; the dots are the only thing on screen
+  that can tell them apart. They are drawn with the depth test off — a layer
+  meant to explain the colours should not be hidden behind them — and at low
+  opacity, so overlapping needles accumulate and the density of the grey *is*
+  the sample count.
+
+The dots come straight from each experiment's reported injection centre, so
+they are also the check on everything above: they are on the left because the
+sources really were injected on the left, and the painted regions have to agree
+with them. That caught a real bug here. `HeatmapOptions` still carried an
+`ipsiOnLeft` that defaulted the other way, left behind when the per-target
+orientation was removed, so the 3D cloud painted its ipsilateral half on the
+right while every section beside it painted theirs on the left — and the dots
+sat on the half the colours called contralateral. One convention is only one
+convention if nothing can override it locally; the option is gone and a test
+asserts it stays gone.
 
 The convergence matrix is built at build time by
 `scripts/fetch-connectivity-matrix.mjs` (`npm run connectivity:fetch`) and

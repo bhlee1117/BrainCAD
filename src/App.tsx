@@ -6,7 +6,7 @@
  * visible without pretending the features exist.
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { loadAtlas } from './atlas/load.ts'
 import { assertProfileMatchesSpace } from './atlas/profile.ts'
@@ -17,6 +17,7 @@ import {
   useProfile,
   useSelectedObject,
   useSelectedTarget,
+  useSourceSideFilter,
 } from './state/store.ts'
 import { useTargetNudge } from './state/useTargetNudge.ts'
 import { useUndoShortcuts } from './state/useUndoShortcuts.ts'
@@ -33,13 +34,15 @@ import { HeatmapViewport } from './scene/HeatmapViewport.tsx'
 import {
   describeHubMap,
   useConvergenceMatrix,
+  useBacktraceHeatmap,
   useHeatmapSources,
-  useHubHeatmap,
   useSectionHubPaint,
   useVoxelConvergence,
   useVoxelPaint,
 } from './overlays/useHubMap.ts'
 import { formatConvergence } from './overlays/convergence.ts'
+import { visibleSources } from './overlays/retrograde.ts'
+import type { Stereotaxic } from './atlas/coords.ts'
 import { decode } from './overlays/voxelConvergence.ts'
 import { BackTracePanel } from './ui/BackTracePanel.tsx'
 import { AtlasPanel, ProfilePanel, ScenePanel } from './ui/SidePanels.tsx'
@@ -115,6 +118,7 @@ export function App() {
   const atlas = useAtlas()
   const profile = useProfile()
   const target = useSelectedTarget()
+  const sourceSide = useSourceSideFilter()
   const selectedObject = useSelectedObject()
   useUndoShortcuts()
   useTargetNudge()
@@ -128,21 +132,41 @@ export function App() {
   // compact — and so the cost is paid once, not once per consumer.
   const hubMapOn = tab === 'BACKTRACE' && backtrace.showHeatmap
   const showHeatmap = hubMapOn && backtrace.heatSurface === 'brain' && !compact
-  const convergence = useConvergenceMatrix(hubMapOn)
-
-  const heatmap = useHubHeatmap(
-    atlas,
-    showHeatmap ? convergence.matrix : null,
-    backtrace.heatMetric,
-    backtrace.connectionThreshold,
-  )
-  const routeSources = useHeatmapSources(backtrace, target?.coord ?? null)
 
   // Two grains, one surface. The structure paint reads the bundled matrix; the
   // voxel paint reads the raw 100 µm grids, which are only downloaded once
   // that grain is actually chosen.
   const sectionsOn = hubMapOn && backtrace.heatSurface === 'sections'
   const voxelOn = sectionsOn && backtrace.heatGrain === 'voxels'
+
+  // Only the sections read the connectome matrix now, so it is not fetched for
+  // a session that opens the tab straight onto the second brain.
+  const convergence = useConvergenceMatrix(sectionsOn && !voxelOn)
+
+  const routeSources = useHeatmapSources(backtrace, target?.coord ?? null)
+
+  // The second brain paints the back-trace, not the connectome: how hard each
+  // source drives *this* target. The hub map is the sections' job, and the two
+  // answer different questions — one moves with the target and one does not.
+  const heatmap = useBacktraceHeatmap(showHeatmap ? atlas : null, routeSources)
+
+  // Every injection in the current answer, drawn grey over the colours. Not
+  // cut to the top N: the point of the layer is the sampling behind the
+  // colours, and the structures that fell below the cut were still injected.
+  const injectionSites = useMemo(
+    () =>
+      showHeatmap
+        ? visibleSources(backtrace.sources, {
+            includeOverlapping: true,
+            topStructures: Number.POSITIVE_INFINITY,
+            focusAbbrev: null,
+            side: sourceSide,
+          })
+            .map((source) => source.injectionCentre)
+            .filter((centre): centre is Stereotaxic => centre !== null)
+        : [],
+    [showHeatmap, backtrace.sources, sourceSide],
+  )
 
   const voxels = useVoxelConvergence(voxelOn)
   const voxelPaint = useVoxelPaint(
@@ -170,9 +194,9 @@ export function App() {
     : structurePaint
   const heatmapCaption = describeHubMap(
     backtrace,
-    convergence,
     heatmap,
     routeSources.length,
+    injectionSites.length,
   )
 
   // Widening the window retires the compact-only tabs. Without this, rotating a
@@ -290,6 +314,7 @@ export function App() {
                 profile={profile}
                 heatmap={heatmap}
                 routeSources={routeSources}
+                injectionSites={injectionSites}
                 target={target?.coord ?? null}
                 caption={heatmapCaption}
               />

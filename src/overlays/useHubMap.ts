@@ -29,6 +29,7 @@ import {
   type Side,
 } from './convergence.ts'
 import {
+  backtraceStrengths,
   buildRetrogradeHeatmap,
   heatColor,
   strengthForStructure,
@@ -133,6 +134,26 @@ export function useHubHeatmap(
     if (sided.ipsi.size === 0 && sided.contra.size === 0) return null
     return buildRetrogradeHeatmap(atlas.volume, atlas.index, sided)
   }, [atlas, matrix, metric, threshold])
+}
+
+/**
+ * The second brain: every source painted by how hard it drives the target.
+ *
+ * The counterpart to `useHubHeatmap`, and the opposite kind of answer. The hub
+ * map is a property of the connectome and does not move; this is a property of
+ * the coordinate under the crosshair and moves with it. Both are drawn by the
+ * same cloud builder, so the two are directly comparable by eye.
+ */
+export function useBacktraceHeatmap(
+  atlas: LoadedAtlas | null,
+  sources: readonly RetrogradeSource[],
+): RetrogradeHeatmap | null {
+  return useMemo(() => {
+    if (!atlas || sources.length === 0) return null
+    const sided = backtraceStrengths(sources)
+    if (sided.ipsi.size === 0 && sided.contra.size === 0) return null
+    return buildRetrogradeHeatmap(atlas.volume, atlas.index, sided)
+  }, [atlas, sources])
 }
 
 export interface SectionPaint {
@@ -335,12 +356,13 @@ export function useHeatmapSources(
  */
 export function describeHubMap(
   backtrace: BacktraceState,
-  matrixState: HubMatrixState,
   heatmap: RetrogradeHeatmap | null,
   routeCount: number,
+  injectionCount: number,
 ): string {
+  if (backtrace.status === 'loading') return 'Tracing…'
+
   if (backtrace.heatMode === 'routes') {
-    if (backtrace.status === 'loading') return 'Tracing…'
     if (routeCount === 0) return 'No traced routes yet — trace a target first.'
     const scope = backtrace.heatAllSources
       ? 'all sources'
@@ -348,16 +370,15 @@ export function describeHubMap(
     return `Traced routes into the target · coloured by strength · ${scope}`
   }
 
-  if (matrixState.status === 'loading') return matrixState.message
-  if (matrixState.status === 'error') return matrixState.message
-  if (!heatmap || heatmap.pointCount === 0) return 'No connectome matrix loaded.'
+  if (!heatmap || heatmap.pointCount === 0) {
+    return 'No traced sources yet — trace a target first.'
+  }
 
-  const metric = backtrace.heatMetric
   return (
-    `Convergence across the whole connectome · ${metric} · ` +
-    `${formatConvergence(metric, heatmap.minStrength)} → ` +
-    `${formatConvergence(metric, heatmap.maxStrength)} across ` +
-    `${heatmap.paintedStructureIds.length} regions · independent of the target`
+    `Sources painted by projection density at the target · ` +
+    `${heatmap.minStrength.toFixed(3)} → ${heatmap.maxStrength.toFixed(3)} across ` +
+    `${heatmap.paintedStructureIds.length} regions · ` +
+    `${injectionCount} injection sites in grey · moves with the target`
   )
 }
 

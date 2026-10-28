@@ -31,7 +31,12 @@
 import type { AnnotationVolume } from '../atlas/annotation.ts'
 import { UNLABELLED } from '../atlas/annotation.ts'
 import type { Stereotaxic } from '../atlas/coords.ts'
-import { voxelSide, type Side, type SidedStrengths } from './convergence.ts'
+import {
+  IPSI_ON_LEFT,
+  voxelSide,
+  type Side,
+  type SidedStrengths,
+} from './convergence.ts'
 import type { StructureIndex } from '../atlas/ontology.ts'
 
 /** Strength of each source structure, keyed by Allen structure id. */
@@ -66,19 +71,10 @@ export interface HeatmapOptions {
   stride?: number
   /** Hard cap on points, raising the stride until the cloud fits under it. */
   maxPoints?: number
-  /**
-   * Draw the ipsilateral half on the animal's left.
-   *
-   * The map is symmetrised by construction, so this only chooses which way
-   * round to show it; `ipsiOnLeftFor` sets it from the target so the painted
-   * brain and the routes crossing it agree about which half is which.
-   */
-  ipsiOnLeft?: boolean
 }
 
 export const DEFAULT_HEATMAP_OPTIONS: Required<HeatmapOptions> = {
   stride: 2,
-  ipsiOnLeft: false,
   // A quarter of a million points is one draw call and renders comfortably;
   // beyond it the gain is invisible because the points overlap anyway.
   maxPoints: 250_000,
@@ -121,7 +117,7 @@ export function buildRetrogradeHeatmap(
   sided: SidedStrengths,
   options: HeatmapOptions = {},
 ): RetrogradeHeatmap {
-  const { stride: requestedStride, maxPoints, ipsiOnLeft } = {
+  const { stride: requestedStride, maxPoints } = {
     ...DEFAULT_HEATMAP_OPTIONS,
     ...options,
   }
@@ -163,7 +159,11 @@ export function buildRetrogradeHeatmap(
           const label = volume.labelAtVoxel(i0, i1, i2)
           if (label === UNLABELLED) continue
 
-          const side = voxelSide(space, { i0, i1, i2 }, ipsiOnLeft)
+          // No orientation argument: there is one convention now, and an
+          // option here defaulting the other way is exactly how this cloud
+          // came to paint its ipsilateral half on the right while the sections
+          // beside it painted theirs on the left.
+          const side = voxelSide(space, { i0, i1, i2 })
           const cache = resolved[side]
           let strength = cache.get(label)
           if (strength === undefined) {
@@ -299,8 +299,47 @@ export function heatmapColors(heatmap: RetrogradeHeatmap): Float32Array {
 export type HeatmapMode = 'regions' | 'routes'
 
 export const HEATMAP_MODE_LABEL: Record<HeatmapMode, string> = {
-  regions: 'Regions — paint where the sources are',
+  regions: 'Regions — paint the sources by their strength at the target',
   routes: 'Routes — draw the traced paths in',
+}
+
+/**
+ * Source strength at the target, per structure and hemisphere.
+ *
+ * What the second brain paints. Unlike the convergence matrix beside it this
+ * *does* move with the target — that is the point of it: the question is "how
+ * hard does each region drive this coordinate", and the answer is a different
+ * picture half a millimetre away.
+ *
+ * One value per structure, its strongest experiment, for the same reason the
+ * hub map keeps one: a region Allen injected nine times would otherwise read
+ * as nine times the source.
+ *
+ * Painted in the hemisphere the needle actually went into rather than in the
+ * one the source is ipsilateral *to*, so the colour sits where the tracer was.
+ * With the side filter on its default every injection is in the left
+ * hemisphere, so the whole painted half is the left one and the gray dots over
+ * it line up.
+ */
+export function backtraceStrengths(
+  sources: readonly {
+    structureId: number
+    densityAtTarget: number
+    injectionCentre: { ml: number } | null
+  }[],
+): SidedStrengths {
+  const ipsi = new Map<number, number>()
+  const contra = new Map<number, number>()
+
+  for (const source of sources) {
+    const ml = source.injectionCentre?.ml
+    if (typeof ml !== 'number') continue
+    const out = ml < 0 === IPSI_ON_LEFT ? ipsi : contra
+    const current = out.get(source.structureId) ?? 0
+    if (source.densityAtTarget > current) out.set(source.structureId, source.densityAtTarget)
+  }
+
+  return { ipsi, contra }
 }
 
 export interface RouteHeat {
