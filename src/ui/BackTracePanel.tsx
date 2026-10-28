@@ -275,9 +275,7 @@ export function BackTracePanel({
   // Ranked from the same matrix the colours come from, so the list and the
   // map can never disagree about which region is hottest.
   const hubs =
-    convergence.matrix &&
-    backtrace.showHeatmap &&
-    backtrace.heatSurface === 'sections'
+    convergence.matrix && backtrace.showHeatmap
       ? rankConvergence(
           convergence.matrix,
           backtrace.heatMetric,
@@ -459,8 +457,9 @@ export function BackTracePanel({
               Overriding the target&rsquo;s own side. Read off each experiment&rsquo;s
               injection against the target&rsquo;s, so it is a fact about that pair
               rather than a guess from where Allen usually injects — which is how a
-              right-hemisphere target can be asked for its contralateral input, drawn in
-              the left hemisphere where those needles actually went.
+              right-hemisphere target can be asked for its contralateral input. The
+              second brain still draws those sources in the injected half, because it
+              reads every experiment as a right-hemisphere injection.
               {coord.ml === 0 &&
                 ' The target is on the midline, where neither side is defined, so the filter is empty.'}
             </>
@@ -551,24 +550,27 @@ export function BackTracePanel({
           </label>
 
           {backtrace.showHeatmap && (
-            <div className="field">
-              <label htmlFor="heat-surface">Draw on</label>
-              <select
-                id="heat-surface"
-                value={backtrace.heatSurface}
-                onChange={(event) =>
-                  setBacktrace({
-                    heatSurface: event.target.value as 'sections' | 'brain',
-                  })
-                }
-              >
-                <option value="sections">The section views below</option>
-                <option value="brain">A second brain, beside this one</option>
-              </select>
-            </div>
+            <>
+              <label className="check">
+                <input
+                  type="checkbox"
+                  checked={backtrace.showSecondBrain}
+                  onChange={(event) =>
+                    setBacktrace({ showSecondBrain: event.target.checked })
+                  }
+                />
+                Also open a second brain beside this one
+              </label>
+              <p className="hint" style={{ marginTop: 0 }}>
+                Added to the section views below, not instead of them. The sections keep
+                their colouring either way: what a hub sits next to is the thing a hub
+                map is read for, and in 3D that answer is behind whatever is in front
+                of it.
+              </p>
+            </>
           )}
 
-          {backtrace.showHeatmap && backtrace.heatSurface === 'sections' && (
+          {backtrace.showHeatmap && (
             <>
               <div className="field">
                 <label htmlFor="heat-grain">Grain</label>
@@ -599,7 +601,7 @@ export function BackTracePanel({
 
           {backtrace.showHeatmap && (
             <>
-              {backtrace.heatSurface === 'brain' && (
+              {backtrace.showSecondBrain && (
                 <>
                   <label className="check">
                     <input
@@ -629,53 +631,51 @@ export function BackTracePanel({
                 </>
               )}
 
-              {backtrace.heatSurface === 'sections' ? (
-                <>
-                  <div className="field">
-                    <label htmlFor="heat-metric">Measure</label>
-                    <select
-                      id="heat-metric"
-                      value={backtrace.heatMetric}
-                      onChange={(event) =>
-                        setBacktrace({
-                          heatMetric: event.target.value as ConvergenceMetric,
-                        })
-                      }
-                    >
-                      {(Object.keys(CONVERGENCE_METRIC_LABEL) as ConvergenceMetric[]).map(
-                        (metric) => (
-                          <option key={metric} value={metric}>
-                            {CONVERGENCE_METRIC_LABEL[metric]}
-                          </option>
-                        ),
-                      )}
-                    </select>
-                  </div>
+              <div className="field">
+                <label htmlFor="heat-metric">Measure</label>
+                <select
+                  id="heat-metric"
+                  value={backtrace.heatMetric}
+                  onChange={(event) =>
+                    setBacktrace({
+                      heatMetric: event.target.value as ConvergenceMetric,
+                    })
+                  }
+                >
+                  {(Object.keys(CONVERGENCE_METRIC_LABEL) as ConvergenceMetric[]).map(
+                    (metric) => (
+                      <option key={metric} value={metric}>
+                        {CONVERGENCE_METRIC_LABEL[metric]}
+                      </option>
+                    ),
+                  )}
+                </select>
+              </div>
 
-                  <div className="field" hidden={backtrace.heatGrain === 'voxels'}>
-                    <label htmlFor="heat-threshold">Counts above</label>
-                    <NumberField
-                      id="heat-threshold"
-                      step={0.005}
-                      value={backtrace.connectionThreshold}
-                      onChange={(connectionThreshold) =>
-                        setBacktrace({
-                          connectionThreshold: Math.max(0, connectionThreshold),
-                        })
-                      }
-                    />
-                    <span className="unit">density</span>
-                  </div>
-                </>
-              ) : (
+              <div className="field" hidden={backtrace.heatGrain === 'voxels'}>
+                <label htmlFor="heat-threshold">Counts above</label>
+                <NumberField
+                  id="heat-threshold"
+                  step={0.005}
+                  value={backtrace.connectionThreshold}
+                  onChange={(connectionThreshold) =>
+                    setBacktrace({
+                      connectionThreshold: Math.max(0, connectionThreshold),
+                    })
+                  }
+                />
+                <span className="unit">density</span>
+              </div>
+
+              {backtrace.showSecondBrain && (
                 <p className="hint" style={{ marginTop: 0 }}>
-                  Both second-brain modes colour by each experiment&rsquo;s own
-                  projection density at the target, so the hub map&rsquo;s count/mean
-                  measure and its threshold do not apply here.
+                  Those two control the sections only. The second brain colours by each
+                  experiment&rsquo;s own projection density at the target, so the
+                  count/mean measure and its threshold do not reach it.
                 </p>
               )}
 
-              {backtrace.heatSurface === 'brain' && (
+              {backtrace.showSecondBrain && (
                 <label className="check">
                   <input
                     type="checkbox"
@@ -690,7 +690,7 @@ export function BackTracePanel({
                 </label>
               )}
 
-              {backtrace.heatSurface === 'brain' && (
+              {backtrace.showSecondBrain && (
               <div className="field">
                 <label htmlFor="heat-opacity">Opacity</label>
                 <input
@@ -716,7 +716,7 @@ export function BackTracePanel({
               </div>
 
               <p className="hint">
-                {backtrace.heatSurface === 'brain'
+                {backtrace.showSecondBrain
                   ? 'The second view shares this one’s camera, so orbiting the main brain turns both. '
                   : 'The strip under the viewport follows the target, so the sections move with it even though the colours do not. '}
                 Colour is per structure, not per voxel — the finest grain Allen reports is
@@ -769,19 +769,16 @@ export function BackTracePanel({
                 </>
               )}
 
-              {backtrace.heatSurface === 'sections' && (
-                <div className="provenance">
-                  <ul style={{ margin: 0, paddingLeft: 16 }}>
-                    {(backtrace.heatSurface === 'sections' &&
-                    backtrace.heatGrain === 'voxels'
-                      ? VOXEL_CAVEATS
-                      : CONVERGENCE_CAVEATS
-                    ).map((caveat) => (
-                      <li key={caveat}>{caveat}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+              <div className="provenance">
+                <ul style={{ margin: 0, paddingLeft: 16 }}>
+                  {(backtrace.heatGrain === 'voxels'
+                    ? VOXEL_CAVEATS
+                    : CONVERGENCE_CAVEATS
+                  ).map((caveat) => (
+                    <li key={caveat}>{caveat}</li>
+                  ))}
+                </ul>
+              </div>
 
               {convergence.status === 'error' && (
                 <div className="warn-box">{convergence.message}</div>

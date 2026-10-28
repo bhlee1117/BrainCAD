@@ -344,24 +344,32 @@ describe('backtraceStrengths', () => {
     // injections into a region would otherwise read as nine times the source.
     const { ipsi } = backtraceStrengths([
       source(463, 0.2, 1.5),
-      source(463, 0.9, 2.0),
+      source(463, 0.9, -2.0),
       source(463, 0.4, 1.0),
     ])
     expect(ipsi.get(463)).toBeCloseTo(0.9)
   })
 
-  it('paints a source in the hemisphere its needle went into', () => {
-    // Not the hemisphere it is ipsilateral *to* — the colour belongs where the
-    // tracer was, which is what makes the grey injection dots line up with it.
-    // Injections are drawn on the right, so a right-hemisphere needle is the
-    // one that lands in the `ipsi` table.
+  it('reads a left-hemisphere injection as a right-hemisphere one', () => {
+    // Mirrored, not painted where the needle was. Painting each source on its
+    // own side moved the same anatomical region between halves depending on
+    // which animals happened to reach the target, so two mirror-image targets
+    // drew mirror-image pictures of agreeing data.
     const { ipsi, contra } = backtraceStrengths([
       source(463, 0.5, 1.5),
       source(549, 0.6, -2.0),
     ])
     expect(ipsi.get(463)).toBeCloseTo(0.5)
-    expect(ipsi.has(549)).toBe(false)
-    expect(contra.get(549)).toBeCloseTo(0.6)
+    expect(ipsi.get(549)).toBeCloseTo(0.6)
+    expect(contra.size).toBe(0)
+  })
+
+  it('gives a mirrored pair of targets the same picture', () => {
+    // The property the mirroring exists for: the same experiment reaching two
+    // mirror-image targets must not land on opposite sides of the screen.
+    const left = backtraceStrengths([source(463, 0.5, -1.5)])
+    const right = backtraceStrengths([source(463, 0.5, 1.5)])
+    expect([...left.ipsi.entries()]).toEqual([...right.ipsi.entries()])
   })
 
   it('skips an experiment with no reported injection centre', () => {

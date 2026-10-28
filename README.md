@@ -331,15 +331,20 @@ one lobe. So the BACKTRACE tab can open a second viewport beside the first,
 locked to the same camera — orbit either and both turn — showing the same brain
 painted with retrograde strength, with the target marked in both.
 
-**It paints the section views by default, not a second brain.** The strip of
-coronal/sagittal/horizontal sections already under the viewport is recoloured
-by strength, because a hub map is read for *what a hub sits next to* and in 3D
-that answer is behind whatever is in front of it. The sections go through the
-existing slice renderer with a different structure colour table, so the
-crosshair, the slice indices and the readouts are the same code — the only
-change is what the lookup returns. A second brain beside the first, locked to
-the same camera, is still one dropdown away and is the better surface for the
-routes view, which a section cannot show.
+**The sections always carry it; the second brain is added, not swapped in.**
+The strip of coronal/sagittal/horizontal sections already under the viewport is
+recoloured by strength, because a hub map is read for *what a hub sits next to*
+and in 3D that answer is behind whatever is in front of it. The sections go
+through the existing slice renderer with a different structure colour table, so
+the crosshair, the slice indices and the readouts are the same code — the only
+change is what the lookup returns.
+
+A second brain beside the first, locked to the same camera, is one checkbox
+away. It used to be the other value of a `Draw on` setting, which meant opening
+it took the colouring *off* the sections — losing the surface the hub map is
+easiest to read on in order to gain a second view nobody had asked to trade for
+it. The two answer different questions and are worth having side by side, so
+now they are.
 
 Recolouring cost the crosshair its legibility: the accent it is drawn in is the
 same warm orange as the ramp's bright end, so the target vanished exactly where
@@ -355,14 +360,28 @@ which does:
   how hard each region drives this coordinate. Half a millimetre away it is a
   different picture.
 - **Routes** draws the traced paths into the target instead.
-Behind the colours, in the same hemisphere, are **all 2,915 injection sites in
-the corpus** — every one mirrored onto the right, as translucent grey dots at
-low opacity so overlap reads as density rather than saturating. The two layers
-coincide on purpose. The back-trace's own sources are right-injected too under
-the default filter, so the coloured regions are a visible *subset* of the dots:
-a bright region sitting in a dense patch of grey was found by many needles, one
-sitting almost alone rests on a single experiment, and a patch of grey with no
-colour on it was sampled and found nothing.
+
+**Every experiment is read as a right-hemisphere injection**, left-injected
+ones mirrored rather than painted where the needle was, so the whole answer
+lands in one half and nothing is drawn in the other. Painting each source on
+its own side looked more faithful and made the view unreadable: the same
+anatomical source moved between halves depending on which animals happened to
+reach the target, so two mirror-image targets drew mirror-image pictures of
+agreeing data. At CA1 ML ±1.5 the two share 18 of their 22 and 28 source
+structures in the same rank order, and VISp alone — left-injected for one,
+right-injected for the other — was enough to put one region on opposite sides
+of the screen. Which hemisphere Allen injected is a fact about the method, not
+about the mouse. What the mirroring is *not* is a claim about laterality:
+whether a source is ipsilateral or contralateral is read from the unmirrored
+coordinates, and the side filter applies before any of this.
+
+Behind the colours, in the same half, are **all 2,915 injection sites in the
+corpus** — every one mirrored onto the right as well, as translucent grey dots
+at low opacity so overlap reads as density rather than saturating. The two
+layers coincide on purpose: the coloured regions are a visible *subset* of the
+dots, so a bright region sitting in a dense patch of grey was found by many
+needles, one sitting almost alone rests on a single experiment, and a patch of
+grey with no colour on it was sampled and found nothing.
 
 The colours alone have a blind spot they cannot show: a dark region is dark
 either because nothing projects from it or because nobody ever put a needle

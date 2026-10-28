@@ -244,14 +244,16 @@ export interface BacktraceState {
    */
   readonly showHeatmap: boolean
   /**
-   * Where the hub map is drawn.
+   * Whether a second 3D brain opens beside the first.
    *
-   * `sections` recolours the coronal/sagittal/horizontal strip that is already
-   * under the viewport; `brain` opens a second 3D view beside the first. The
-   * sections win by default: a hub map is read for *what a hub sits next to*,
-   * and in 3D the answer is behind whatever is in front of it.
+   * Additive, not an alternative. It used to be one of two values of a `Draw
+   * on` setting, so opening the second brain took the hub map *off* the
+   * sections — and the sections are where a hub map is actually read, because
+   * what a hub sits next to is behind something else in 3D. Losing that strip
+   * to gain the second view was a trade nobody asked for; now the sections
+   * keep their colouring and this only adds a view.
    */
-  readonly heatSurface: 'sections' | 'brain'
+  readonly showSecondBrain: boolean
   /** Whether the second brain paints regions or draws the traced routes. */
   readonly heatMode: HeatmapMode
   /**
@@ -294,7 +296,7 @@ const INITIAL_BACKTRACE: BacktraceState = {
   focusAbbrev: null,
   sourceSide: 'auto',
   showHeatmap: true,
-  heatSurface: 'sections',
+  showSecondBrain: false,
   heatMode: 'regions',
   heatGrain: 'voxels',
   heatMetric: 'count',

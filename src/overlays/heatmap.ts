@@ -32,7 +32,6 @@ import type { AnnotationVolume } from '../atlas/annotation.ts'
 import { UNLABELLED } from '../atlas/annotation.ts'
 import type { Stereotaxic } from '../atlas/coords.ts'
 import {
-  IPSI_ON_LEFT,
   voxelSide,
   type Side,
   type SidedStrengths,
@@ -304,7 +303,7 @@ export const HEATMAP_MODE_LABEL: Record<HeatmapMode, string> = {
 }
 
 /**
- * Source strength at the target, per structure and hemisphere.
+ * Source strength at the target, per structure, all on the injected side.
  *
  * What the second brain paints. Unlike the convergence matrix beside it this
  * *does* move with the target — that is the point of it: the question is "how
@@ -315,11 +314,23 @@ export const HEATMAP_MODE_LABEL: Record<HeatmapMode, string> = {
  * hub map keeps one: a region Allen injected nine times would otherwise read
  * as nine times the source.
  *
- * Painted in the hemisphere the needle actually went into rather than in the
- * one the source is ipsilateral *to*, so the colour sits where the tracer was.
- * With the side filter on its default every injection is in the left
- * hemisphere, so the whole painted half is the left one and the gray dots over
- * it line up.
+ * ## Every experiment is read as a right-hemisphere injection
+ *
+ * A left-hemisphere injection is mirrored rather than painted where it was,
+ * so the whole answer lands in the injected half and nothing is drawn on the
+ * other. Painting each source where its own needle went looked more faithful
+ * and made the view unreadable: the same anatomical source moved from one half
+ * to the other depending on which animals happened to reach the target, so two
+ * mirror-image targets drew mirror-image pictures of agreeing data. At CA1
+ * ML ±1.5 the two share 18 of 22 source structures in the same rank order, and
+ * the strongest experiment for VISp is left-injected for one and right-injected
+ * for the other — enough to put the same region on opposite sides of the screen.
+ *
+ * Mirroring costs nothing real. Which hemisphere Allen injected is a fact about
+ * the method, not about the mouse, and 75% of the corpus is on the right
+ * already. What it is *not* is a claim about laterality: whether a source is
+ * ipsilateral or contralateral to the target is read from the unmirrored
+ * coordinates by `sourceSide`, and the side filter applies before this.
  */
 export function backtraceStrengths(
   sources: readonly {
@@ -328,18 +339,22 @@ export function backtraceStrengths(
     injectionCentre: { ml: number } | null
   }[],
 ): SidedStrengths {
-  const ipsi = new Map<number, number>()
-  const contra = new Map<number, number>()
+  const injected = new Map<number, number>()
 
   for (const source of sources) {
-    const ml = source.injectionCentre?.ml
-    if (typeof ml !== 'number') continue
-    const out = ml < 0 === IPSI_ON_LEFT ? ipsi : contra
-    const current = out.get(source.structureId) ?? 0
-    if (source.densityAtTarget > current) out.set(source.structureId, source.densityAtTarget)
+    // Still required, even though the side no longer decides anything: a row
+    // with no reported centre is one whose injection was never located.
+    if (!source.injectionCentre) continue
+    const current = injected.get(source.structureId) ?? 0
+    if (source.densityAtTarget > current) {
+      injected.set(source.structureId, source.densityAtTarget)
+    }
   }
 
-  return { ipsi, contra }
+  // `ipsi` *is* the injected half — that is what the name means here and what
+  // `voxelSide` resolves it to, whichever way round the screen draws it — so
+  // putting everything there is the mirroring, and the other half stays empty.
+  return { ipsi: injected, contra: new Map() }
 }
 
 export interface RouteHeat {

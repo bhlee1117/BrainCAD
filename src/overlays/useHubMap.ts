@@ -146,10 +146,12 @@ export function useHubHeatmap(
 /**
  * The second brain: every source painted by how hard it drives the target.
  *
- * The counterpart to `useHubHeatmap`, and the opposite kind of answer. The hub
- * map is a property of the connectome and does not move; this is a property of
- * the coordinate under the crosshair and moves with it. Both are drawn by the
- * same cloud builder, so the two are directly comparable by eye.
+ * The opposite kind of answer to the sections' hub map, which is a property of
+ * the connectome and does not move; this is a property of the coordinate under
+ * the crosshair and moves with it. Both are drawn by the same cloud builder,
+ * so the two are directly comparable by eye — and every experiment is read as
+ * a right-hemisphere injection, so two mirror-image targets are comparable to
+ * each other as well.
  */
 export function useBacktraceHeatmap(
   atlas: LoadedAtlas | null,

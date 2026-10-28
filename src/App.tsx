@@ -128,12 +128,14 @@ export function App() {
   // does not depend on a panel that is unmounted the moment the layout goes
   // compact — and so the cost is paid once, not once per consumer.
   const hubMapOn = tab === 'BACKTRACE' && backtrace.showHeatmap
-  const showHeatmap = hubMapOn && backtrace.heatSurface === 'brain' && !compact
+  const showHeatmap = hubMapOn && backtrace.showSecondBrain && !compact
 
   // Two grains, one surface. The structure paint reads the bundled matrix; the
   // voxel paint reads the raw 100 µm grids, which are only downloaded once
   // that grain is actually chosen.
-  const sectionsOn = hubMapOn && backtrace.heatSurface === 'sections'
+  // Always, now: the second brain is additive, so opening it no longer takes
+  // the colouring off the strip where a hub map is easiest to read.
+  const sectionsOn = hubMapOn
   const voxelOn = sectionsOn && backtrace.heatGrain === 'voxels'
 
   // Only the sections read the connectome matrix now, so it is not fetched for
