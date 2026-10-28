@@ -18,6 +18,7 @@ import {
   experimentUrl,
   retrogradeMatrix,
   searchRetrograde,
+  searchRetrogradeMirrored,
   isSeedCached,
   seedPointParam,
   visibleSources,
@@ -31,13 +32,12 @@ import {
   formatConvergence,
   rankConvergence,
   type ConvergenceMetric,
-  type Side,
 } from '../overlays/convergence.ts'
 import { VOXEL_CAVEATS } from '../overlays/voxelConvergence.ts'
 import { useConvergenceMatrix } from '../overlays/useHubMap.ts'
 import { HEATMAP_MODE_LABEL } from '../overlays/heatmap.ts'
 import { COARSE_FACTOR, NUDGE_LEGEND, nudgeCoord } from '../state/nudge.ts'
-import { useAppStore, useSourceSideFilter } from '../state/store.ts'
+import { useAppStore } from '../state/store.ts'
 import { NumberField } from './NumberField.tsx'
 
 /**
@@ -170,6 +170,11 @@ function MatrixRow({
               {source.side && (
                 <span className="pair__tag">{SIDE_LABEL[source.side]}</span>
               )}
+              {source.mirrored && (
+                <span className="pair__tag" title="Reached the target's reflection; shown reflected back">
+                  mirrored
+                </span>
+              )}
               {source.targetInsideInjection && (
                 <span className="pair__tag">at target</span>
               )}
@@ -192,7 +197,6 @@ export function BackTracePanel({
   const selectedTargetId = useAppStore((s) => s.selectedTargetId)
   const backtrace = useAppStore((s) => s.backtrace)
   const setBacktrace = useAppStore((s) => s.setBacktrace)
-  const side = useSourceSideFilter()
   const nudgeStepMm = useAppStore((s) => s.nudgeStepMm)
   const setNudgeStepMm = useAppStore((s) => s.setNudgeStepMm)
   const updateTarget = useAppStore((s) => s.updateTarget)
@@ -208,6 +212,8 @@ export function BackTracePanel({
   // the answer to the old coordinate rather than race it to the screen.
   const inFlight = useRef<AbortController | null>(null)
 
+  const mirror = backtrace.mirrorProjection
+
   const trace = useCallback(
     async (at: Stereotaxic) => {
       inFlight.current?.abort()
@@ -217,7 +223,9 @@ export function BackTracePanel({
       setBacktrace({ status: 'loading', message: 'Searching Allen experiments…' })
 
       try {
-        const sources = await searchRetrograde(profile, at, { signal: controller.signal })
+        const sources = mirror
+          ? await searchRetrogradeMirrored(profile, at, { signal: controller.signal })
+          : await searchRetrograde(profile, at, { signal: controller.signal })
         if (controller.signal.aborted) return
         setBacktrace({
           status: 'ready',
@@ -236,7 +244,7 @@ export function BackTracePanel({
         })
       }
     },
-    [profile, setBacktrace],
+    [profile, setBacktrace, mirror],
   )
 
   // Follow the target, debounced. The dependency is the coordinate's numbers
@@ -283,24 +291,19 @@ export function BackTracePanel({
         )
       : []
 
-  // Two separate exclusions, counted separately. Rolled into one number they
-  // read as "below the top N", which is not what being on the other side of
-  // the brain is.
-  const sided = visibleSources(backtrace.sources, {
+  const everything = visibleSources(backtrace.sources, {
     includeOverlapping: backtrace.includeOverlapping,
     topStructures: Number.POSITIVE_INFINITY,
     focusAbbrev: null,
-    side,
   })
   const shown = visibleSources(backtrace.sources, {
     includeOverlapping: backtrace.includeOverlapping,
     topStructures: backtrace.topStructures,
     focusAbbrev: null,
-    side,
   })
   const matrix = retrogradeMatrix(shown)
-  const belowTop = sided.length - shown.length
-  const otherSide = backtrace.sources.length - sided.length
+  const belowTop = everything.length - shown.length
+  const inferred = shown.filter((source) => source.mirrored).length
 
   if (!target || !coord) {
     return (
@@ -419,51 +422,34 @@ export function BackTracePanel({
           </p>
         )}
 
-        <div className="field">
-          <label htmlFor="src-side">Side</label>
-          <select
-            id="src-side"
-            value={backtrace.sourceSide}
+        <label className="check">
+          <input
+            type="checkbox"
+            checked={backtrace.mirrorProjection}
+            disabled={coord.ml === 0}
             onChange={(event) =>
-              setBacktrace({ sourceSide: event.target.value as Side | 'all' | 'auto' })
+              setBacktrace({ mirrorProjection: event.target.checked })
             }
-          >
-            <option value="auto">
-              Injections on the right — {SIDE_LABEL[side === 'all' ? 'ipsi' : side]} by
-              where the target is
-            </option>
-            <option value="all">Both sides</option>
-            <option value="ipsi">Ipsilateral only — override</option>
-            <option value="contra">Contralateral only — override</option>
-          </select>
-        </div>
+          />
+          Mirror the projection
+        </label>
         <p className="hint" style={{ marginTop: 0 }}>
-          {backtrace.sourceSide === 'auto' ? (
+          Searches the target&rsquo;s reflection as well and lays its answer back over
+          this one, which under left-right symmetry is the fuller list of routes that
+          could reach here. Allen injects the right hemisphere in 75% of the corpus, so
+          the two halves are not sampled alike: CA1 at ML +1.5 finds 70 experiments and
+          its mirror image at ML −1.5 finds 44, while the anatomy agrees — 18 of their
+          22 and 28 source regions shared, in the same order. The difference is which
+          animals exist, not which projections do.
+          {inferred > 0 && (
             <>
-              Every injection on screen is in the <b>right</b> hemisphere, which is
-              where Allen put 75% of them, so the target decides what you are looking
-              at: on the right it is reached from its own side and you see its{' '}
-              <b>ipsilateral</b> input; on the left it is reached across the midline and
-              you see its <b>contralateral</b> input. Move the target across to swap
-              between the two, or pick an override below to ask a right-hemisphere
-              target for its contralateral sources anyway.
-              {coord.ml === 0
-                ? ' The target is on the midline, which is neither side, so everything is shown.'
-                : ` The target is at ML ${coord.ml.toFixed(2)}, so these are its
-                   ${side === 'contra' ? 'contralateral' : 'ipsilateral'} sources.`}
-            </>
-          ) : (
-            <>
-              Overriding the target&rsquo;s own side. Read off each experiment&rsquo;s
-              injection against the target&rsquo;s, so it is a fact about that pair
-              rather than a guess from where Allen usually injects — which is how a
-              right-hemisphere target can be asked for its contralateral input. The
-              second brain still draws those sources in the injected half, because it
-              reads every experiment as a right-hemisphere injection.
-              {coord.ml === 0 &&
-                ' The target is on the midline, where neither side is defined, so the filter is empty.'}
+              {' '}
+              <b>{inferred}</b> of the sources listed below are inferred this way and
+              tagged <i>mirrored</i>; nothing was injected there.
             </>
           )}
+          {coord.ml === 0 &&
+            ' The target is on the midline, so its reflection is itself and there is nothing to add.'}
         </p>
 
         <label className="check">
@@ -803,7 +789,7 @@ export function BackTracePanel({
                 {shown.length} experiment{shown.length === 1 ? '' : 's'}
                 {belowTop > 0 &&
                   ` · ${belowTop} more below the top ${backtrace.topStructures}`}
-                {otherSide > 0 && ` · ${otherSide} on the other side`}
+                {inferred > 0 && ` · ${inferred} inferred by symmetry`}
               </div>
 
               {matrix.map((row) => (

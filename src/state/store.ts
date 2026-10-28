@@ -27,9 +27,7 @@ import { DEFAULT_COLLISION_SETTINGS } from '../collision/check.ts'
 import type { Measurement } from '../measure/measure.ts'
 import {
   DEFAULT_CONNECTION_THRESHOLD,
-  autoSourceSide,
   type ConvergenceMetric,
-  type Side,
 } from '../overlays/convergence.ts'
 import type { HeatmapMode } from '../overlays/heatmap.ts'
 import type { RetrogradeSource } from '../overlays/retrograde.ts'
@@ -223,13 +221,21 @@ export interface BacktraceState {
   /** Structure abbreviation the user has isolated, or null for all. */
   readonly focusAbbrev: string | null
   /**
-   * Keep only sources on one side of the target.
+   * Whether the target's reflection is searched and overlaid.
    *
-   * A property of each source-target pair, read off the two ML signs, not an
-   * inference from where Allen usually injects — which is true of the hub
-   * map's corpus and not of the one this search covers.
+   * On by default. Allen injects the right hemisphere in 75% of the corpus,
+   * so the two halves are not sampled alike and the same coordinate reads very
+   * differently on each side of the midline — 70 experiments at CA1 ML +1.5
+   * against 44 at ML −1.5, while the anatomy agrees. Searching the reflection
+   * and reflecting its answer back is the fuller list of routes that could
+   * reach the target, under left-right symmetry.
+   *
+   * This replaced a `Side` filter that kept only ipsilateral or only
+   * contralateral sources. That filter answered a narrower question by
+   * throwing data away; this one answers the wider question by adding the
+   * data the corpus never sampled on this side.
    */
-  readonly sourceSide: Side | 'all' | 'auto'
+  readonly mirrorProjection: boolean
 
   /**
    * Show the hub map at all.
@@ -294,7 +300,7 @@ const INITIAL_BACKTRACE: BacktraceState = {
   includeOverlapping: true,
   topStructures: 8,
   focusAbbrev: null,
-  sourceSide: 'auto',
+  mirrorProjection: true,
   showHeatmap: true,
   showSecondBrain: false,
   heatMode: 'regions',
@@ -600,24 +606,6 @@ export function useProfile(): CoordinateProfile {
 /** The currently selected target, if any. */
 export function useSelectedTarget(): Target | null {
   return useAppStore((s) => s.targets.find((t) => t.id === s.selectedTargetId) ?? null)
-}
-
-/**
- * The side filter the 3D view is actually applying.
- *
- * `auto` is the default and is not a setting so much as a consequence: the
- * screen draws injections on the left, so a target on the left sees its
- * ipsilateral input and a target on the right sees its contralateral input.
- * Resolving it here keeps the three places that filter sources — the 3D
- * routes, the hub map's routes mode and the panel's own counts — from drifting
- * apart.
- */
-export function useSourceSideFilter(): Side | 'all' {
-  const sourceSide = useAppStore((s) => s.backtrace.sourceSide)
-  const ml = useAppStore(
-    (s) => s.targets.find((t) => t.id === s.selectedTargetId)?.coord.ml ?? 0,
-  )
-  return sourceSide === 'auto' ? autoSourceSide({ ml }) : sourceSide
 }
 
 /** The loaded atlas, or null while loading or on error. */

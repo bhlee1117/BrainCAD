@@ -23,7 +23,9 @@ import {
   injectionRadiusMm,
   parseRetrogradeResponse,
   retrogradeMatrix,
+  mirrorSource,
   searchRetrograde,
+  searchRetrogradeMirrored,
   seedPointParam,
   sourceSide,
   targetInsideInjection,
@@ -368,6 +370,7 @@ function source(
     // `in`, not `??`: a test that passes `side: null` means it, and `??`
     // would quietly turn that into 'ipsi'.
     side: 'side' in over ? over.side : 'ipsi',
+    mirrored: over.mirrored ?? false,
     path: [],
   } as RetrogradeSource
 }
@@ -464,30 +467,6 @@ describe('visibleSources', () => {
     expect(shown.map((s) => s.structureAbbrev)).toContain('CA1')
   })
 
-  it('keeps only one side when asked', () => {
-    const sided = [
-      source({ abbrev: 'CA3', density: 0.9, side: 'ipsi' }),
-      source({ abbrev: 'CA1c', density: 0.4, side: 'contra' }),
-      source({ abbrev: 'MID', density: 0.2, side: null }),
-    ]
-    const opts = { includeOverlapping: true, topStructures: 10, focusAbbrev: null }
-
-    expect(visibleSources(sided, { ...opts, side: 'ipsi' }).map((s) => s.structureAbbrev))
-      .toEqual(['CA3'])
-    expect(visibleSources(sided, { ...opts, side: 'contra' }).map((s) => s.structureAbbrev))
-      .toEqual(['CA1c'])
-  })
-
-  it('keeps an undecidable side only under "all"', () => {
-    // A source on the midline belongs to neither half, so either filter drops
-    // it rather than assigning it to one.
-    const mid = [source({ abbrev: 'MID', density: 0.2, side: null })]
-    const opts = { includeOverlapping: true, topStructures: 10, focusAbbrev: null }
-    expect(visibleSources(mid, { ...opts, side: 'all' })).toHaveLength(1)
-    expect(visibleSources(mid, { ...opts, side: 'ipsi' })).toHaveLength(0)
-    expect(visibleSources(mid, { ...opts, side: 'contra' })).toHaveLength(0)
-  })
-
   it('isolates one structure, ignoring the top-N limit', () => {
     const shown = visibleSources(sources, {
       includeOverlapping: true,
@@ -552,5 +531,74 @@ describe('provenance', () => {
 
   it('links an experiment to its Allen page', () => {
     expect(experimentUrl(177780284)).toContain('177780284')
+  })
+})
+
+describe('mirrorSource', () => {
+  const sited = (ml: number) =>
+    ({
+      ...source({ abbrev: 'CA3', density: 0.5 }),
+      injectionCentre: { ap: -2, ml, dv: -2 },
+      injectionDistanceMm: 1.25,
+      side: 'contra' as const,
+      path: [{ coord: { ap: -2, ml, dv: -2 }, density: 0.5 }],
+    }) as RetrogradeSource
+
+  it('reflects the injection and the route, and nothing else', () => {
+    // A reflection is an isometry and this one reflects the target too, so
+    // every quantity defined between source and target survives untouched.
+    const there = mirrorSource(sited(2.3))
+    expect(there.injectionCentre!.ml).toBeCloseTo(-2.3, 6)
+    expect(there.path[0]!.coord.ml).toBeCloseTo(-2.3, 6)
+    expect(there.injectionCentre!.ap).toBeCloseTo(-2, 6)
+    expect(there.injectionDistanceMm).toBe(1.25)
+    expect(there.densityAtTarget).toBe(0.5)
+    expect(there.side).toBe('contra')
+  })
+
+  it('flags the source, because nothing was injected there', () => {
+    expect(sited(2.3).mirrored).toBe(false)
+    expect(mirrorSource(sited(2.3)).mirrored).toBe(true)
+  })
+
+  it('never produces negative zero on the midline', () => {
+    const mid = mirrorSource(sited(0))
+    expect(Object.is(mid.injectionCentre!.ml, -0)).toBe(false)
+    expect(Object.is(mid.path[0]!.coord.ml, -0)).toBe(false)
+  })
+})
+
+describe('searchRetrogradeMirrored', () => {
+  it('searches both the target and its reflection', async () => {
+    const spy = mockFetch([{ success: true, msg: [row({ id: 1 })] }])
+    await searchRetrogradeMirrored(PROFILE, CA1)
+    expect(spy).toHaveBeenCalledTimes(2)
+
+    // The ML component of the seed, which is the third of the triple, has to
+    // differ between the two — a single seed sent twice would double every
+    // source and claim symmetry it never checked.
+    const seeds = spy.mock.calls.map((call) =>
+      decodeURIComponent(String(call[0])).match(/seed_point\$eq([\d,]+)/)?.[1],
+    )
+    expect(seeds[0]).not.toBe(seeds[1])
+    expect(seeds[0]!.split(',').slice(0, 2)).toEqual(seeds[1]!.split(',').slice(0, 2))
+  })
+
+  it('keeps both answers rather than deduplicating by experiment', async () => {
+    // An injection reaching the target and its reflection is two facts about
+    // the target, from two places, and they belong at both.
+    mockFetch([{ success: true, msg: [row({ id: 7 })] }])
+    const found = await searchRetrogradeMirrored(PROFILE, CA1)
+    expect(found).toHaveLength(2)
+    expect(found.map((s) => s.mirrored)).toEqual([false, true])
+    expect(found[0]!.injectionCentre!.ml).toBeCloseTo(-found[1]!.injectionCentre!.ml, 6)
+  })
+
+  it('does not search a midline target twice', async () => {
+    // Its reflection is itself, so the second query would be the same query.
+    const spy = mockFetch([{ success: true, msg: [row({ id: 1 })] }])
+    const found = await searchRetrogradeMirrored(PROFILE, { ...CA1, ml: 0 })
+    expect(spy).toHaveBeenCalledTimes(1)
+    expect(found.every((s) => !s.mirrored)).toBe(true)
   })
 })

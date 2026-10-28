@@ -28,7 +28,6 @@ import {
   convergenceStrengths,
   formatConvergence,
   IPSI_ON_LEFT,
-  autoSourceSide,
   loadConvergenceMatrix,
   reflectVoxel,
   voxelSide,
@@ -395,26 +394,17 @@ export function useVoxelPaint(
  * Reads the same filters as the panel's list, so the routes on screen are the
  * experiments the table is describing.
  */
-export function useHeatmapSources(
-  backtrace: BacktraceState,
-  target: { ml: number } | null,
-): RetrogradeSource[] {
-  const { sources, heatAllSources, includeOverlapping, topStructures, sourceSide } =
-    backtrace
-  const ml = target?.ml ?? 0
+export function useHeatmapSources(backtrace: BacktraceState): RetrogradeSource[] {
+  const { sources, heatAllSources, includeOverlapping, topStructures } = backtrace
 
   return useMemo(
     () =>
       visibleSources(sources, {
         includeOverlapping,
-        // "Every source" still means every source *on the chosen side*: the
-        // filter is about which half of the answer is being asked for, not
-        // about how much of it to draw.
         topStructures: heatAllSources ? Number.POSITIVE_INFINITY : topStructures,
         focusAbbrev: null,
-        side: sourceSide === 'auto' ? autoSourceSide({ ml }) : sourceSide,
       }),
-    [sources, heatAllSources, includeOverlapping, topStructures, sourceSide, ml],
+    [sources, heatAllSources, includeOverlapping, topStructures],
   )
 }
 

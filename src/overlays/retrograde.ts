@@ -90,8 +90,44 @@ export interface RetrogradeSource {
    * meaning.
    */
   readonly side: Side | null
+  /**
+   * Whether this source was measured at the target or inferred by symmetry.
+   *
+   * A mirrored source is an experiment that reached the target's *reflection*,
+   * reflected back. It is a real measurement of a real animal, read under the
+   * assumption that the two hemispheres project alike — which is why it is
+   * flagged rather than silently merged: nothing was injected there.
+   */
+  readonly mirrored: boolean
   /** Allen's route from the target back to the injection site. */
   readonly path: readonly BacktracePoint[]
+}
+
+/**
+ * The same experiment reflected across the midline.
+ *
+ * Only the coordinates move. `densityAtTarget`, `injectionDistanceMm`,
+ * `targetInsideInjection` and `side` all survive untouched, and not by
+ * accident: a reflection is an isometry, and this one reflects the target
+ * along with the source, so every quantity defined between the two is
+ * preserved exactly. The side survives for the same reason — ipsilateral to
+ * the reflected target is ipsilateral to the target.
+ */
+export function mirrorSource(source: RetrogradeSource): RetrogradeSource {
+  // Normalised, because negating zero gives -0: harmless in arithmetic and
+  // surprising everywhere it is printed or compared.
+  const flipMl = (ml: number) => (ml === 0 ? 0 : -ml)
+  return {
+    ...source,
+    mirrored: true,
+    injectionCentre: source.injectionCentre
+      ? { ...source.injectionCentre, ml: flipMl(source.injectionCentre.ml) }
+      : null,
+    path: source.path.map((point) => ({
+      ...point,
+      coord: { ...point.coord, ml: flipMl(point.coord.ml) },
+    })),
+  }
 }
 
 /**
@@ -277,6 +313,7 @@ function normaliseRow(
     injectionDistanceMm: distance,
     injectionRadiusMm: radius,
     targetInsideInjection: targetInsideInjection(distance, radius),
+    mirrored: false,
     injectionStructures: (row['injection-structures'] ?? [])
       .map((s) => s?.abbreviation)
       .filter((a): a is string => typeof a === 'string' && a.length > 0),
@@ -417,6 +454,47 @@ export async function searchRetrograde(
   throw lastError ?? new Error('Allen spatial search failed.')
 }
 
+/**
+ * The target's own sources, plus its reflection's, reflected back onto it.
+ *
+ * Allen injects the right hemisphere in 75% of the corpus, so the two halves
+ * are not sampled alike and a back-trace reads very differently on each side
+ * of the midline. Measured at CA1 ML +1.5 it finds 70 experiments; at ML −1.5,
+ * the mirror-image coordinate, 44 — while the anatomy agrees, sharing 18 of
+ * the 22 and 28 source structures in the same rank order. The difference is
+ * which animals exist, not which projections do.
+ *
+ * So the mirror coordinate is searched too and its answer reflected onto this
+ * one, which under left-right symmetry is the fuller list of routes that could
+ * reach the target. Both queries go out together, so it costs latency rather
+ * than twice the wait.
+ *
+ * Nothing is deduplicated by experiment, and that is deliberate. An injection
+ * at ML +2 reaching both the target and its reflection is two different facts
+ * about the target — one from +2 and, by symmetry, one from −2 — and they
+ * belong at two different places on screen. Only a midline target, whose
+ * reflection is itself, skips the second query.
+ *
+ * Every inferred source carries `mirrored: true`, because it is a real
+ * measurement of a real animal read under an assumption, and the assumption
+ * should be visible wherever the source is.
+ */
+export async function searchRetrogradeMirrored(
+  profile: CoordinateProfile,
+  target: Stereotaxic,
+  options: RetrogradeQueryOptions = {},
+): Promise<RetrogradeSource[]> {
+  if (target.ml === 0) return searchRetrograde(profile, target, options)
+
+  const reflection: Stereotaxic = { ...target, ml: -target.ml }
+  const [own, other] = await Promise.all([
+    searchRetrograde(profile, target, options),
+    searchRetrograde(profile, reflection, options),
+  ])
+
+  return [...own, ...other.map(mirrorSource)]
+}
+
 async function searchRetrogradeOnce(
   profile: CoordinateProfile,
   target: Stereotaxic,
@@ -549,18 +627,10 @@ export function visibleSources(
     includeOverlapping: boolean
     topStructures: number
     focusAbbrev: string | null
-    /** Keep only sources on this side of the target; 'all' keeps both. */
-    side?: Side | 'all'
   },
 ): RetrogradeSource[] {
-  const side = options.side ?? 'all'
   const kept = sources.filter(
-    (s) =>
-      (options.includeOverlapping || !s.targetInsideInjection) &&
-      // A source whose side could not be determined — either point on the
-      // midline — is kept under 'all' and excluded by either filter, rather
-      // than being quietly assigned to one.
-      (side === 'all' || s.side === side),
+    (s) => options.includeOverlapping || !s.targetInsideInjection,
   )
 
   if (options.focusAbbrev) {

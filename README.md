@@ -373,7 +373,7 @@ right-injected for the other — was enough to put one region on opposite sides
 of the screen. Which hemisphere Allen injected is a fact about the method, not
 about the mouse. What the mirroring is *not* is a claim about laterality:
 whether a source is ipsilateral or contralateral is read from the unmirrored
-coordinates, and the side filter applies before any of this.
+coordinates, and is shown as a tag on every source row.
 
 Behind the colours, in the same half, are **all 2,915 injection sites in the
 corpus** — every one mirrored onto the right as well, as translucent grey dots
@@ -450,26 +450,35 @@ on the second brain are mirrored onto it, so the one unmirrored layer in the
 view and the convention point the same way. `INJECTED_SIDE_IS_RIGHT` is the
 single place it is written down.
 
-**In the 3D view, ipsilateral and contralateral are read off the target,
-because the sources on screen really are injected on the right.** The
-back-trace filters to right-hemisphere injections, so there is nothing to
-mirror and nothing claimed that is not in the data:
+#### Mirror the projection
 
-- Target in the **right** hemisphere — the sources are on its own side, so the
-  view is its **ipsilateral** input.
-- Target in the **left** hemisphere — the sources reach it across the midline,
-  so the view is its **contralateral** input.
+The corpus is not sampled alike on the two sides, so the same coordinate reads
+very differently depending on which half of the brain it is in. Measured at
+dorsal CA1: **70 experiments at ML +1.5, 44 at its mirror image ML −1.5** —
+while the anatomy agrees, sharing 18 of their 22 and 28 source regions in the
+same rank order. The difference is which animals exist, not which projections
+do.
 
-Moving the target across is the default control, and the counts say what the
-labels would only assert: at dorsal CA1 it is 21 source regions on the right
-against 12 on the left, because contralateral input is genuinely rarer.
+So **the target's reflection is searched too, and its answer laid back over
+this one** (on by default). Under left-right symmetry that is the fuller list
+of routes that could reach the target, and it makes two mirror-image targets
+give the same answer instead of two differently-sampled halves of one: both now
+report 32 source regions where they reported 28 and 22.
 
-**The default is a default, not a rule.** `Ipsilateral only` and
-`Contralateral only` override it, which is how a right-hemisphere target is
-asked for its contralateral input anyway — 8 regions instead of 21 at dorsal
-CA1, drawn in the left hemisphere where those needles actually went, with the
-grey sampling dots staying on the right. A target exactly on the midline is on
-neither side and the filter is not applied.
+Two things keep it honest. Every inferred source carries `mirrored: true` and
+is tagged in the list, because it is a real measurement of a real animal read
+under an assumption and nothing was injected there — at ML −1.5, 33 of the
+listed experiments are inferred this way. And nothing is deduplicated by
+experiment: an injection at ML +2 reaching both the target and its reflection
+is two facts about the target, one from +2 and one from −2, and they belong at
+two different places on screen. A midline target, whose reflection is itself,
+skips the second query.
+
+This replaced a `Side` filter — both sides, ipsilateral only, contralateral
+only. That filter answered a narrower question by throwing data away; this one
+answers the wider question by adding the data the corpus never sampled on this
+side. Whether a source is ipsilateral or contralateral is still read off the
+two ML signs and shown as a tag on every row.
 
 What this does *not* do is move sources. A source is ipsilateral or
 contralateral by where its needle went relative to the target, and for some
@@ -613,8 +622,8 @@ explain where they had gone. The hub map can be mirrored because it is an
 aggregate with no target in it; these routes have one, and it is the point of
 the picture.
 
-**Ipsilateral is a fact about a source, not about a target.** The panel filters
-sources by which side of the target they were injected on, read off the two ML
+**Ipsilateral is a fact about a source, not about a target.** Every row is
+tagged with which side of the target it was injected on, read off the two ML
 signs. An earlier version instead offered buttons that moved the *target*,
 labelled ipsi and contra on the reasoning that Allen injects the right
 hemisphere so a target there is reached from its own side. That is true of the
@@ -622,9 +631,8 @@ hub map's corpus as a whole, 81% right, and it does not survive contact with a
 particular target: of the 112 experiments reaching an MOs target at ML −0.90,
 71 were injected on the left. The proportions do not generalise either — 80%
 ipsilateral at dorsal CA1 ML +1.5, 63% at MOs ML −0.90, 45% at CA1 ML −1.5 —
-so the labels were claiming something the data would not support. The target button is now just a hemisphere flip, and the
-two exclusions are counted separately in the summary, because "on the other
-side of the brain" is not the same statement as "below the top N".
+so the labels were claiming something the data would not support. The target
+button is now just a hemisphere flip.
 
 That rebuild left a trap worth recording. The blob's *meaning* changed while
 its filename did not, so a browser holding the previous copy rendered it under

@@ -22,7 +22,6 @@ import {
   loadConvergenceMatrix,
   flipHemisphere,
   IPSI_ON_LEFT,
-  autoSourceSide,
   rankConvergence,
   reflectVoxel,
   type ConvergenceMatrix,
@@ -201,30 +200,6 @@ describe('independence from the target', () => {
 
   it('warns that it counts sources, not experiments', () => {
     expect(CONVERGENCE_CAVEATS.join(' ')).toMatch(/how often Allen injected/i)
-  })
-})
-
-describe('autoSourceSide', () => {
-  it('shows a right-hemisphere target its ipsilateral input', () => {
-    // Injections are on the right, so a target there is on the side the tracer
-    // was put — and filtering to ipsilateral leaves exactly those experiments.
-    expect(autoSourceSide({ ml: 1.5 })).toBe('ipsi')
-  })
-
-  it('shows a left-hemisphere target its contralateral input', () => {
-    // The same filter from the other side: the sources are still the ones
-    // injected on the right, and now they reach the target across the midline.
-    expect(autoSourceSide({ ml: -1.5 })).toBe('contra')
-  })
-
-  it('keeps everything for a target on the midline', () => {
-    // Neither side, so picking one would be inventing a hemisphere.
-    expect(autoSourceSide({ ml: 0 })).toBe('all')
-  })
-
-  it('swaps as the target crosses, with nothing in between', () => {
-    const sides = [-2, -0.01, 0, 0.01, 2].map((ml) => autoSourceSide({ ml }))
-    expect(sides).toEqual(['contra', 'contra', 'all', 'ipsi', 'ipsi'])
   })
 })
 

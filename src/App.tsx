@@ -142,7 +142,7 @@ export function App() {
   // a session that opens the tab straight onto the second brain.
   const convergence = useConvergenceMatrix(sectionsOn && !voxelOn)
 
-  const routeSources = useHeatmapSources(backtrace, target?.coord ?? null)
+  const routeSources = useHeatmapSources(backtrace)
 
   // The second brain paints the back-trace, not the connectome: how hard each
   // source drives *this* target. The hub map is the sections' job, and the two

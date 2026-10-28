@@ -17,7 +17,7 @@ import { useEffect, useMemo } from 'react'
 import { AdditiveBlending, BufferAttribute, BufferGeometry, Color } from 'three'
 
 import { visibleSources, type RetrogradeSource } from '../overlays/retrograde.ts'
-import { useAppStore, useSourceSideFilter } from '../state/store.ts'
+import { useAppStore } from '../state/store.ts'
 import { Helper } from './Helper.tsx'
 import { stereotaxicToWorld } from './world.ts'
 
@@ -219,7 +219,6 @@ function SourceMarkers({ sources }: { sources: readonly RetrogradeSource[] }) {
 
 export function BackTrace() {
   const backtrace = useAppStore((s) => s.backtrace)
-  const side = useSourceSideFilter()
 
   const sources = useMemo(
     () =>
@@ -227,14 +226,12 @@ export function BackTrace() {
         includeOverlapping: backtrace.includeOverlapping,
         topStructures: backtrace.topStructures,
         focusAbbrev: backtrace.focusAbbrev,
-        side,
       }),
     [
       backtrace.sources,
       backtrace.includeOverlapping,
       backtrace.topStructures,
       backtrace.focusAbbrev,
-      side,
     ],
   )
 

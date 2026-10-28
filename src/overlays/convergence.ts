@@ -121,28 +121,6 @@ export const INJECTED_SIDE_IS_RIGHT = true
 export const IPSI_ON_LEFT = !INJECTED_SIDE_IS_RIGHT
 
 /**
- * Which side of the target the 3D view shows by default, from where it sits.
- *
- * Made by moving the target rather than by a control: injections are on the
- * right, so a target there is reached from its own side and a target on the
- * left is reached across the midline. Either way the filter leaves only
- * right-injected experiments on screen, which is what makes the convention
- * true rather than merely claimed.
- *
- * It is a default, not a rule — the panel's own `ipsi`/`contra` options
- * override it, which is how you ask a right-hemisphere target for its
- * contralateral input instead.
- *
- * A target exactly on the midline is on neither side, and gets everything
- * rather than an arbitrary half.
- */
-export function autoSourceSide(target: { ml: number }): Side | 'all' {
-  if (target.ml === 0) return 'all'
-  const onTheInjectedSide = INJECTED_SIDE_IS_RIGHT ? target.ml > 0 : target.ml < 0
-  return onTheInjectedSide ? 'ipsi' : 'contra'
-}
-
-/**
  * The side a voxel falls on.
  *
  * The midline is the ML axis's own midpoint rather than a constant, because
