@@ -33,7 +33,7 @@ import { HeatmapViewport } from './scene/HeatmapViewport.tsx'
 import {
   describeHubMap,
   useConvergenceMatrix,
-  useBacktraceHeatmap,
+  useInjectionBlobs,
   useHeatmapSources,
   useInjectionSites,
   useSectionHubPaint,
@@ -145,7 +145,7 @@ export function App() {
   // The second brain paints the back-trace, not the connectome: how hard each
   // source drives *this* target. The hub map is the sections' job, and the two
   // answer different questions — one moves with the target and one does not.
-  const heatmap = useBacktraceHeatmap(showHeatmap ? atlas : null, routeSources)
+  const blobs = useInjectionBlobs(showHeatmap ? routeSources : [])
 
   // Every injection in the corpus, not only the ones reaching this target:
   // the layer exists to say which regions were never sampled, and an
@@ -178,7 +178,7 @@ export function App() {
     : structurePaint
   const heatmapCaption = describeHubMap(
     backtrace,
-    heatmap,
+    blobs,
     routeSources.length,
     injections.sites.length,
   )
@@ -296,7 +296,7 @@ export function App() {
               <HeatmapViewport
                 atlas={atlas}
                 profile={profile}
-                heatmap={heatmap}
+                blobs={blobs}
                 routeSources={routeSources}
                 injectionSites={injections.sites}
                 target={target?.coord ?? null}

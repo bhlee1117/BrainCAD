@@ -351,10 +351,34 @@ both.** The sections carry the connectome-wide hub map, which does not move
 when the target moves. The second brain carries *this* target's own answer,
 which does:
 
-- **Regions** paints every source by its projection density at the target —
-  how hard each region drives this coordinate. Half a millimetre away it is a
-  different picture.
+- **Injections** draws one sphere per experiment, at its reported coordinate
+  and at its reported size, coloured by its projection density at the target.
+  Half a millimetre away it is a different picture.
 - **Routes** draws the traced paths into the target instead.
+It used to paint this per *structure*, the way the sections do, and it looked
+wrong in a way worth recording: it flooded each experiment's primary injection
+structure with one value, so a single CA3 injection coloured the whole of CA3 —
+the millimetre beside the pipette and the far end of the field alike — and
+every edge on screen fell on an annotation boundary. The picture looked like a
+map of the parcellation because that is what it was.
+
+Flooding is the right rendering for a measure published per parcel, which is
+what the sections' hub map is. It is the wrong one here, because these
+experiments have coordinates: `injection-coordinates` says where the needle
+went and `injection-volume` says how much came out. A sphere at that point and
+that size is coarser in one sense and far finer in the one that matters, and
+six CA3 injections into one field now show as six overlapping spheres rather
+than as one flat parcel. It is still a model — Allen reports a volume, not an
+extent, so the radius is sphere-equivalent while a real injection runs long
+along the pipette track.
+
+The colour is normalised from zero against the strongest blob present, which is
+the opposite of what the structure maps do and right for the opposite reason. A
+count of 60 out of 110 is not "55% of a hub", so counts are stretched between
+the weakest and the strongest; a projection density has a meaningful zero, so
+the weakest source here sits near the bottom of the ramp and looks as weak as
+it is.
+
 The two halves of that brain carry different things, which is what makes the
 view worth having:
 

@@ -15,14 +15,18 @@
  */
 
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import {
   BackSide,
   BufferAttribute,
   BufferGeometry,
+  Color,
   DoubleSide,
   Matrix4,
+  Object3D,
   PerspectiveCamera,
+  SphereGeometry,
+  type InstancedMesh,
 } from 'three'
 
 import type { LoadedAtlas } from '../atlas/load.ts'
@@ -30,11 +34,10 @@ import type { CoordinateProfile } from '../atlas/profile.ts'
 import type { Stereotaxic } from '../atlas/coords.ts'
 import {
   buildRouteHeat,
-  heatmapColors,
-  type RetrogradeHeatmap,
+  heatColor,
+  type InjectionBlobs,
 } from '../overlays/heatmap.ts'
 import type { RetrogradeSource } from '../overlays/retrograde.ts'
-import { positionsToWorld } from '../overlays/pointCloud.ts'
 import { useAppStore } from '../state/store.ts'
 import { readCameraPose } from './cameraLink.ts'
 import { TARGET_COLOR } from './Viewport.tsx'
@@ -105,54 +108,87 @@ function BrainShell({ matrix }: { matrix: Matrix4 }) {
   )
 }
 
-/** The heat cloud itself. */
-function HeatPoints({
-  heatmap,
-  matrix,
+/**
+ * One sphere per injection, at its coordinate and at its reported size.
+ *
+ * This replaced a cloud of voxels coloured per structure, which painted the
+ * whole of CA3 the same shade for a single CA3 injection and put every edge on
+ * screen on an annotation boundary — a picture of the parcellation wearing the
+ * data's colours. A sphere at the injection centre is coarser in one sense and
+ * far finer in the sense that matters: it is where the tracer was.
+ *
+ * Instanced, so three hundred of them are one draw call. The instance count is
+ * fixed when the mesh is built, so the component is keyed on it and remounts
+ * when the source list changes size.
+ *
+ * Unlit `meshBasicMaterial`: the ramp already encodes the one quantity, and
+ * shading would add a second brightness that means nothing. Depth writing is
+ * off so overlapping injections show through each other — six needles into one
+ * field should look like six.
+ */
+function InjectionSpheres({
+  blobs,
   opacity,
-  pointSizeMm,
 }: {
-  heatmap: RetrogradeHeatmap
-  matrix: Matrix4
+  blobs: InjectionBlobs
   opacity: number
-  pointSizeMm: number
 }) {
+  const ref = useRef<InstancedMesh>(null)
+
+  // White per-vertex colours, which look pointless and are not. Three.js only
+  // multiplies the instance colour into the fragment under `USE_COLOR`, which
+  // comes from `vertexColors` on the material — and `vertexColors` also makes
+  // the vertex shader run `vColor *= color` against a geometry attribute a
+  // sphere has no reason to carry. Missing, that attribute reads as (0,0,0)
+  // and every instance renders black whatever `setColorAt` was given. Ones
+  // here leave `vColor` as the instance colour and nothing else.
   const geometry = useMemo(() => {
-    const world = positionsToWorld(heatmap.positionsUm, matrix)
-    const buffer = new BufferGeometry()
-    buffer.setAttribute('position', new BufferAttribute(world, 3))
-    buffer.setAttribute('color', new BufferAttribute(heatmapColors(heatmap), 3))
-    buffer.computeBoundingSphere()
-    return buffer
-  }, [heatmap, matrix])
+    const sphere = new SphereGeometry(1, 16, 12)
+    const vertices = sphere.getAttribute('position').count
+    sphere.setAttribute('color', new BufferAttribute(new Float32Array(vertices * 3).fill(1), 3))
+    return sphere
+  }, [])
 
   useEffect(() => () => geometry.dispose(), [geometry])
 
-  if (heatmap.pointCount === 0) return null
+  useEffect(() => {
+    const mesh = ref.current
+    if (!mesh) return
+
+    const placement = new Object3D()
+    const color = new Color()
+
+    blobs.blobs.forEach((blob, index) => {
+      placement.position.copy(stereotaxicToWorld(blob.centre))
+      placement.scale.setScalar(blob.radiusMm)
+      placement.updateMatrix()
+      mesh.setMatrixAt(index, placement.matrix)
+
+      const [r, g, b] = heatColor(blob.normalised)
+      mesh.setColorAt(index, color.setRGB(r, g, b))
+    })
+
+    mesh.count = blobs.blobs.length
+    mesh.instanceMatrix.needsUpdate = true
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
+  }, [blobs])
+
+  if (blobs.blobs.length === 0) return null
 
   return (
-    <points geometry={geometry} renderOrder={2}>
-      {/*
-        Not additive, which was the first thing tried and was wrong in a way
-        that looked good: overlapping voxels summed, so a thick region blew out
-        to white and the colour encoded how much tissue lay along the view ray
-        rather than how strong the input was. The whole brain read as a hub.
-
-        Plain blending with depth means a pixel shows the nearest painted
-        voxel, so its colour is a strength and nothing else. The cost is
-        occlusion — an interior hub hides behind the cortex in front of it —
-        which is what the opacity control is for, and why the view orbits with
-        the main one rather than being a fixed picture.
-      */}
-      <pointsMaterial
-        size={pointSizeMm}
-        sizeAttenuation
+    <instancedMesh
+      key={blobs.blobs.length}
+      ref={ref}
+      args={[geometry, undefined, blobs.blobs.length]}
+      renderOrder={2}
+    >
+      <meshBasicMaterial
         vertexColors
         transparent={opacity < 1}
         opacity={opacity}
-        depthWrite={opacity > 0.9}
+        depthWrite={false}
       />
-    </points>
+    </instancedMesh>
   )
 }
 
@@ -316,14 +352,14 @@ function HeatRoutes({
 function HeatScene({
   atlas,
   profile,
-  heatmap,
+  blobs,
   routeSources,
   injectionSites,
   target,
 }: {
   atlas: LoadedAtlas
   profile: CoordinateProfile
-  heatmap: RetrogradeHeatmap | null
+  blobs: InjectionBlobs | null
   routeSources: readonly RetrogradeSource[]
   injectionSites: readonly Stereotaxic[]
   target: Stereotaxic | null
@@ -342,13 +378,8 @@ function HeatScene({
 
       <BrainShell matrix={matrix} />
 
-      {backtrace.heatMode === 'regions' && heatmap && (
-        <HeatPoints
-          heatmap={heatmap}
-          matrix={matrix}
-          opacity={backtrace.heatOpacity}
-          pointSizeMm={backtrace.heatPointSizeMm}
-        />
+      {backtrace.heatMode === 'regions' && blobs && (
+        <InjectionSpheres blobs={blobs} opacity={backtrace.heatOpacity} />
       )}
 
       {backtrace.heatMode === 'routes' && (
@@ -368,7 +399,7 @@ function HeatScene({
 export function HeatmapViewport({
   atlas,
   profile,
-  heatmap,
+  blobs,
   routeSources,
   injectionSites,
   target,
@@ -376,7 +407,7 @@ export function HeatmapViewport({
 }: {
   atlas: LoadedAtlas
   profile: CoordinateProfile
-  heatmap: RetrogradeHeatmap | null
+  blobs: InjectionBlobs | null
   routeSources: readonly RetrogradeSource[]
   /** Where every experiment in the current answer was injected. */
   injectionSites: readonly Stereotaxic[]
@@ -394,7 +425,7 @@ export function HeatmapViewport({
         <HeatScene
           atlas={atlas}
           profile={profile}
-          heatmap={heatmap}
+          blobs={blobs}
           routeSources={routeSources}
           injectionSites={injectionSites}
           target={target}

@@ -11,17 +11,13 @@
 
 import { describe, expect, it } from 'vitest'
 
-import { AnnotationVolume } from '../atlas/annotation.ts'
 import { buildIndex, type Structure } from '../atlas/ontology.ts'
-import { makeVolumeSpace } from '../atlas/space.ts'
 import {
-  DEFAULT_HEATMAP_OPTIONS,
   HEATMAP_MODE_LABEL,
-  backtraceStrengths,
-  buildRetrogradeHeatmap,
+  MIN_BLOB_RADIUS_MM,
+  buildInjectionBlobs,
   buildRouteHeat,
   heatColor,
-  heatmapColors,
   strengthForStructure,
   type HeatmapMode,
 } from './heatmap.ts'
@@ -44,45 +40,23 @@ const STRUCTURES: Structure[] = [
 
 const INDEX = buildIndex(STRUCTURES)
 
-/**
- * A 4x4x4 volume: one quadrant CA3sp, one RT, the rest root and unlabelled.
- *
- * Laid out by hand so the expected point counts can be reasoned about rather
- * than read back out of the function under test.
- */
-/** Both halves given the same values, when a test is not about laterality. */
-function bothSides(map: Map<number, number>) {
-  return { ipsi: map, contra: map }
-}
-
-/**
- * Compare colours with tolerance.
- *
- * The buffers are Float32Array, so a stop written as 0.92 reads back as
- * 0.9200000166893005 and an exact comparison fails on the storage format
- * rather than on anything about the colour.
- */
-function expectColor(actual: ArrayLike<number>, expected: readonly number[]) {
-  expect(actual.length).toBe(expected.length)
-  for (let i = 0; i < expected.length; i++) {
-    expect(actual[i]).toBeCloseTo(expected[i]!, 5)
-  }
-}
-
-function miniVolume(): AnnotationVolume {
-  const space = makeVolumeSpace([4, 4, 4], 50, 'asl')
-  const labels = new Uint32Array(4 * 4 * 4)
-  // NRRD order: first axis fastest.
-  const at = (i0: number, i1: number, i2: number) => i0 + 4 * (i1 + 4 * i2)
-  for (let i0 = 0; i0 < 4; i0++) {
-    for (let i1 = 0; i1 < 4; i1++) {
-      for (let i2 = 0; i2 < 4; i2++) {
-        labels[at(i0, i1, i2)] = i0 < 2 ? 3821 : i1 < 2 ? 262 : 997
-      }
-    }
-  }
-  return new AnnotationVolume(space, labels)
-}
+/** A back-trace source with only the fields the blob builder reads. */
+const blobSource = (over: {
+  id?: number
+  abbrev?: string
+  ml?: number
+  density?: number
+  radius?: number | null
+  centre?: boolean
+}) =>
+  ({
+    experimentId: over.id ?? 1,
+    structureAbbrev: over.abbrev ?? 'CA3',
+    densityAtTarget: over.density ?? 0.5,
+    injectionRadiusMm: over.radius === undefined ? 0.3 : over.radius,
+    injectionCentre:
+      over.centre === false ? null : { ap: -2, ml: over.ml ?? -1.5, dv: -2 },
+  }) as never
 
 describe('strengthForStructure', () => {
   it('matches a leaf voxel to the ancestor that was injected', () => {
@@ -115,76 +89,6 @@ describe('strengthForStructure', () => {
   })
 })
 
-describe('buildRetrogradeHeatmap', () => {
-  const volume = miniVolume()
-
-  it('paints only the voxels under a source', () => {
-    const heatmap = buildRetrogradeHeatmap(volume, INDEX, bothSides(new Map([[382, 0.9]])), {
-      stride: 1,
-    })
-    // Half the volume is CA3sp: 2 of 4 along the first axis.
-    expect(heatmap.pointCount).toBe(32)
-    expect(heatmap.maxStrength).toBeCloseTo(0.9, 6)
-    expect(heatmap.paintedStructureIds).toEqual([382])
-  })
-
-  it('emits voxel centres, not corners', () => {
-    // Half a voxel matters: a corner is 25 um off the tissue it stands for.
-    const heatmap = buildRetrogradeHeatmap(volume, INDEX, bothSides(new Map([[382, 0.9]])), {
-      stride: 1,
-    })
-    expect(heatmap.positionsUm[0]).toBeCloseTo(25, 6)
-    expect(heatmap.positionsUm[1]).toBeCloseTo(25, 6)
-    expect(heatmap.positionsUm[2]).toBeCloseTo(25, 6)
-  })
-
-  it('carries each voxel its own structure strength', () => {
-    const heatmap = buildRetrogradeHeatmap(volume, INDEX, bothSides(new Map([
-        [382, 0.9],
-        [262, 0.3],
-      ])), { stride: 1 },
-    )
-    const values = new Set([...heatmap.strengths].map((v) => Number(v.toFixed(3))))
-    expect(values).toEqual(new Set([0.9, 0.3]))
-    expect(heatmap.maxStrength).toBeCloseTo(0.9, 6)
-  })
-
-  it('reports sources it could not paint', () => {
-    // A named source the volume does not carry has to be visible as a gap,
-    // not silently absent from a map that looks complete.
-    const heatmap = buildRetrogradeHeatmap(volume, INDEX, bothSides(new Map([[262, 0.3], [999999, 0.5]])), {
-      stride: 1,
-    })
-    expect(heatmap.paintedStructureIds).toEqual([262])
-    expect(heatmap.unpaintedStructureIds).toEqual([999999])
-  })
-
-  it('raises the stride rather than thinning the cloud at random', () => {
-    // Dropping points at random would thin a dense hub and a faint one by the
-    // same fraction, which looks like a measurement and is not.
-    const heatmap = buildRetrogradeHeatmap(volume, INDEX, bothSides(new Map([[382, 0.9]])), {
-      stride: 1,
-      maxPoints: 10,
-    })
-    expect(heatmap.stride).toBeGreaterThan(1)
-    expect(heatmap.pointCount).toBeLessThanOrEqual(10)
-  })
-
-  it('is empty when nothing matches', () => {
-    const heatmap = buildRetrogradeHeatmap(volume, INDEX, bothSides(new Map()), { stride: 1 })
-    expect(heatmap.pointCount).toBe(0)
-    expect(heatmap.maxStrength).toBe(0)
-    expect(heatmapColors(heatmap)).toHaveLength(0)
-  })
-
-  it('samples at the data resolution by default, not finer', () => {
-    // The connectivity volumes are published at 100 um and the annotation is
-    // 50 um; sampling finer than the data costs eight times the points for
-    // the same information.
-    expect(DEFAULT_HEATMAP_OPTIONS.stride).toBe(2)
-  })
-})
-
 describe('the heat ramp', () => {
   it('rises in luminance from end to end', () => {
     // So the ordering survives greyscale and a colour-blind reader, which a
@@ -203,40 +107,38 @@ describe('the heat ramp', () => {
     expect(heatColor(5)).toEqual(heatColor(1))
   })
 
-  it('stretches between the lowest and highest value present', () => {
-    // Normalising from zero was the first version and was wrong for counts:
-    // they run 1 to 115 with most regions between 60 and 110, so nearly the
-    // whole brain landed at the top of the ramp with nothing to stand out
-    // from. Stretched, the weakest region sits at the bottom stop.
-    const heatmap = buildRetrogradeHeatmap(miniVolume(), INDEX, bothSides(new Map([
-        [382, 110],
-        [262, 60],
-      ])), { stride: 1 },
-    )
-    const colors = heatmapColors(heatmap)
-    const strongIndex = [...heatmap.strengths].indexOf(110)
-    const weakIndex = [...heatmap.strengths].indexOf(60)
-
-    expect(heatmap.minStrength).toBe(60)
-    expect(heatmap.maxStrength).toBe(110)
-    expectColor(colors.slice(strongIndex * 3, strongIndex * 3 + 3), heatColor(1))
-    expectColor(colors.slice(weakIndex * 3, weakIndex * 3 + 3), heatColor(0))
+  it('normalises a blob from zero, against the strongest present', () => {
+    // From zero rather than stretched between weakest and strongest, which is
+    // what the structure maps do. A count of 60 out of 110 is not "55% of a
+    // hub" — counts have no meaningful zero. A projection density does: zero
+    // is no projection, so the weakest source should look as weak as it is.
+    const { blobs } = buildInjectionBlobs([
+      blobSource({ id: 1, density: 0.4 }),
+      blobSource({ id: 2, density: 0.1 }),
+    ])
+    expect(blobs[0]!.normalised).toBeCloseTo(1, 5)
+    expect(blobs[1]!.normalised).toBeCloseTo(0.25, 5)
   })
 
   it('puts a single value at the top rather than dividing by zero', () => {
-    const flat = buildRetrogradeHeatmap(miniVolume(), INDEX, bothSides(new Map([[382, 0.08]])), {
-      stride: 1,
-    })
-    expectColor(heatmapColors(flat).slice(0, 3), heatColor(1))
+    const { blobs } = buildInjectionBlobs([blobSource({ density: 0.08 })])
+    expect(blobs[0]!.normalised).toBeCloseTo(1, 5)
   })
 
   it('does not care what scale the values are on', () => {
-    // The same shape of answer, in counts or in densities, paints the same.
-    const counts = buildRetrogradeHeatmap(miniVolume(), INDEX, bothSides(new Map([[382, 110], [262, 60]])), { stride: 1 },
+    // The same shape of answer paints the same, in densities or in anything
+    // proportional to them.
+    const small = buildInjectionBlobs([
+      blobSource({ id: 1, density: 0.11 }),
+      blobSource({ id: 2, density: 0.06 }),
+    ])
+    const large = buildInjectionBlobs([
+      blobSource({ id: 1, density: 110 }),
+      blobSource({ id: 2, density: 60 }),
+    ])
+    expect(small.blobs.map((b) => b.normalised)).toEqual(
+      large.blobs.map((b) => b.normalised),
     )
-    const densities = buildRetrogradeHeatmap(miniVolume(), INDEX, bothSides(new Map([[382, 0.11], [262, 0.06]])), { stride: 1 },
-    )
-    expectColor(heatmapColors(counts), [...heatmapColors(densities)])
   })
 })
 
@@ -317,61 +219,68 @@ describe('buildRouteHeat', () => {
   })
 })
 
-describe('the one orientation convention', () => {
-  it('leaves the cloud no way to disagree with the sections', () => {
-    // The regression this guards: HeatmapOptions carried an `ipsiOnLeft` that
-    // defaulted the other way, so the 3D cloud painted its ipsilateral half on
-    // the right while every section beside it painted theirs on the left — and
-    // the grey injection dots, which come straight from the coordinates, sat
-    // on the half the colours said was contralateral.
-    expect('ipsiOnLeft' in DEFAULT_HEATMAP_OPTIONS).toBe(false)
-  })
-})
+describe('buildInjectionBlobs', () => {
+  const source = blobSource
 
-describe('backtraceStrengths', () => {
-  const source = (
-    structureId: number,
-    densityAtTarget: number,
-    ml: number | null,
-  ) => ({
-    structureId,
-    densityAtTarget,
-    injectionCentre: ml === null ? null : { ml },
-  })
-
-  it('keeps each structure its strongest experiment', () => {
-    // One value per structure, for the reason the hub map keeps one: nine
-    // injections into a region would otherwise read as nine times the source.
-    const { ipsi } = backtraceStrengths([
-      source(463, 0.2, -1.5),
-      source(463, 0.9, -2.0),
-      source(463, 0.4, -1.0),
+  it('places one blob per experiment at its own coordinate', () => {
+    // Per experiment, not per structure: six CA3 injections into one field are
+    // six overlapping spheres, which is what six experiments look like. The
+    // version this replaced collapsed them to one value and flooded CA3.
+    const built = buildInjectionBlobs([
+      source({ id: 1, ml: -1.5 }),
+      source({ id: 2, ml: -1.9 }),
+      source({ id: 3, ml: -2.3 }),
     ])
-    expect(ipsi.get(463)).toBeCloseTo(0.9)
+    expect(built.blobs.map((b) => b.experimentId)).toEqual([1, 2, 3])
+    expect(built.blobs.map((b) => b.centre.ml)).toEqual([-1.5, -1.9, -2.3])
+    // One structure, three blobs — the distinction the caption needs.
+    expect(built.structureCount).toBe(1)
   })
 
-  it('paints a source in the hemisphere its needle went into', () => {
-    // Not the hemisphere it is ipsilateral *to* — the colour belongs where the
-    // tracer was, which is what makes the grey injection dots line up with it.
-    const { ipsi, contra } = backtraceStrengths([
-      source(463, 0.5, -1.5),
-      source(549, 0.6, 2.0),
+  it('sizes a blob by its reported volume', () => {
+    const [big, small] = buildInjectionBlobs([
+      source({ id: 1, radius: 0.5 }),
+      source({ id: 2, radius: 0.2 }),
+    ]).blobs
+    expect(big!.radiusMm).toBeCloseTo(0.5, 5)
+    expect(small!.radiusMm).toBeCloseTo(0.2, 5)
+  })
+
+  it('floors a tiny or missing radius so the experiment stays findable', () => {
+    // Allen reports volumes down to a 0.08 mm sphere. Drawn true to size it is
+    // a couple of pixels; the colour, not the size, is carrying the strength.
+    const built = buildInjectionBlobs([
+      source({ id: 1, radius: 0.01 }),
+      source({ id: 2, radius: null }),
     ])
-    expect(ipsi.get(463)).toBeCloseTo(0.5)
-    expect(ipsi.has(549)).toBe(false)
-    expect(contra.get(549)).toBeCloseTo(0.6)
+    for (const blob of built.blobs) expect(blob.radiusMm).toBe(MIN_BLOB_RADIUS_MM)
   })
 
-  it('skips an experiment with no reported injection centre', () => {
-    // There is nowhere to paint it, and guessing a hemisphere would put a real
-    // number on the wrong half of the brain.
-    const { ipsi, contra } = backtraceStrengths([source(463, 0.5, null)])
-    expect(ipsi.size).toBe(0)
-    expect(contra.size).toBe(0)
+  it('skips an experiment with no reported centre', () => {
+    // There is nowhere to put it, and the centre of the named structure would
+    // be a guess dressed as a measurement.
+    expect(buildInjectionBlobs([source({ centre: false })]).blobs).toHaveLength(0)
   })
 
-  it('is empty for no sources, so the view can say "trace first"', () => {
-    const { ipsi, contra } = backtraceStrengths([])
-    expect(ipsi.size + contra.size).toBe(0)
+  it('skips an experiment with no strength at the target', () => {
+    expect(buildInjectionBlobs([source({ density: 0 })]).blobs).toHaveLength(0)
+  })
+
+  it('reports the range the ramp is normalised against', () => {
+    const built = buildInjectionBlobs([
+      source({ id: 1, density: 0.02, abbrev: 'CA3' }),
+      source({ id: 2, density: 0.4, abbrev: 'DG' }),
+      source({ id: 3, density: 0.11, abbrev: 'DG' }),
+    ])
+    expect(built.minStrength).toBeCloseTo(0.02, 5)
+    expect(built.maxStrength).toBeCloseTo(0.4, 5)
+    expect(built.structureCount).toBe(2)
+  })
+
+  it('reports a zero range for nothing, so the caption can say so', () => {
+    const built = buildInjectionBlobs([])
+    expect(built.blobs).toHaveLength(0)
+    expect(built.minStrength).toBe(0)
+    expect(built.maxStrength).toBe(0)
   })
 })
