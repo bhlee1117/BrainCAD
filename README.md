@@ -351,42 +351,18 @@ both.** The sections carry the connectome-wide hub map, which does not move
 when the target moves. The second brain carries *this* target's own answer,
 which does:
 
-- **Injections** draws one sphere per experiment, at its reported coordinate
-  and at its reported size, coloured by its projection density at the target.
-  Half a millimetre away it is a different picture.
+- **Regions** paints every source by its projection density at the target —
+  how hard each region drives this coordinate. Half a millimetre away it is a
+  different picture.
 - **Routes** draws the traced paths into the target instead.
-It used to paint this per *structure*, the way the sections do, and it looked
-wrong in a way worth recording: it flooded each experiment's primary injection
-structure with one value, so a single CA3 injection coloured the whole of CA3 —
-the millimetre beside the pipette and the far end of the field alike — and
-every edge on screen fell on an annotation boundary. The picture looked like a
-map of the parcellation because that is what it was.
-
-Flooding is the right rendering for a measure published per parcel, which is
-what the sections' hub map is. It is the wrong one here, because these
-experiments have coordinates: `injection-coordinates` says where the needle
-went and `injection-volume` says how much came out. A sphere at that point and
-that size is coarser in one sense and far finer in the one that matters, and
-six CA3 injections into one field now show as six overlapping spheres rather
-than as one flat parcel. It is still a model — Allen reports a volume, not an
-extent, so the radius is sphere-equivalent while a real injection runs long
-along the pipette track.
-
-The colour is normalised from zero against the strongest blob present, which is
-the opposite of what the structure maps do and right for the opposite reason. A
-count of 60 out of 110 is not "55% of a hub", so counts are stretched between
-the weakest and the strongest; a projection density has a meaningful zero, so
-the weakest source here sits near the bottom of the ramp and looks as weak as
-it is.
-
-The two halves of that brain carry different things, which is what makes the
-view worth having:
-
-- **Left** — the answer. The back-trace's own sources are all injected on the
-  left under the default side filter, so that half is free for them.
-- **Right** — the sampling. All 2,915 injection sites in the corpus, every one
-  mirrored onto that side, as translucent grey dots at low opacity so overlap
-  reads as density rather than saturating.
+Behind the colours, in the same hemisphere, are **all 2,915 injection sites in
+the corpus** — every one mirrored onto the right, as translucent grey dots at
+low opacity so overlap reads as density rather than saturating. The two layers
+coincide on purpose. The back-trace's own sources are right-injected too under
+the default filter, so the coloured regions are a visible *subset* of the dots:
+a bright region sitting in a dense patch of grey was found by many needles, one
+sitting almost alone rests on a single experiment, and a patch of grey with no
+colour on it was sampled and found nothing.
 
 The colours alone have a blind spot they cannot show: a dark region is dark
 either because nothing projects from it or because nobody ever put a needle
@@ -440,7 +416,7 @@ deposits 0.089 in one CA1 and 0.216 in the other. Both hemispheres are fetched
 and each experiment's own injection side decides which is ipsilateral, which
 matters because Allen injects the right hemisphere in 81% of this corpus.
 
-**One convention: the left hemisphere is the injection side.** Mirroring every
+**One convention: the right hemisphere is the injection side.** Mirroring every
 experiment leaves an aggregate with an injected half and an other half and no
 left or right of its own, so which way round to draw it is a choice — and for a
 while it was a choice made twice. The sections named their halves `ipsi` and
@@ -449,26 +425,31 @@ in raw anatomy. Two frames on one screen, and the words on the sections kept
 contradicting the lines above them.
 
 Now there is one rule and the sections do not carry laterality labels at all.
-The hub map is drawn with its injected half on the left — the voxel grain reads
-the mirrored voxel out of the one stored blob, the structure grain picks the
-matching column, and the caption says what the halves are rather than labelling
-them on the image. Ipsilateral and contralateral belong to the 3D view alone.
+The right is the side two independent things already agreed on: Allen put 75%
+of the needles there without any mirroring, and the corpus-wide injection dots
+on the second brain are mirrored onto it, so the one unmirrored layer in the
+view and the convention point the same way. `INJECTED_SIDE_IS_RIGHT` is the
+single place it is written down.
 
-**And in the 3D view they are read off the target, because the sources on
-screen really are injected on the left.** The back-trace filters to
-left-hemisphere injections, so there is nothing to mirror and nothing claimed
-that is not in the data:
+**In the 3D view, ipsilateral and contralateral are read off the target,
+because the sources on screen really are injected on the right.** The
+back-trace filters to right-hemisphere injections, so there is nothing to
+mirror and nothing claimed that is not in the data:
 
-- Target in the **left** hemisphere — the sources are on its own side, so the
+- Target in the **right** hemisphere — the sources are on its own side, so the
   view is its **ipsilateral** input.
-- Target in the **right** hemisphere — the sources reach it across the midline,
+- Target in the **left** hemisphere — the sources reach it across the midline,
   so the view is its **contralateral** input.
 
-Moving the target across is the whole of the ipsi/contra control; there is no
-button, because there is nothing a button could set that the coordinate does
-not already say. At dorsal CA1 it is 13 experiments on the right against 15 on
-the left, out of 70 and 44 traced — contralateral input is genuinely rarer, and
-the count says so instead of a caption. A target exactly on the midline is on
+Moving the target across is the default control, and the counts say what the
+labels would only assert: at dorsal CA1 it is 21 source regions on the right
+against 12 on the left, because contralateral input is genuinely rarer.
+
+**The default is a default, not a rule.** `Ipsilateral only` and
+`Contralateral only` override it, which is how a right-hemisphere target is
+asked for its contralateral input anyway — 8 regions instead of 21 at dorsal
+CA1, drawn in the left hemisphere where those needles actually went, with the
+grey sampling dots staying on the right. A target exactly on the midline is on
 neither side and the filter is not applied.
 
 What this does *not* do is move sources. A source is ipsilateral or

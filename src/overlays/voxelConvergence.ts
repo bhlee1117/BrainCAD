@@ -21,8 +21,9 @@
  *    injected half and an other half and no left or right of its own. Raw, the
  *    brightness on whichever side the needle went in is a fact about the
  *    method; mirrored, the two halves are the ipsilateral and contralateral
- *    parts of one answer, and `IPSI_ON_LEFT` puts the injected one on the left
- *    so the sections and the traced routes agree.
+ *    parts of one answer, and `INJECTED_SIDE_IS_RIGHT` puts the injected one on
+ *    the right so the sections, the traced routes and the grey injection dots
+ *    all agree.
  *  - **White matter lights up, correctly.** A tract carries the axons of many
  *    sources, so it genuinely has high convergence by this measure — it is
  *    just convergence of *passage* rather than of termination. The structure
@@ -204,8 +205,8 @@ export function voxelIndexFor(
 
 /** Caveats carried wherever the voxel map is shown. */
 export const VOXEL_CAVEATS: readonly string[] = [
-  'The left half is the injected hemisphere: every experiment is mirrored so its ' +
-    'injection lies on one side, and that side is drawn on the left. 534 of 2,826 ' +
+  'The right half is the injected hemisphere: every experiment is mirrored so its ' +
+    'injection lies on one side, and that side is drawn on the right. 534 of 2,826 ' +
     'experiments were mirrored when the blob was built.',
   'White matter is genuinely bright — a tract carries the axons of many sources. That is ' +
     'convergence of passage, not of termination.',

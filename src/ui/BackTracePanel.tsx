@@ -431,22 +431,24 @@ export function BackTracePanel({
             }
           >
             <option value="auto">
-              Injections on the left — {SIDE_LABEL[side === 'all' ? 'ipsi' : side]} by
+              Injections on the right — {SIDE_LABEL[side === 'all' ? 'ipsi' : side]} by
               where the target is
             </option>
             <option value="all">Both sides</option>
-            <option value="ipsi">Ipsilateral only</option>
-            <option value="contra">Contralateral only</option>
+            <option value="ipsi">Ipsilateral only — override</option>
+            <option value="contra">Contralateral only — override</option>
           </select>
         </div>
         <p className="hint" style={{ marginTop: 0 }}>
           {backtrace.sourceSide === 'auto' ? (
             <>
-              Every injection on screen is in the <b>left</b> hemisphere, so the target
-              decides what you are looking at: on the left it is reached from its own
-              side and you see its <b>ipsilateral</b> input; on the right it is reached
-              across the midline and you see its <b>contralateral</b> input. Move the
-              target across to swap between the two.
+              Every injection on screen is in the <b>right</b> hemisphere, which is
+              where Allen put 75% of them, so the target decides what you are looking
+              at: on the right it is reached from its own side and you see its{' '}
+              <b>ipsilateral</b> input; on the left it is reached across the midline and
+              you see its <b>contralateral</b> input. Move the target across to swap
+              between the two, or pick an override below to ask a right-hemisphere
+              target for its contralateral sources anyway.
               {coord.ml === 0
                 ? ' The target is on the midline, which is neither side, so everything is shown.'
                 : ` The target is at ML ${coord.ml.toFixed(2)}, so these are its
@@ -454,9 +456,11 @@ export function BackTracePanel({
             </>
           ) : (
             <>
-              Read off each experiment&rsquo;s own injection against the target&rsquo;s,
-              so it is a fact about that pair rather than a guess from where Allen
-              usually injects.
+              Overriding the target&rsquo;s own side. Read off each experiment&rsquo;s
+              injection against the target&rsquo;s, so it is a fact about that pair
+              rather than a guess from where Allen usually injects — which is how a
+              right-hemisphere target can be asked for its contralateral input, drawn in
+              the left hemisphere where those needles actually went.
               {coord.ml === 0 &&
                 ' The target is on the midline, where neither side is defined, so the filter is empty.'}
             </>
@@ -617,8 +621,10 @@ export function BackTracePanel({
                     with it — unlike the section views, which paint the connectome-wide
                     hub map and do not. Its <b>left</b> half carries that answer; its
                     <b>right</b> half carries all 2,915 injection sites in the corpus,
-                    mirrored onto one side. A region with no colour and no dots in it
-                    was never injected, which is not the same as not projecting here.
+                    mirrored onto that side — the same side the sources themselves are
+                    on, so the colours are a visible subset of the dots. A region with
+                    no colour and no dots in it was never injected, which is not the
+                    same as not projecting here.
                   </p>
                 </>
               )}

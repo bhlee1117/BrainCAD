@@ -94,42 +94,52 @@ export type ConvergenceMetric = 'count' | 'mean'
 export type Side = 'ipsi' | 'contra'
 
 /**
- * The screen's one laterality convention: **the left hemisphere is the
+ * The screen's one laterality convention: **the right hemisphere is the
  * injection side**.
  *
  * Every experiment in the hub map was mirrored onto one hemisphere when the
  * asset was built, so the map has an injected half and an other half and no
- * left or right of its own. Pinning the injected half to the left makes the
- * sections agree with the 3D view, where the sources on screen are the ones
- * actually injected on the left — and once both follow the same rule there is
- * nothing left for the sections to label.
+ * left or right of its own; pinning that half to one side is a choice, and the
+ * choice is the right, for two reasons that agree. Allen injects the right
+ * hemisphere in 75% of the corpus, so it is where the needles mostly were
+ * without any mirroring at all. And the corpus-wide injection sites drawn on
+ * the second brain are mirrored onto the right, so every grey dot on screen is
+ * there — a convention that disagreed with the one unmirrored layer in the
+ * view would be the same mistake twice.
  *
  * An earlier build let the sections swap their halves and name them `ipsi` and
- * `contra`, which put a second, moving frame on the screen beside the fixed
- * one the routes are drawn in. Ipsilateral and contralateral are now a
- * property of the 3D view alone, read off where the target sits relative to
- * this one convention: a target in the left hemisphere is on the same side as
- * the injections and sees its ipsilateral input, a target on the right sees
- * its contralateral input.
+ * `contra`, which put a second, moving frame on screen beside the fixed one
+ * the routes are drawn in. Ipsilateral and contralateral are a property of the
+ * 3D view alone, read off where the target sits relative to this one
+ * convention: a target in the right hemisphere is on the same side as the
+ * injections and sees its ipsilateral input, a target on the left sees its
+ * contralateral input.
  */
-export const IPSI_ON_LEFT = true
+export const INJECTED_SIDE_IS_RIGHT = true
+
+/** Whether the injected — ipsilateral — half is drawn on the animal's left. */
+export const IPSI_ON_LEFT = !INJECTED_SIDE_IS_RIGHT
 
 /**
- * Which side of the target the 3D view should show, from where the target is.
+ * Which side of the target the 3D view shows by default, from where it sits.
  *
- * The whole of the ipsi/contra choice, and it is made by moving the target
- * rather than by a control: injections are on the left, so a target there is
- * reached from its own side and a target on the right is reached across the
- * midline. Both filters leave only left-injected experiments on screen, which
- * is what makes the convention true rather than merely claimed.
+ * Made by moving the target rather than by a control: injections are on the
+ * right, so a target there is reached from its own side and a target on the
+ * left is reached across the midline. Either way the filter leaves only
+ * right-injected experiments on screen, which is what makes the convention
+ * true rather than merely claimed.
+ *
+ * It is a default, not a rule — the panel's own `ipsi`/`contra` options
+ * override it, which is how you ask a right-hemisphere target for its
+ * contralateral input instead.
  *
  * A target exactly on the midline is on neither side, and gets everything
  * rather than an arbitrary half.
  */
 export function autoSourceSide(target: { ml: number }): Side | 'all' {
-  if (target.ml < 0) return 'ipsi'
-  if (target.ml > 0) return 'contra'
-  return 'all'
+  if (target.ml === 0) return 'all'
+  const onTheInjectedSide = INJECTED_SIDE_IS_RIGHT ? target.ml > 0 : target.ml < 0
+  return onTheInjectedSide ? 'ipsi' : 'contra'
 }
 
 /**
@@ -341,9 +351,9 @@ export function formatConvergence(metric: ConvergenceMetric, value: number): str
 export const CONVERGENCE_CAVEATS: readonly string[] = [
   'A property of the Allen connectome, not of your target — moving the target does not ' +
     'change this map. The target is drawn only as a reference mark.',
-  'The left half is the injected hemisphere: every experiment is read relative to its ' +
+  'The right half is the injected hemisphere: every experiment is read relative to its ' +
     'own injection, so the map has no left and right of its own and is drawn with the ' +
-    'injected side on the left, as the traced routes are.',
+    'injected side on the right, as the traced routes and the grey dots are.',
   'Anterograde data, so "projects into" is bulk signal detected in the region and counts ' +
     'fibres passing through the same as terminals.',
   'One value per source region, its strongest experiment — counting experiments would ' +

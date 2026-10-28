@@ -133,17 +133,18 @@ describe('convergenceStrengths', () => {
 describe('voxelSide', () => {
   const space = makeVolumeSpace([264, 160, 228], 50, 'asl')
 
-  it('calls the left half ipsilateral, which is the screen convention', () => {
-    // IPSI_ON_LEFT is the whole of it: the injected half is drawn on the left
-    // so that the sections and the 3D routes describe the same hemisphere.
-    expect(IPSI_ON_LEFT).toBe(true)
-    expect(voxelSide(space, { i0: 100, i1: 80, i2: 10 })).toBe('ipsi')
-    expect(voxelSide(space, { i0: 100, i1: 80, i2: 220 })).toBe('contra')
+  it('calls the right half ipsilateral, which is the screen convention', () => {
+    // The injected half is drawn on the right — where Allen put 75% of the
+    // needles without any mirroring, and where the corpus-wide grey dots are —
+    // so the sections, the routes and the dots describe the same hemisphere.
+    expect(IPSI_ON_LEFT).toBe(false)
+    expect(voxelSide(space, { i0: 100, i1: 80, i2: 220 })).toBe('ipsi')
+    expect(voxelSide(space, { i0: 100, i1: 80, i2: 10 })).toBe('contra')
   })
 
   it('can still be asked for the other orientation', () => {
-    expect(voxelSide(space, { i0: 100, i1: 80, i2: 220 }, false)).toBe('ipsi')
-    expect(voxelSide(space, { i0: 100, i1: 80, i2: 10 }, false)).toBe('contra')
+    expect(voxelSide(space, { i0: 100, i1: 80, i2: 10 }, true)).toBe('ipsi')
+    expect(voxelSide(space, { i0: 100, i1: 80, i2: 220 }, true)).toBe('contra')
   })
 
   it('reflects a voxel across the ML axis and nothing else', () => {
@@ -151,7 +152,7 @@ describe('voxelSide', () => {
     expect(there).toEqual({ i0: 100, i1: 80, i2: 7 })
     // An involution, so a reflected read is the same answer the other way up.
     expect(reflectVoxel(space, there)).toEqual({ i0: 100, i1: 80, i2: 220 })
-    expect(voxelSide(space, there)).toBe('ipsi')
+    expect(voxelSide(space, there)).toBe('contra')
   })
 
   it('follows the ML direction of the volume rather than the index', () => {
@@ -159,20 +160,20 @@ describe('voxelSide', () => {
     // other hemisphere. Hard-coding "high index is right" would silently swap
     // ipsi and contra for any atlas stored the other way round.
     const flipped = makeVolumeSpace([264, 160, 228], 50, 'asr')
-    expect(voxelSide(flipped, { i0: 100, i1: 80, i2: 220 })).toBe('ipsi')
-    expect(voxelSide(flipped, { i0: 100, i1: 80, i2: 10 })).toBe('contra')
+    expect(voxelSide(flipped, { i0: 100, i1: 80, i2: 220 })).toBe('contra')
+    expect(voxelSide(flipped, { i0: 100, i1: 80, i2: 10 })).toBe('ipsi')
   })
 
   it('splits at the ML axis midpoint', () => {
-    expect(voxelSide(space, { i0: 0, i1: 0, i2: 113 })).toBe('ipsi')
-    expect(voxelSide(space, { i0: 0, i1: 0, i2: 114 })).toBe('contra')
+    expect(voxelSide(space, { i0: 0, i1: 0, i2: 113 })).toBe('contra')
+    expect(voxelSide(space, { i0: 0, i1: 0, i2: 114 })).toBe('ipsi')
   })
 
   it('agrees with the bundled voxel map about which side is which', () => {
     // The two grains are drawn side by side and compared by eye, so a
     // disagreement here would be read as a difference in the data.
-    expect(CONVERGENCE_CAVEATS.join(' ')).toMatch(/left half is the injected/i)
-    expect(VOXEL_CAVEATS.join(' ')).toMatch(/left half is the injected/i)
+    expect(CONVERGENCE_CAVEATS.join(' ')).toMatch(/right half is the injected/i)
+    expect(VOXEL_CAVEATS.join(' ')).toMatch(/right half is the injected/i)
   })
 })
 
@@ -204,16 +205,16 @@ describe('independence from the target', () => {
 })
 
 describe('autoSourceSide', () => {
-  it('shows a left-hemisphere target its ipsilateral input', () => {
-    // Injections are on the left, so a target there is on the side the tracer
+  it('shows a right-hemisphere target its ipsilateral input', () => {
+    // Injections are on the right, so a target there is on the side the tracer
     // was put — and filtering to ipsilateral leaves exactly those experiments.
-    expect(autoSourceSide({ ml: -1.5 })).toBe('ipsi')
+    expect(autoSourceSide({ ml: 1.5 })).toBe('ipsi')
   })
 
-  it('shows a right-hemisphere target its contralateral input', () => {
+  it('shows a left-hemisphere target its contralateral input', () => {
     // The same filter from the other side: the sources are still the ones
-    // injected on the left, and now they reach the target across the midline.
-    expect(autoSourceSide({ ml: 1.5 })).toBe('contra')
+    // injected on the right, and now they reach the target across the midline.
+    expect(autoSourceSide({ ml: -1.5 })).toBe('contra')
   })
 
   it('keeps everything for a target on the midline', () => {
@@ -223,7 +224,7 @@ describe('autoSourceSide', () => {
 
   it('swaps as the target crosses, with nothing in between', () => {
     const sides = [-2, -0.01, 0, 0.01, 2].map((ml) => autoSourceSide({ ml }))
-    expect(sides).toEqual(['ipsi', 'ipsi', 'all', 'contra', 'contra'])
+    expect(sides).toEqual(['contra', 'contra', 'all', 'ipsi', 'ipsi'])
   })
 })
 

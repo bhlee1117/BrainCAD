@@ -58,15 +58,19 @@ export function clearInjectionSitesCache(): void {
 /**
  * The sites as stereotaxic coordinates, all on one side.
  *
- * Mirrored onto the **right** hemisphere, which is the half the back-trace
- * leaves empty: its own sources are on the left by the side filter, so the two
- * halves of the second brain carry two different things and neither is drawn
- * over the other. Left is this target's answer; right is the sampling behind
- * every answer the tool can give.
+ * Mirrored onto the **right**, which is the screen's injected hemisphere and
+ * where 75% of them already were. That puts them on the same side as the
+ * back-trace's own sources, which the side filter also keeps right-injected —
+ * and the overlap is the point rather than a collision. The coloured regions
+ * are a *subset* of these dots: the experiments that happen to reach this
+ * target, drawn among every experiment there is. A coloured region sitting in
+ * a dense patch of grey was found by many needles; one sitting almost alone
+ * rests on a single experiment, and a dark patch of grey was sampled and found
+ * nothing.
  *
  * Mirroring is honest here for the same reason it is in the hub map — the
  * corpus is a set of experiments, not an animal, and which hemisphere each was
- * injected into is a fact about the method. 75% were already on the right.
+ * injected into is a fact about the method.
  *
  * Done through the profile rather than on the raw micrometres so the dots
  * follow the active coordinate profile, like everything else on screen.
@@ -96,8 +100,8 @@ export function injectionSitesToStereotaxic(
 export const INJECTION_CAVEATS: readonly string[] = [
   'One dot per experiment, at its reported injection centroid — a point standing for a ' +
     'volume that is elongated along the pipette track.',
-  'Mirrored onto the right hemisphere, so the left half stays free for the back-trace. ' +
-    '75% were injected on the right to begin with.',
+  'Mirrored onto the right hemisphere, the same side the back-trace keeps, so the ' +
+    'coloured regions are a visible subset of these dots. 75% were already there.',
   'A dark region with no dots in it was never injected, which is not the same as not ' +
     'projecting to the target.',
 ]

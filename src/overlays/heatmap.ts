@@ -1,33 +1,84 @@
 /**
- * What the second brain draws, and the ramp both maps share.
+ * Painting a per-structure strength onto anatomy.
  *
- * Three things live here, and the split matters:
+ * A ranked list answers "which structures are strong" precisely and cannot
+ * answer *where are the hubs?* — it cannot show that three of the top five are
+ * neighbours in one lobe, or that the strong ones sit in two widely separated
+ * places. Anatomy answers that, so the strength is painted onto anatomy.
  *
- *  - `strengthForStructure` resolves a structure-keyed measure for a voxel by
- *    walking up the ontology. The annotation labels voxels with leaves —
- *    "Field CA3, pyramidal layer" — while the measures are reported against
- *    coarser ones, "Field CA3", so matching on equality left most of the brain
- *    unpainted while the list beside it confidently named CA3. The section
- *    hub map is painted through this.
- *  - `buildInjectionBlobs` is the second brain's own answer, and deliberately
- *    *not* structure-keyed. See its own note.
- *  - `heatColor` is the shared ramp, monotonic in luminance so the ordering
- *    survives greyscale and a colour-blind reader.
+ * The strengths themselves come from elsewhere: the convergence matrix for the
+ * hub map, and in principle any structure-keyed measure. This module only
+ * knows how to turn one into a cloud of coloured voxels.
  *
- * An earlier version also painted a per-structure cloud onto the 3D brain,
- * which is what `strengthForStructure` was written for. It went when the
- * second brain stopped answering the connectome-wide question — the sections
- * do that, and better — and started answering this target's. A cloud that
- * floods whole parcels is the right picture for a measure published per
- * parcel; it is the wrong one for a set of injections that have coordinates.
+ * ## The grain is the ontology's, not the volume's
+ *
+ * Whatever the measure, it is reported per structure, so every voxel of CA3
+ * takes CA3's value. The map is a picture of the ontology coloured by
+ * strength, not a voxel-wise measurement — it shows hard edges exactly on
+ * structure boundaries, because that is where its information changes.
+ *
+ * ## Matching runs up the tree, not by equality
+ *
+ * The annotation volume labels voxels with leaf structures — "Field CA3,
+ * pyramidal layer" — while the measures are reported against coarser ones,
+ * "Field CA3". Matching on equality left most of the brain unpainted while the
+ * list beside it confidently named CA3. So each voxel walks its own
+ * root-to-leaf path from the leaf upward and takes the first ancestor that has
+ * a value, which is also the rule that makes a coarse source like "Isocortex"
+ * paint everything beneath it.
  */
 
+import type { AnnotationVolume } from '../atlas/annotation.ts'
+import { UNLABELLED } from '../atlas/annotation.ts'
 import type { Stereotaxic } from '../atlas/coords.ts'
+import {
+  IPSI_ON_LEFT,
+  voxelSide,
+  type Side,
+  type SidedStrengths,
+} from './convergence.ts'
 import type { StructureIndex } from '../atlas/ontology.ts'
-import type { RetrogradeSource } from './retrograde.ts'
 
 /** Strength of each source structure, keyed by Allen structure id. */
 export type StrengthByStructure = ReadonlyMap<number, number>
+
+export interface RetrogradeHeatmap {
+  /** Voxel centres in CCF micrometres, ready for `positionsToWorld`. */
+  readonly positionsUm: Float32Array
+  /** Strength at each point, on the metric's own scale. */
+  readonly strengths: Float32Array
+  readonly pointCount: number
+  /** Largest strength present, for normalising the colour ramp. */
+  readonly maxStrength: number
+  /** Smallest strength present; the ramp is stretched between the two. */
+  readonly minStrength: number
+  /** Structure ids that actually matched a voxel. */
+  readonly paintedStructureIds: readonly number[]
+  /** Source structures with a value that matched no voxel in the volume. */
+  readonly unpaintedStructureIds: readonly number[]
+  /** Voxel stride used, in voxels. */
+  readonly stride: number
+}
+
+export interface HeatmapOptions {
+  /**
+   * Sample every nth voxel along each axis.
+   *
+   * At 50 um a stride of 2 is a 100 um lattice, which matches the resolution
+   * the connectivity data is published at — sampling finer than the data would
+   * cost eight times the points to draw the same information.
+   */
+  stride?: number
+  /** Hard cap on points, raising the stride until the cloud fits under it. */
+  maxPoints?: number
+}
+
+export const DEFAULT_HEATMAP_OPTIONS: Required<HeatmapOptions> = {
+  stride: 2,
+  // A quarter of a million points is one draw call and renders comfortably;
+  // beyond it the gain is invisible because the points overlap anyway.
+  maxPoints: 250_000,
+}
 
 /**
  * The first ancestor of a structure that carries a strength, or null.
@@ -54,6 +105,122 @@ export function strengthForStructure(
   return null
 }
 
+/**
+ * Walk the annotation volume and emit every voxel belonging to a source.
+ *
+ * Runs on the already-loaded annotation volume with no network access, so it
+ * costs a few hundred milliseconds of arithmetic and nothing else.
+ */
+export function buildRetrogradeHeatmap(
+  volume: AnnotationVolume,
+  index: StructureIndex,
+  sided: SidedStrengths,
+  options: HeatmapOptions = {},
+): RetrogradeHeatmap {
+  const { stride: requestedStride, maxPoints } = {
+    ...DEFAULT_HEATMAP_OPTIONS,
+    ...options,
+  }
+
+  const space = volume.space
+  const [n0, n1, n2] = space.shape
+  const half = space.resolutionUm / 2
+
+  // Structure ids resolve to the same answer for every voxel carrying them, so
+  // the ancestor walk is done once per distinct label rather than 9.6 million
+  // times. On a real volume this is a few hundred lookups instead of millions.
+  // Cached per side, because the answer now depends on which half the voxel is
+  // in as well as on its label.
+  const resolved: Record<Side, Map<number, number | null>> = {
+    ipsi: new Map(),
+    contra: new Map(),
+  }
+  const painted = new Set<number>()
+
+  const positions: number[] = []
+  const values: number[] = []
+  let maxStrength = 0
+  let minStrength = Infinity
+  let stride = Math.max(1, Math.round(requestedStride))
+
+  // Raising the stride is how the cap is honoured: dropping points at random
+  // would thin a dense hub and a faint one by the same fraction, which looks
+  // like a measurement and is not.
+  for (;;) {
+    positions.length = 0
+    values.length = 0
+    painted.clear()
+    maxStrength = 0
+    minStrength = Infinity
+
+    for (let i0 = 0; i0 < n0; i0 += stride) {
+      for (let i1 = 0; i1 < n1; i1 += stride) {
+        for (let i2 = 0; i2 < n2; i2 += stride) {
+          const label = volume.labelAtVoxel(i0, i1, i2)
+          if (label === UNLABELLED) continue
+
+          // No orientation argument: there is one convention now, and an
+          // option here defaulting the other way is exactly how this cloud
+          // came to paint its ipsilateral half on the right while the sections
+          // beside it painted theirs on the left.
+          const side = voxelSide(space, { i0, i1, i2 })
+          const cache = resolved[side]
+          let strength = cache.get(label)
+          if (strength === undefined) {
+            strength = strengthForStructure(index, sided[side], label)
+            cache.set(label, strength)
+          }
+          if (strength === null || strength <= 0) continue
+
+          painted.add(label)
+          // Voxel centre, not its corner: a corner is half a voxel off the
+          // tissue it stands for, the same reason the projection clouds do it.
+          positions.push(
+            i0 * space.resolutionUm + half,
+            i1 * space.resolutionUm + half,
+            i2 * space.resolutionUm + half,
+          )
+          values.push(strength)
+          if (strength > maxStrength) maxStrength = strength
+          if (strength < minStrength) minStrength = strength
+        }
+      }
+    }
+
+    if (values.length <= maxPoints || stride >= 8) break
+    stride += 1
+  }
+
+  // Which sources were named but never drawn — a structure the volume does not
+  // carry at this resolution, or an id the ontology does not know.
+  const paintedStructureIds = new Set<number>()
+  for (const label of painted) {
+    const structure = index.byId.get(label)
+    const chain = structure ? structure.path : [label]
+    for (let i = chain.length - 1; i >= 0; i--) {
+      if (sided.ipsi.has(chain[i]!) || sided.contra.has(chain[i]!)) {
+        paintedStructureIds.add(chain[i]!)
+        break
+      }
+    }
+  }
+
+  const unpainted: number[] = []
+  for (const id of sided.ipsi.keys()) {
+    if (!paintedStructureIds.has(id)) unpainted.push(id)
+  }
+
+  return {
+    positionsUm: Float32Array.from(positions),
+    strengths: Float32Array.from(values),
+    pointCount: values.length,
+    maxStrength,
+    minStrength: Number.isFinite(minStrength) ? minStrength : 0,
+    paintedStructureIds: [...paintedStructureIds],
+    unpaintedStructureIds: unpainted,
+    stride,
+  }
+}
 
 /**
  * Stops of the heat ramp, dark to bright.
@@ -87,6 +254,39 @@ export function heatColor(t: number): [number, number, number] {
 }
 
 /**
+ * Per-point colours for a heat map.
+ *
+ * Stretched between the lowest and highest value actually present, not from
+ * zero. The first version normalised against the peak alone and lifted the low
+ * end with a square root — the right correction for projection densities,
+ * which are heavily skewed — and it was wrong for the measure this view ended
+ * up carrying. Source counts run 1 to 115 and most regions sit between 60 and
+ * 110, so nearly the whole brain landed at the top of the ramp and the hubs
+ * had nothing to stand out from.
+ *
+ * Stretching costs something real and the caption pays it back: the scale is
+ * relative, so two different measures produce two maps that look equally
+ * bright. Both ends of the range are stated beside the map for that reason.
+ */
+export function heatmapColors(heatmap: RetrogradeHeatmap): Float32Array {
+  const colors = new Float32Array(heatmap.pointCount * 3)
+  const span = heatmap.maxStrength - heatmap.minStrength
+  // One distinct value everywhere means there is nothing to rank, so it all
+  // takes the top of the ramp rather than dividing by zero.
+  const scale = span > 0 ? 1 / span : 0
+
+  for (let i = 0; i < heatmap.pointCount; i++) {
+    const t = span > 0 ? (heatmap.strengths[i]! - heatmap.minStrength) * scale : 1
+    const [r, g, b] = heatColor(t)
+    colors[i * 3] = r
+    colors[i * 3 + 1] = g
+    colors[i * 3 + 2] = b
+  }
+
+  return colors
+}
+
+/**
  * What the second brain draws.
  *
  * Two readings of the same answer, and they are not interchangeable:
@@ -99,106 +299,47 @@ export function heatColor(t: number): [number, number, number] {
 export type HeatmapMode = 'regions' | 'routes'
 
 export const HEATMAP_MODE_LABEL: Record<HeatmapMode, string> = {
-  regions: 'Injections — one blob per experiment, sized by its reported volume',
+  regions: 'Regions — paint the sources by their strength at the target',
   routes: 'Routes — draw the traced paths in',
 }
 
 /**
- * One injection, as a sphere at the place the tracer actually went.
+ * Source strength at the target, per structure and hemisphere.
  *
- * What the second brain draws instead of flooding a parcel. The region-painted
- * version took each experiment's primary injection structure and gave every
- * voxel of it the same value, so a CA3 injection coloured the whole of CA3 —
- * the millimetre beside the pipette and the far end of the field alike — and
- * every edge on screen fell on an annotation boundary. The picture looked like
- * a map of the parcellation because that is what it was.
+ * What the second brain paints. Unlike the convergence matrix beside it this
+ * *does* move with the target — that is the point of it: the question is "how
+ * hard does each region drive this coordinate", and the answer is a different
+ * picture half a millimetre away.
  *
- * This is the finer, and more honest, claim the data already supports:
- * `injection-coordinates` is where the needle went and `injection-volume` is
- * how much tracer came out, both reported per experiment.
+ * One value per structure, its strongest experiment, for the same reason the
+ * hub map keeps one: a region Allen injected nine times would otherwise read
+ * as nine times the source.
  *
- * It is still a model. Allen gives a volume, not an extent, so the radius is
- * sphere-equivalent, and a real injection runs long along the pipette track
- * rather than round. Overlapping spheres are the real signal in a cluster: six
- * CA3 injections into the same field show as six overlapping blobs, which is
- * what six experiments look like.
+ * Painted in the hemisphere the needle actually went into rather than in the
+ * one the source is ipsilateral *to*, so the colour sits where the tracer was.
+ * With the side filter on its default every injection is in the left
+ * hemisphere, so the whole painted half is the left one and the gray dots over
+ * it line up.
  */
-export interface InjectionBlob {
-  readonly experimentId: number
-  readonly structureAbbrev: string
-  readonly centre: Stereotaxic
-  /** Sphere-equivalent radius in millimetres, floored so a tiny one still shows. */
-  readonly radiusMm: number
-  /** That experiment's projection density at the target. */
-  readonly strength: number
-  /**
-   * `strength` on the ramp's 0..1, against the strongest blob present.
-   *
-   * From zero rather than stretched between the weakest and the strongest,
-   * which is the opposite of what the structure maps do and is right for the
-   * opposite reason. A count of 60 out of 110 is not "55% of a hub" — counts
-   * have no meaningful zero, so they are stretched. A projection density does:
-   * zero is no projection, so the weakest source here lands near the bottom of
-   * the ramp and looks as weak as it is.
-   */
-  readonly normalised: number
-}
-
-export interface InjectionBlobs {
-  readonly blobs: readonly InjectionBlob[]
-  readonly minStrength: number
-  readonly maxStrength: number
-  readonly structureCount: number
-}
-
-/**
- * Smallest radius a blob is drawn at, in millimetres.
- *
- * Allen reports volumes down to 0.0024 mm³, a 0.08 mm sphere — a couple of
- * pixels at any useful zoom, and invisible next to a 0.5 mm one. The floor
- * makes a weak experiment findable without making it look large; it is the
- * colour, not the size, that carries the strength.
- */
-export const MIN_BLOB_RADIUS_MM = 0.12
-
-export function buildInjectionBlobs(
-  sources: readonly RetrogradeSource[],
-): InjectionBlobs {
-  const unscaled: Omit<InjectionBlob, 'normalised'>[] = []
-  const structures = new Set<string>()
-  let minStrength = Number.POSITIVE_INFINITY
-  let maxStrength = 0
+export function backtraceStrengths(
+  sources: readonly {
+    structureId: number
+    densityAtTarget: number
+    injectionCentre: { ml: number } | null
+  }[],
+): SidedStrengths {
+  const ipsi = new Map<number, number>()
+  const contra = new Map<number, number>()
 
   for (const source of sources) {
-    // No reported centre means there is nowhere to put it, and the centre of
-    // the named structure would be a guess dressed as a measurement.
-    if (!source.injectionCentre) continue
-
-    const strength = source.densityAtTarget
-    if (!Number.isFinite(strength) || strength <= 0) continue
-
-    unscaled.push({
-      experimentId: source.experimentId,
-      structureAbbrev: source.structureAbbrev,
-      centre: source.injectionCentre,
-      radiusMm: Math.max(source.injectionRadiusMm ?? 0, MIN_BLOB_RADIUS_MM),
-      strength,
-    })
-    structures.add(source.structureAbbrev)
-    if (strength < minStrength) minStrength = strength
-    if (strength > maxStrength) maxStrength = strength
+    const ml = source.injectionCentre?.ml
+    if (typeof ml !== 'number') continue
+    const out = ml < 0 === IPSI_ON_LEFT ? ipsi : contra
+    const current = out.get(source.structureId) ?? 0
+    if (source.densityAtTarget > current) out.set(source.structureId, source.densityAtTarget)
   }
 
-  // Second pass, because the peak is only known once every source is in.
-  const peak = maxStrength > 0 ? maxStrength : 1
-  const blobs = unscaled.map((blob) => ({ ...blob, normalised: blob.strength / peak }))
-
-  return {
-    blobs,
-    minStrength: blobs.length > 0 ? minStrength : 0,
-    maxStrength,
-    structureCount: structures.size,
-  }
+  return { ipsi, contra }
 }
 
 export interface RouteHeat {

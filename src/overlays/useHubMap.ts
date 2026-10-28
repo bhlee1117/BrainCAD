@@ -36,10 +36,11 @@ import {
   type Side,
 } from './convergence.ts'
 import {
-  buildInjectionBlobs,
+  backtraceStrengths,
+  buildRetrogradeHeatmap,
   heatColor,
   strengthForStructure,
-  type InjectionBlobs,
+  type RetrogradeHeatmap,
 } from './heatmap.ts'
 import { UNLABELLED } from '../atlas/annotation.ts'
 import {
@@ -122,22 +123,44 @@ export function useConvergenceMatrix(enabled: boolean): HubMatrixState {
 }
 
 /**
- * The second brain: one blob per injection, coloured by its pull on the target.
+ * The painted brain, from the convergence matrix.
  *
- * The opposite kind of answer to the sections' hub map, which is a property of
- * the connectome and does not move. This is a property of the coordinate under
- * the crosshair and moves with it — and it is drawn at the grain the data
- * actually has, the injection, rather than flooded over the parcel the
- * injection happens to sit in.
+ * Depends on the metric and the threshold and on nothing about the target —
+ * which is the whole claim this view makes, and is worth being able to read
+ * off the dependency list.
  */
-export function useInjectionBlobs(
-  sources: readonly RetrogradeSource[],
-): InjectionBlobs | null {
+export function useHubHeatmap(
+  atlas: LoadedAtlas | null,
+  matrix: ConvergenceMatrix | null,
+  metric: BacktraceState['heatMetric'],
+  threshold: number,
+): RetrogradeHeatmap | null {
   return useMemo(() => {
-    if (sources.length === 0) return null
-    const built = buildInjectionBlobs(sources)
-    return built.blobs.length > 0 ? built : null
-  }, [sources])
+    if (!atlas || !matrix) return null
+    const sided = convergenceStrengths(matrix, metric, threshold)
+    if (sided.ipsi.size === 0 && sided.contra.size === 0) return null
+    return buildRetrogradeHeatmap(atlas.volume, atlas.index, sided)
+  }, [atlas, matrix, metric, threshold])
+}
+
+/**
+ * The second brain: every source painted by how hard it drives the target.
+ *
+ * The counterpart to `useHubHeatmap`, and the opposite kind of answer. The hub
+ * map is a property of the connectome and does not move; this is a property of
+ * the coordinate under the crosshair and moves with it. Both are drawn by the
+ * same cloud builder, so the two are directly comparable by eye.
+ */
+export function useBacktraceHeatmap(
+  atlas: LoadedAtlas | null,
+  sources: readonly RetrogradeSource[],
+): RetrogradeHeatmap | null {
+  return useMemo(() => {
+    if (!atlas || sources.length === 0) return null
+    const sided = backtraceStrengths(sources)
+    if (sided.ipsi.size === 0 && sided.contra.size === 0) return null
+    return buildRetrogradeHeatmap(atlas.volume, atlas.index, sided)
+  }, [atlas, sources])
 }
 
 export interface InjectionSitesState {
@@ -243,7 +266,7 @@ export function useSectionHubPaint(
       caption:
         `Sections coloured by convergence · structures · ${metric} · ` +
         `${formatConvergence(metric, min)} → ${formatConvergence(metric, max)} · ` +
-        `the left half is the injected hemisphere · grey is unmeasured · ` +
+        `the right half is the injected hemisphere · grey is unmeasured · ` +
         `the values are independent of the target`,
       paint: {
         valueAt: (voxel) => {
@@ -340,9 +363,11 @@ export function useVoxelPaint(
       range,
       paint: {
         valueAt: (voxel) => {
-          // Reflected at the annotation grain rather than by keeping a second
-          // copy of the blob: the map is symmetrised by construction, so the
-          // mirrored read *is* the other way round of the same answer.
+          // The blob is built with every injection mirrored onto the right,
+          // which is also where the screen draws the injected half, so this
+          // reflection is currently a no-op. It stays because the two facts
+          // are independent: flipping `INJECTED_SIDE_IS_RIGHT` must flip the
+          // picture, not silently leave it alone.
           // The blob stores the injected half on one side; the screen's
           // convention puts it on the left, so the read is reflected once.
           const index = voxelIndexFor(
@@ -402,7 +427,7 @@ export function useHeatmapSources(
  */
 export function describeHubMap(
   backtrace: BacktraceState,
-  blobs: InjectionBlobs | null,
+  heatmap: RetrogradeHeatmap | null,
   routeCount: number,
   injectionCount: number,
 ): string {
@@ -416,13 +441,15 @@ export function describeHubMap(
     return `Traced routes into the target · coloured by strength · ${scope}`
   }
 
-  if (!blobs) return 'No traced sources yet — trace a target first.'
+  if (!heatmap || heatmap.pointCount === 0) {
+    return 'No traced sources yet — trace a target first.'
+  }
 
   return (
-    `${blobs.blobs.length} injections, sized by volume and coloured by density at the ` +
-    `target · ${blobs.minStrength.toFixed(3)} → ${blobs.maxStrength.toFixed(3)} across ` +
-    `${blobs.structureCount} regions, left · ` +
-    `all ${injectionCount} injection sites in grey, right · moves with the target`
+    `Sources painted by projection density at the target · ` +
+    `${heatmap.minStrength.toFixed(3)} → ${heatmap.maxStrength.toFixed(3)} across ` +
+    `${heatmap.paintedStructureIds.length} regions · among all ${injectionCount} ` +
+    `injection sites in grey · moves with the target`
   )
 }
 
