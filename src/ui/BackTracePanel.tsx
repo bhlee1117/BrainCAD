@@ -232,6 +232,7 @@ export function BackTracePanel({
           message: '',
           sources,
           tracedCoord: at,
+          tracedMirrored: mirror,
           focusAbbrev: null,
         })
       } catch (error) {
@@ -255,21 +256,24 @@ export function BackTracePanel({
   const dv = coord?.dv
   const follow = backtrace.follow
   const traced = backtrace.tracedCoord
+  const tracedMirrored = backtrace.tracedMirrored
 
   useEffect(() => {
     if (!follow || ap === undefined || ml === undefined || dv === undefined) return
     const at = { ap, ml, dv }
-    if (sameCoord(at, traced)) return
+    if (sameCoord(at, traced) && tracedMirrored === mirror) return
 
     const timer = setTimeout(() => void trace(at), FOLLOW_DEBOUNCE_MS)
     return () => clearTimeout(timer)
-  }, [follow, ap, ml, dv, traced, trace])
+  }, [follow, ap, ml, dv, traced, tracedMirrored, mirror, trace])
 
   useEffect(() => () => inFlight.current?.abort(), [])
 
   const loading = backtrace.status === 'loading'
   const elapsed = useElapsed(loading)
-  const stale = coord !== null && !sameCoord(coord, backtrace.tracedCoord)
+  const stale =
+    coord !== null &&
+    (!sameCoord(coord, backtrace.tracedCoord) || backtrace.tracedMirrored !== mirror)
   const seed = coord ? seedPointParam(profile, coord) : null
   const cached = seed !== null && isSeedCached(seed)
 

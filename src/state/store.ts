@@ -210,6 +210,16 @@ export interface BacktraceState {
   readonly sources: readonly RetrogradeSource[]
   /** The coordinate the current result was fetched for. */
   readonly tracedCoord: Stereotaxic | null
+  /**
+   * Whether the stored answer was traced with the mirror on.
+   *
+   * Kept beside the coordinate because the answer depends on both, and the
+   * follow effect skips a re-trace when the coordinate has not moved. Without
+   * it, turning `Mirror the projection` on or off changed nothing on screen
+   * until the target was nudged — a control that looked broken while working
+   * perfectly well.
+   */
+  readonly tracedMirrored: boolean
   /** Re-trace automatically when the target moves. */
   readonly follow: boolean
   /** Draw the back-traced routes in the 3D view. */
@@ -252,12 +262,12 @@ export interface BacktraceState {
   /**
    * Whether a second 3D brain opens beside the first.
    *
-   * Additive, not an alternative. It used to be one of two values of a `Draw
-   * on` setting, so opening the second brain took the hub map *off* the
-   * sections — and the sections are where a hub map is actually read, because
-   * what a hub sits next to is behind something else in 3D. Losing that strip
-   * to gain the second view was a trade nobody asked for; now the sections
-   * keep their colouring and this only adds a view.
+   * On by default, and additive rather than an alternative. It used to be one
+   * of two values of a `Draw on` setting, so opening the second brain took the
+   * hub map *off* the sections — and the sections are where a hub map is
+   * actually read, because what a hub sits next to is behind something else in
+   * 3D. Losing that strip to gain the second view was a trade nobody asked
+   * for; now the sections keep their colouring and this only adds a view.
    */
   readonly showSecondBrain: boolean
   /** Whether the second brain paints regions or draws the traced routes. */
@@ -295,6 +305,7 @@ const INITIAL_BACKTRACE: BacktraceState = {
   message: '',
   sources: [],
   tracedCoord: null,
+  tracedMirrored: true,
   follow: true,
   showPaths: true,
   includeOverlapping: true,
@@ -302,7 +313,7 @@ const INITIAL_BACKTRACE: BacktraceState = {
   focusAbbrev: null,
   mirrorProjection: true,
   showHeatmap: true,
-  showSecondBrain: false,
+  showSecondBrain: true,
   heatMode: 'regions',
   heatGrain: 'voxels',
   heatMetric: 'count',
