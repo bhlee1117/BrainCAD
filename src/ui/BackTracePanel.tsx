@@ -433,7 +433,8 @@ export function BackTracePanel({
         </label>
         <p className="hint" style={{ marginTop: 0 }}>
           Allen injected one hemisphere far more than the other, so searching the
-          mirrored target too fills in the routes this side never sampled.
+          mirrored target too fills in the routes this side never sampled. On the
+          second brain they go in the left half, the measured ones on the right.
           {inferred > 0 && (
             <>
               {' '}
@@ -590,8 +591,9 @@ export function BackTracePanel({
                   </p>
                   <p className="hint" style={{ marginTop: 2 }}>
                     This target&rsquo;s own answer, so it moves with the target — the
-                    sections do not. Grey dots behind it are all 2,915 injection sites:
-                    no colour and no dots means nobody injected there.
+                    sections do not. Right half is measured, left half is the mirrored
+                    search. Grey dots are all 2,915 injection sites: no colour and no
+                    dots means nobody injected there.
                   </p>
                 </>
               )}

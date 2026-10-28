@@ -436,10 +436,13 @@ export function describeHubMap(
     return 'No traced sources yet — trace a target first.'
   }
 
+  const halves = backtrace.mirrorProjection
+    ? ' · measured right, mirrored left'
+    : ''
   return (
     `Sources of this target · ${heatmap.minStrength.toFixed(3)} → ` +
     `${heatmap.maxStrength.toFixed(3)} across ${heatmap.paintedStructureIds.length} ` +
-    `regions · ${injectionCount} injection sites in grey`
+    `regions${halves} · ${injectionCount} injection sites in grey`
   )
 }
 

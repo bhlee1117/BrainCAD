@@ -333,9 +333,11 @@ describe('backtraceStrengths', () => {
     structureId: number,
     densityAtTarget: number,
     ml: number | null,
+    mirrored = false,
   ) => ({
     structureId,
     densityAtTarget,
+    mirrored,
     injectionCentre: ml === null ? null : { ml },
   })
 
@@ -350,11 +352,23 @@ describe('backtraceStrengths', () => {
     expect(ipsi.get(463)).toBeCloseTo(0.9)
   })
 
-  it('reads a left-hemisphere injection as a right-hemisphere one', () => {
-    // Mirrored, not painted where the needle was. Painting each source on its
-    // own side moved the same anatomical region between halves depending on
-    // which animals happened to reach the target, so two mirror-image targets
-    // drew mirror-image pictures of agreeing data.
+  it('puts measured and inferred sources in different halves', () => {
+    // So the screen shows the answer twice — once as the corpus recorded it
+    // on this side, once as symmetry implies it from the other — instead of
+    // summing them into one half where the difference would be invisible.
+    const { ipsi, contra } = backtraceStrengths([
+      source(463, 0.5, 1.5),
+      source(549, 0.6, -2.0, true),
+    ])
+    expect(ipsi.get(463)).toBeCloseTo(0.5)
+    expect(ipsi.has(549)).toBe(false)
+    expect(contra.get(549)).toBeCloseTo(0.6)
+  })
+
+  it('reads a measured left-hemisphere injection as a right-hemisphere one', () => {
+    // Within the measured half, where the needle was does not decide the side
+    // — otherwise the same region moves between halves depending on which
+    // animals happened to reach the target.
     const { ipsi, contra } = backtraceStrengths([
       source(463, 0.5, 1.5),
       source(549, 0.6, -2.0),
@@ -370,6 +384,14 @@ describe('backtraceStrengths', () => {
     const left = backtraceStrengths([source(463, 0.5, -1.5)])
     const right = backtraceStrengths([source(463, 0.5, 1.5)])
     expect([...left.ipsi.entries()]).toEqual([...right.ipsi.entries()])
+  })
+
+  it('leaves the inferred half empty when the mirror is off', () => {
+    const { contra } = backtraceStrengths([
+      source(463, 0.5, 1.5),
+      source(549, 0.6, -2.0),
+    ])
+    expect(contra.size).toBe(0)
   })
 
   it('skips an experiment with no reported injection centre', () => {

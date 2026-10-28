@@ -361,9 +361,15 @@ which does:
   different picture.
 - **Routes** draws the traced paths into the target instead.
 
-**Every experiment is read as a right-hemisphere injection**, left-injected
-ones mirrored rather than painted where the needle was, so the whole answer
-lands in one half and nothing is drawn in the other. Painting each source on
+**The two halves are measured and inferred, not left and right.** Sources the
+corpus recorded at this target go in the injected half; sources inferred by
+mirroring the target go in the other. The answer is drawn twice, side by side,
+instead of summed into one half where the difference between what was measured
+and what was assumed would be invisible.
+
+Within the measured half, **every experiment is read as a right-hemisphere
+injection**, left-injected ones mirrored rather than painted where the needle
+was. Painting each source on
 its own side looked more faithful and made the view unreadable: the same
 anatomical source moved between halves depending on which animals happened to
 reach the target, so two mirror-image targets drew mirror-image pictures of

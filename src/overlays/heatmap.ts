@@ -303,58 +303,56 @@ export const HEATMAP_MODE_LABEL: Record<HeatmapMode, string> = {
 }
 
 /**
- * Source strength at the target, per structure, all on the injected side.
+ * Source strength at the target, per structure, split by how it was obtained.
  *
  * What the second brain paints. Unlike the convergence matrix beside it this
- * *does* move with the target — that is the point of it: the question is "how
- * hard does each region drive this coordinate", and the answer is a different
- * picture half a millimetre away.
+ * *does* move with the target — the question is "how hard does each region
+ * drive this coordinate", and the answer is a different picture half a
+ * millimetre away. One value per structure, its strongest experiment, for the
+ * same reason the hub map keeps one: a region Allen injected nine times would
+ * otherwise read as nine times the source.
  *
- * One value per structure, its strongest experiment, for the same reason the
- * hub map keeps one: a region Allen injected nine times would otherwise read
- * as nine times the source.
+ * ## The two halves are measured and inferred, not left and right
  *
- * ## Every experiment is read as a right-hemisphere injection
+ * Measured sources go in the injected half; sources inferred by mirroring the
+ * target go in the other. So the screen shows the answer twice — once as the
+ * corpus recorded it on this side, once as left-right symmetry implies it from
+ * the other — and the two are side by side instead of summed into one half
+ * where the difference would be invisible.
  *
- * A left-hemisphere injection is mirrored rather than painted where it was,
- * so the whole answer lands in the injected half and nothing is drawn on the
- * other. Painting each source where its own needle went looked more faithful
- * and made the view unreadable: the same anatomical source moved from one half
- * to the other depending on which animals happened to reach the target, so two
- * mirror-image targets drew mirror-image pictures of agreeing data. At CA1
- * ML ±1.5 the two share 18 of 22 source structures in the same rank order, and
- * the strongest experiment for VISp is left-injected for one and right-injected
- * for the other — enough to put the same region on opposite sides of the screen.
+ * Within the measured half every injection is read as a right-hemisphere one,
+ * mirrored if it was not. Painting each source where its own needle went moved
+ * the same anatomical region between halves depending on which animals
+ * happened to reach the target, so two mirror-image targets drew mirror-image
+ * pictures of agreeing data.
  *
- * Mirroring costs nothing real. Which hemisphere Allen injected is a fact about
- * the method, not about the mouse, and 75% of the corpus is on the right
- * already. What it is *not* is a claim about laterality: whether a source is
- * ipsilateral or contralateral to the target is read from the unmirrored
- * coordinates by `sourceSide`, and the side filter applies before this.
+ * The `ipsi`/`contra` keys are doing double duty here, and the names no longer
+ * describe what they carry: `ipsi` is whichever half the screen draws
+ * injections in, `contra` is the other. The laterality of a *source* is a
+ * separate fact and lives on `RetrogradeSource.side`.
  */
 export function backtraceStrengths(
   sources: readonly {
     structureId: number
     densityAtTarget: number
+    mirrored: boolean
     injectionCentre: { ml: number } | null
   }[],
 ): SidedStrengths {
-  const injected = new Map<number, number>()
+  const measured = new Map<number, number>()
+  const inferred = new Map<number, number>()
 
   for (const source of sources) {
-    // Still required, even though the side no longer decides anything: a row
-    // with no reported centre is one whose injection was never located.
+    // A row with no reported centre is one whose injection was never located.
     if (!source.injectionCentre) continue
-    const current = injected.get(source.structureId) ?? 0
+    const out = source.mirrored ? inferred : measured
+    const current = out.get(source.structureId) ?? 0
     if (source.densityAtTarget > current) {
-      injected.set(source.structureId, source.densityAtTarget)
+      out.set(source.structureId, source.densityAtTarget)
     }
   }
 
-  // `ipsi` *is* the injected half — that is what the name means here and what
-  // `voxelSide` resolves it to, whichever way round the screen draws it — so
-  // putting everything there is the mirroring, and the other half stays empty.
-  return { ipsi: injected, contra: new Map() }
+  return { ipsi: measured, contra: inferred }
 }
 
 export interface RouteHeat {
